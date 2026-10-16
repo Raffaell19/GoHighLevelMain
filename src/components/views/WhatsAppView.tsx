@@ -38,7 +38,7 @@ export function WhatsAppView() {
   // Estados locais para configuração da conexão
   const config = currentSubaccount.whatsappConfig;
   const [selectedProvider, setSelectedProvider] = useState<WhatsAppProvider>(config.provider);
-  const [instanceName, setInstanceName] = useState(config.instanceName || 'flowlevel_main');
+  const [instanceName, setInstanceName] = useState(config.instanceName || 'alves_climatizacao');
   const [apiUrl, setApiUrl] = useState(config.evolutionApiUrl || 'https://evolution-api-kix9.onrender.com');
   const [apiKey, setApiKey] = useState(config.evolutionApiKey || 'flowlevel_secret_key_2026');
   const [metaPhoneId, setMetaPhoneId] = useState(config.metaPhoneNumberId || '102938475610293');
@@ -53,9 +53,11 @@ export function WhatsAppView() {
 
   const fetchLiveQrCode = useCallback(async () => {
     setIsLoadingQr(true);
+    const cleanInst = (instanceName || 'alves_climatizacao').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanUrl = (apiUrl || 'https://evolution-api-kix9.onrender.com').trim().replace(/\s+/g, '-');
     try {
       const res = await fetch(
-        `/api/whatsapp/qrcode?instance=${encodeURIComponent(instanceName)}&apiUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}`
+        `/api/whatsapp/qrcode?instance=${encodeURIComponent(cleanInst)}&apiUrl=${encodeURIComponent(cleanUrl)}&apiKey=${encodeURIComponent(apiKey.trim())}`
       );
       const data = await res.json();
       if (data.connected || data.state === 'open') {
@@ -433,7 +435,7 @@ export function WhatsAppView() {
                   <input
                     type="text"
                     value={instanceName}
-                    onChange={(e) => setInstanceName(e.target.value)}
+                    onChange={(e) => setInstanceName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '_'))}
                     className="w-full p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -442,7 +444,7 @@ export function WhatsAppView() {
                   <input
                     type="text"
                     value={apiUrl}
-                    onChange={(e) => setApiUrl(e.target.value)}
+                    onChange={(e) => setApiUrl(e.target.value.trim().replace(/\s+/g, '-'))}
                     className="w-full p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
