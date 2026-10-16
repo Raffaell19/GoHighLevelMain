@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { generateWithAI } from '@/lib/ai';
 
 // GET: Verificação de Webhook para Meta Cloud API Oficial
 export async function GET(request: NextRequest) {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ error: 'Token de verificação inválido' }, { status: 403 });
 }
 
-// POST: Receptor universal de mensagens WhatsApp (Evolution API & Meta Cloud API)
+// POST: Receptor universal de mensagens WhatsApp + Motor de Atendimento IA Autônomo
 export async function POST(request: NextRequest) {
   try {
     const supabase = getServiceSupabase();
@@ -30,26 +31,33 @@ export async function POST(request: NextRequest) {
     let senderName = '';
     let messageText = '';
     let isFromMe = false;
+    let isGroup = false;
     let targetInstanceOrPhone = '';
 
     // 1. Detectar payload da Evolution API
     if (payload.event === 'messages.upsert' || payload.data?.key) {
       const msgData = payload.data;
-      isFromMe = msgData?.key?.fromMe || false;
+      const keyObj = msgData?.key || {};
+      isFromMe = keyObj.fromMe || false;
 
       // Ignora mensagens enviadas pelo próprio sistema/atendente
       if (isFromMe) {
         return NextResponse.json({ status: 'ignored_from_me' });
       }
 
-      const remoteJid = msgData?.key?.remoteJid || '';
-      senderPhone = remoteJid.replace('@s.whatsapp.net', '').replace(/[^0-9]/g, '');
+      const remoteJid = keyObj.remoteJid || '';
+      isGroup = remoteJid.endsWith('@g.us') || remoteJid.includes('@broadcast');
+
+      // Em novas versões do WhatsApp com privacidade/LID, o número real vem em remoteJidAlt
+      const rawJid = keyObj.remoteJidAlt || remoteJid;
+      senderPhone = rawJid.replace('@s.whatsapp.net', '').replace('@lid', '').replace(/[^0-9]/g, '');
+
       senderName = msgData?.pushName || `Contato ${senderPhone.slice(-4)}`;
       messageText =
         msgData?.message?.conversation ||
         msgData?.message?.extendedTextMessage?.text ||
         '[Mídia ou Áudio]';
-      targetInstanceOrPhone = payload.instance || '';
+      targetInstanceOrPhone = payload.instance || 'alves-climatiza--o---el-trica';
     }
     // 2. Detectar payload da Meta Cloud API Oficial
     else if (payload.object === 'whatsapp_business_account') {
@@ -72,7 +80,7 @@ export async function POST(request: NextRequest) {
       senderPhone = payload.phone.replace(/[^0-9]/g, '');
       senderName = payload.name || `Contato ${senderPhone.slice(-4)}`;
       messageText = payload.text;
-      targetInstanceOrPhone = payload.subaccountId || '';
+      targetInstanceOrPhone = payload.subaccountId || 'alves-climatiza--o---el-trica';
     }
 
     if (!senderPhone || !messageText) {
@@ -88,7 +96,8 @@ export async function POST(request: NextRequest) {
         subaccount = subs.find(
           (s) =>
             s.id === targetInstanceOrPhone ||
-            s.phone.replace(/[^0-9]/g, '').includes(targetInstanceOrPhone)
+            s.phone.replace(/[^0-9]/g, '').includes(targetInstanceOrPhone) ||
+            s.name.toLowerCase().includes('alves')
         );
       }
       if (!subaccount) {
@@ -200,6 +209,72 @@ export async function POST(request: NextRequest) {
       console.log(`[Webhook WhatsApp] Novo Lead criado automaticamente no CRM! ID: ${leadId}`);
     }
 
+    // 7. MOTOR DE CHATBOT IA AUTÔNOMO (Responde o cliente de volta no WhatsApp em tempo real)
+    let botReplied = false;
+    let botReplyText = '';
+
+    const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evolution-api-kix9.onrender.com';
+    const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'flowlevel_secret_key_2026';
+    const activeInstance = targetInstanceOrPhone || 'alves-climatiza--o---el-trica';
+
+    if (!isGroup && senderPhone && messageText && messageText !== '[Mídia ou Áudio]') {
+      try {
+        const aiPrompt = `Você é a atendente virtual e especialista comercial da empresa "${subaccount.name}" (segmento: ${subaccount.segment || 'Serviços'}).
+O cliente se chama "${senderName}" e enviou a seguinte mensagem no WhatsApp:
+"${messageText}"
+
+Gere uma resposta educada, acolhedora, profissional e objetiva (máximo 2 frases) para responder imediatamente ao cliente no WhatsApp, tirando dúvidas ou perguntando como podemos ajudá-lo hoje. Responda de forma humanizada e não use placeholders como [Seu Nome].`;
+
+        botReplyText = await generateWithAI({ prompt: aiPrompt });
+
+        if (botReplyText && botReplyText.trim()) {
+          console.log(`[AI Chatbot] Resposta para ${senderPhone}: "${botReplyText.slice(0, 80)}..."`);
+
+          // Disparar resposta no WhatsApp via Evolution API
+          const sendRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(activeInstance)}`, {
+            method: 'POST',
+            headers: {
+              'apikey': EVOLUTION_KEY,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              number: senderPhone,
+              text: botReplyText,
+            }),
+          });
+
+          console.log(`[AI Chatbot Disparo] Status de envio: ${sendRes.status}`);
+
+          if (sendRes.ok) {
+            botReplied = true;
+
+            // Salvar resposta do robô no Supabase
+            if (contactId) {
+              await supabase.from('whatsapp_messages').insert([
+                {
+                  subaccount_id: subaccount.id,
+                  contact_id: contactId,
+                  sender: 'agent',
+                  text: botReplyText,
+                  status: 'sent',
+                },
+              ]);
+
+              await supabase
+                .from('whatsapp_contacts')
+                .update({
+                  last_message: botReplyText,
+                  last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                })
+                .eq('id', contactId);
+            }
+          }
+        }
+      } catch (aiErr: any) {
+        console.error('[AI Chatbot Erro]', aiErr.message);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       subaccountId: subaccount.id,
@@ -208,6 +283,8 @@ export async function POST(request: NextRequest) {
       leadCreated,
       leadId,
       messageText,
+      botReplied,
+      botReply: botReplyText,
     });
   } catch (err: any) {
     console.error('[Webhook WhatsApp Error]:', err);
