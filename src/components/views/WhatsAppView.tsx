@@ -54,7 +54,9 @@ export function WhatsAppView() {
   const fetchLiveQrCode = useCallback(async () => {
     setIsLoadingQr(true);
     try {
-      const res = await fetch(`/api/whatsapp/qrcode?instance=${encodeURIComponent(instanceName)}`);
+      const res = await fetch(
+        `/api/whatsapp/qrcode?instance=${encodeURIComponent(instanceName)}&apiUrl=${encodeURIComponent(apiUrl)}&apiKey=${encodeURIComponent(apiKey)}`
+      );
       const data = await res.json();
       if (data.connected || data.state === 'open') {
         setIsLiveConnected(true);
@@ -72,7 +74,7 @@ export function WhatsAppView() {
     } finally {
       setIsLoadingQr(false);
     }
-  }, [instanceName]);
+  }, [instanceName, apiUrl, apiKey]);
 
   // Carregar QR code ao abrir a aba de conexão
   useEffect(() => {
@@ -487,7 +489,10 @@ export function WhatsAppView() {
                           />
                         </div>
                       ) : (
-                        <div className="w-44 h-44 bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-dashed border-emerald-500/50 flex flex-col items-center justify-center p-3 text-center">
+                        <div
+                          onClick={fetchLiveQrCode}
+                          className="w-44 h-44 bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-dashed border-emerald-500/50 flex flex-col items-center justify-center p-3 text-center cursor-pointer hover:border-emerald-400 transition"
+                        >
                           <RefreshCw className={`w-8 h-8 text-emerald-500 ${isLoadingQr ? 'animate-spin' : ''}`} />
                           <span className="text-[11px] font-semibold text-slate-500 mt-2">
                             {isLoadingQr ? 'Gerando QR Code...' : 'Clique para carregar'}
