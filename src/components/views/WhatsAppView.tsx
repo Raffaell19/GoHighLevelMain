@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   MessageSquare,
   QrCode,
@@ -38,12 +38,50 @@ export function WhatsAppView() {
   // Estados locais para configuração da conexão
   const config = currentSubaccount.whatsappConfig;
   const [selectedProvider, setSelectedProvider] = useState<WhatsAppProvider>(config.provider);
-  const [instanceName, setInstanceName] = useState(config.instanceName || 'instancia-principal');
-  const [apiUrl, setApiUrl] = useState(config.evolutionApiUrl || 'https://api.evolution.suaempresa.com');
-  const [apiKey, setApiKey] = useState(config.evolutionApiKey || 'evo_key_882910398');
+  const [instanceName, setInstanceName] = useState(config.instanceName || 'flowlevel_main');
+  const [apiUrl, setApiUrl] = useState(config.evolutionApiUrl || 'https://evolution-api-kix9.onrender.com');
+  const [apiKey, setApiKey] = useState(config.evolutionApiKey || 'flowlevel_secret_key_2026');
   const [metaPhoneId, setMetaPhoneId] = useState(config.metaPhoneNumberId || '102938475610293');
   const [metaToken, setMetaToken] = useState(config.metaAccessToken || 'EAAG...metaTokenExemplo');
   const [isConnecting, setIsConnecting] = useState(false);
+
+  // Live QR Code e Conexão Real da Evolution API
+  const [liveQrCode, setLiveQrCode] = useState<string | null>(null);
+  const [qrState, setQrState] = useState<string>('connecting');
+  const [isLoadingQr, setIsLoadingQr] = useState<boolean>(false);
+  const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
+
+  const fetchLiveQrCode = useCallback(async () => {
+    setIsLoadingQr(true);
+    try {
+      const res = await fetch(`/api/whatsapp/qrcode?instance=${encodeURIComponent(instanceName)}`);
+      const data = await res.json();
+      if (data.connected || data.state === 'open') {
+        setIsLiveConnected(true);
+        setQrState('open');
+        setLiveQrCode(null);
+      } else {
+        setIsLiveConnected(false);
+        setQrState(data.state || 'connecting');
+        if (data.base64) {
+          setLiveQrCode(data.base64);
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao buscar QR code:', err);
+    } finally {
+      setIsLoadingQr(false);
+    }
+  }, [instanceName]);
+
+  // Carregar QR code ao abrir a aba de conexão
+  useEffect(() => {
+    if (activeTab === 'connection' && selectedProvider === 'evolution') {
+      fetchLiveQrCode();
+      const interval = setInterval(fetchLiveQrCode, 8000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, selectedProvider, fetchLiveQrCode]);
 
   const activeMessages = activeContact ? messages[activeContact.id] || [] : [];
 
@@ -412,23 +450,81 @@ export function WhatsAppView() {
                 </div>
               </div>
 
-              {/* QR Code Demo Section */}
-              <div className="mt-4 p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center gap-4">
-                <div className="w-28 h-28 bg-slate-100 dark:bg-slate-800 rounded-lg border-2 border-dashed border-emerald-500 flex flex-col items-center justify-center p-2 text-center">
-                  <QrCode className="w-12 h-12 text-emerald-500" />
-                  <span className="text-[9px] text-slate-400 mt-1">QR Code Ativo</span>
-                </div>
-                <div className="text-xs space-y-1">
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">
-                    Escanear no WhatsApp do Aparelho
-                  </p>
-                  <p className="text-slate-400">
-                    Abra o WhatsApp no celular $\rightarrow$ Configurações $\rightarrow$ Aparelhos Conectados $\rightarrow$ Conectar um Aparelho.
-                  </p>
-                  <p className="text-emerald-500 font-semibold pt-1">
-                    ✓ Status atual: Instância conectada e pronta para disparo
-                  </p>
-                </div>
+              {/* QR Code Live Section */}
+              <div className="mt-4 p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                {isLiveConnected || qrState === 'open' ? (
+                  <div className="flex items-center gap-4 text-xs">
+                    <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <h5 className="font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                          WhatsApp Conectado e Operando!
+                        </h5>
+                      </div>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        Sua instância <strong>{instanceName}</strong> está sincronizada. Todas as mensagens recebidas gerarão Leads e dispararão IA automaticamente.
+                      </p>
+                      <button
+                        onClick={fetchLiveQrCode}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 underline text-[11px] pt-1"
+                      >
+                        Verificar status novamente
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <div className="relative group shrink-0">
+                      {liveQrCode ? (
+                        <div className="p-2 bg-white rounded-xl shadow-lg border-2 border-emerald-500/30">
+                          <img
+                            src={liveQrCode}
+                            alt="WhatsApp QR Code"
+                            className="w-44 h-44 object-contain rounded-lg"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-44 h-44 bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-dashed border-emerald-500/50 flex flex-col items-center justify-center p-3 text-center">
+                          <RefreshCw className={`w-8 h-8 text-emerald-500 ${isLoadingQr ? 'animate-spin' : ''}`} />
+                          <span className="text-[11px] font-semibold text-slate-500 mt-2">
+                            {isLoadingQr ? 'Gerando QR Code...' : 'Clique para carregar'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-xs space-y-2 flex-1">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                          <Smartphone className="w-4 h-4 text-emerald-500" />
+                          <span>Escanear QR Code no seu WhatsApp</span>
+                        </h5>
+                        <button
+                          onClick={fetchLiveQrCode}
+                          disabled={isLoadingQr}
+                          className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${isLoadingQr ? 'animate-spin' : ''}`} />
+                          <span>{isLoadingQr ? 'Atualizando...' : 'Atualizar QR Code'}</span>
+                        </button>
+                      </div>
+
+                      <ol className="text-slate-600 dark:text-slate-300 space-y-1 pl-4 list-decimal text-[11px]">
+                        <li>Abra o <strong>WhatsApp</strong> no seu celular</li>
+                        <li>Toque em <strong>Configurações</strong> (ou 3 pontinhos) &gt; <strong>Aparelhos Conectados</strong></li>
+                        <li>Toque em <strong>Conectar um Aparelho</strong> e aponte a câmera para o QR Code ao lado</li>
+                      </ol>
+
+                      <div className="p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <span>Aguardando leitura do aparelho... Conexão automática em tempo real.</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
