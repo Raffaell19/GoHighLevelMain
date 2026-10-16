@@ -163,9 +163,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadInitial();
   }, []);
 
-  // Quando currentSubaccount muda, busca os estágios e leads específicos dela
+  // Carregar dados da subconta ativa e sincronizar em tempo real
   useEffect(() => {
     if (!currentSubaccount?.id) return;
+
+    let isMounted = true;
 
     async function loadTenantData() {
       try {
@@ -181,14 +183,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             color: st.color || 'border-blue-500 text-blue-500',
             order: st.sort_order,
           }));
-          setStages(loadedStages);
+          if (isMounted) setStages(loadedStages);
         }
 
-        // 2. Buscar Leads
+        // 2. Buscar Leads do Supabase
         const resLeads = await fetch(`/api/leads?subaccountId=${currentSubaccount.id}`);
         const dataLeads = await resLeads.json();
 
-        if (dataLeads.leads) {
+        if (dataLeads.leads && isMounted) {
           const firstStageId = loadedStages[0]?.id || 'stage-1';
           const stageIds = new Set(loadedStages.map((s) => s.id));
 
@@ -201,7 +203,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               phone: l.phone || '',
               email: l.email || '',
               value: Number(l.value) || 0,
-              // Se o estágio não existir mais ou for nulo, joga no primeiro estágio (Novos Leads)
               stageId: l.stage_id && stageIds.has(l.stage_id) ? l.stage_id : firstStageId,
               tags: l.tags || [],
               notes: l.notes || '',
@@ -211,12 +212,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }))
           );
         }
+
+        // 3. Buscar Contatos e Mensagens do WhatsApp
+        const resChat = await fetch(`/api/whatsapp/chat?subaccountId=${currentSubaccount.id}`);
+        const dataChat = await resChat.json();
+
+        if (dataChat.contacts && isMounted) {
+          setContacts(dataChat.contacts);
+          setActiveContact((prev) => prev || dataChat.contacts[0] || null);
+        }
+
+        if (dataChat.messages && isMounted) {
+          setMessages(dataChat.messages);
+        }
       } catch (err) {
-        console.error('Erro ao carregar dados do tenant:', err);
+        console.error('Erro ao sincronizar dados em tempo real:', err);
       }
     }
 
     loadTenantData();
+    // Polling a cada 3.5 segundos para atualizar leads e conversas do WhatsApp em tempo real
+    const interval = setInterval(loadTenantData, 3500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [currentSubaccount?.id]);
 
   // Mover lead entre estágios (Atualiza State + Banco Supabase)
@@ -307,8 +328,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const sendMessage = (contactId: string, text: string) => {
+  const sendMessage = async (contactId: string, text: string) => {
     if (!text.trim()) return;
+
+    const targetContact = contacts.find((c) => c.id === contactId);
 
     const newMsg: WhatsAppMessage = {
       id: `m-${Date.now()}`,
@@ -331,6 +354,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           : c
       )
     );
+
+    try {
+      await fetch('/api/whatsapp/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactId,
+          phone: targetContact?.phone || '',
+          text,
+          subaccountId: currentSubaccount.id,
+          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
+        }),
+      });
+    } catch (err) {
+      console.error('Erro ao enviar mensagem para o WhatsApp:', err);
+    }
   };
 
   const updateWhatsAppConfig = (subaccountId: string, config: Partial<Subaccount['whatsappConfig']>) => {
