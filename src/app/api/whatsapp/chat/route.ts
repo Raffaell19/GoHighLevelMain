@@ -4,7 +4,12 @@ import { getServiceSupabase } from '@/lib/supabase';
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evolution-api-kix9.onrender.com';
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'flowlevel_secret_key_2026';
 
-// GET: Buscar contatos e mensagens da subconta
+function isUuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+// GET: Buscar contatos e mensagens da subconta (com resolução automática de tenant)
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -12,10 +17,20 @@ export async function GET(req: NextRequest) {
 
     const supabase = getServiceSupabase();
 
-    // 1. Buscar contatos
+    let resolvedSubId = isUuid(subaccountId) ? subaccountId : null;
+
+    // Se o subaccountId for 'sub-1' ou nulo, busca a primeira subconta real do banco
+    if (!resolvedSubId) {
+      const { data: subs } = await supabase.from('subaccounts').select('id').limit(1);
+      if (subs && subs.length > 0) {
+        resolvedSubId = subs[0].id;
+      }
+    }
+
+    // 1. Buscar contatos ordenados por última atualização
     let contactQuery = supabase.from('whatsapp_contacts').select('*').order('created_at', { ascending: false });
-    if (subaccountId) {
-      contactQuery = contactQuery.eq('subaccount_id', subaccountId);
+    if (resolvedSubId) {
+      contactQuery = contactQuery.eq('subaccount_id', resolvedSubId);
     }
     const { data: contacts, error: errC } = await contactQuery;
 
@@ -26,8 +41,8 @@ export async function GET(req: NextRequest) {
 
     // 2. Buscar mensagens
     let messageQuery = supabase.from('whatsapp_messages').select('*').order('created_at', { ascending: true });
-    if (subaccountId) {
-      messageQuery = messageQuery.eq('subaccount_id', subaccountId);
+    if (resolvedSubId) {
+      messageQuery = messageQuery.eq('subaccount_id', resolvedSubId);
     }
     const { data: messages, error: errM } = await messageQuery;
 
@@ -54,9 +69,9 @@ export async function GET(req: NextRequest) {
 
     const formattedContacts = (contacts || []).map((c) => ({
       id: c.id,
-      name: c.name,
-      phone: c.phone,
-      avatar: c.avatar,
+      name: c.name || 'Contato WhatsApp',
+      phone: c.phone || '',
+      avatar: c.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
       lastMessage: c.last_message || '',
       lastMessageTime: c.last_message_time || 'Agora',
       unreadCount: c.unread_count || 0,
@@ -87,7 +102,15 @@ export async function POST(req: NextRequest) {
     const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
     const instance = instanceName || 'alves-climatiza--o---el-trica';
 
-    // 1. Tentar enviar via Evolution API no celular real
+    let resolvedSubId = isUuid(subaccountId) ? subaccountId : null;
+    if (!resolvedSubId) {
+      const { data: subs } = await supabase.from('subaccounts').select('id').limit(1);
+      if (subs && subs.length > 0) {
+        resolvedSubId = subs[0].id;
+      }
+    }
+
+    // 1. Enviar mensagem real via Evolution API
     if (cleanPhone) {
       try {
         const evoRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance)}`, {
@@ -112,7 +135,7 @@ export async function POST(req: NextRequest) {
     const { data: savedMsg, error: saveErr } = await supabase
       .from('whatsapp_messages')
       .insert({
-        subaccount_id: subaccountId,
+        subaccount_id: resolvedSubId,
         contact_id: contactId,
         sender: 'agent',
         text: text,

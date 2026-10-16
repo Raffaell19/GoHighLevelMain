@@ -47,13 +47,18 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
   };
 
   const handleOpenWhatsApp = (lead: Lead) => {
-    const contact = contacts.find((c) => c.phone === lead.phone);
+    const leadClean = (lead.phone || '').replace(/[^0-9]/g, '');
+    const contact = contacts.find((c) => {
+      const cClean = (c.phone || '').replace(/[^0-9]/g, '');
+      return (
+        (cClean && leadClean && (cClean.includes(leadClean.slice(-8)) || leadClean.includes(cClean.slice(-8)))) ||
+        (c.name && lead.name && c.name.toLowerCase().trim() === lead.name.toLowerCase().trim())
+      );
+    });
     if (contact) {
       setActiveContact(contact);
-      setActiveTab('whatsapp');
-    } else {
-      setActiveTab('whatsapp');
     }
+    setActiveTab('whatsapp');
   };
 
   return (

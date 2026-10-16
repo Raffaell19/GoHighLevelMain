@@ -142,9 +142,14 @@ export function WhatsAppView() {
     }, 1200);
   };
 
-  const filteredContacts = contacts.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm)
-  );
+  const filteredContacts = contacts.filter((c) => {
+    if (!c) return false;
+    const term = (searchTerm || '').trim().toLowerCase();
+    if (!term) return true;
+    const nameMatch = (c.name || '').toLowerCase().includes(term);
+    const phoneMatch = (c.phone || '').includes(term);
+    return nameMatch || phoneMatch;
+  });
 
   return (
     <div className="h-[calc(100vh-8.5rem)] flex flex-col space-y-3">

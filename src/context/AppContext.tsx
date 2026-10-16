@@ -23,7 +23,7 @@ const defaultStages: PipelineStage[] = [
 
 const initialSubaccounts: Subaccount[] = [
   {
-    id: 'sub-1',
+    id: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
     name: 'Alves Climatização & Elétrica',
     segment: 'Serviços & Instalações',
     logo: '⚡',
