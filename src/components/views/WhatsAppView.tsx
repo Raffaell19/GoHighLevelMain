@@ -246,6 +246,16 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
     }
   }, [activeTab, selectedProvider, fetchLiveQrCode]);
 
+  // Manter servidor do WhatsApp acordado em segundo plano (evita sleep do Render)
+  useEffect(() => {
+    const keepWarm = () => {
+      fetch('/api/cron/keepalive').catch(() => {});
+    };
+    keepWarm();
+    const warmInterval = setInterval(keepWarm, 4 * 60 * 1000);
+    return () => clearInterval(warmInterval);
+  }, []);
+
   const activeMessages = activeContact ? messages[activeContact.id] || [] : [];
 
   // Rolar automaticamente para o fim da conversa ao receber novas mensagens
