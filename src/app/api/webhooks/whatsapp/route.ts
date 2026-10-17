@@ -261,13 +261,31 @@ export async function POST(request: NextRequest) {
 
           const isHandoff = triggers.some((trig: string) => lowerMsg.includes(trig));
 
+          // Buscar histórico recente da conversa para contexto
+          let historyText = '';
+          if (contactId) {
+            const { data: recentMsgs } = await supabase
+              .from('whatsapp_messages')
+              .select('sender, text')
+              .eq('contact_id', contactId)
+              .order('created_at', { ascending: false })
+              .limit(4);
+
+            if (recentMsgs && recentMsgs.length > 0) {
+              historyText = recentMsgs
+                .reverse()
+                .map((m) => `[${m.sender === 'contact' ? 'Cliente' : 'Atendente'}]: ${m.text}`)
+                .join('\n');
+            }
+          }
+
           let aiPrompt = '';
           if (isHandoff) {
             botReplyText = `Olá, ${senderName}! Perfeito. Já sinalizei para a nossa equipe e em instantes um de nossos atendentes humanos vai assumir a conversa para lhe atender pessoalmente por aqui.`;
           } else {
             aiPrompt = `Você é "${agentConfig.botName || 'Sofia'}", ${agentConfig.botRole || 'Consultora Especialista'} da empresa "${subaccount.name}" (${subaccount.segment || 'Serviços'}).
 
-Seu tom de atendimento deve ser: ${agentConfig.botTone || 'consultivo, empático e focado em resolver a dúvida do cliente'}.
+Seu tom de atendimento deve ser: ${agentConfig.botTone || 'consultivo, empático e acolhedor'}.
 
 BASE DE CONHECIMENTO DA EMPRESA:
 - SERVIÇOS & TABELA DE PREÇOS ESTIMADOS:
@@ -285,17 +303,24 @@ ${agentConfig.businessHours || 'Horário comercial.'}
 - INSTRUÇÕES ESPECIAIS DE ATENDIMENTO:
 ${agentConfig.customInstructions || 'Seja prestativo e colete informações sobre o serviço necessário.'}
 
+${historyText ? `HISTÓRICO RECENTE DA CONVERSA:\n${historyText}\n` : ''}
 DADOS DA MENSAGEM DO CLIENTE:
 - Nome do cliente: "${senderName}"
 - Mensagem recebida no WhatsApp: "${messageText}"
 
-REGRAS OBRIGATÓRIAS:
-1. Responda diretamente ao que o cliente perguntou usando a base de conhecimento acima.
-2. Seja natural, humanizado e direto (máximo 2 a 3 frases).
-3. Nunca invente informações fora do escopo ou use placeholders como [Seu Nome].
-4. Termine incentivando o cliente a informar mais detalhes (como bairro ou modelo) ou convidando para agendar a visita técnica.`;
+REGRAS CRÍTICAS DE COERÊNCIA E NATURALIDADE CONVERSACIONAL:
+1. Responda DIRETAMENTE ao que o cliente falou:
+   - Se o cliente apenas enviou uma SAUDAÇÃO (ex: "Boa noite tudo bem?", "Olá", "Oi"), retribua a saudação de forma educada, amigável e natural (ex: "Boa noite, ${senderName}! Tudo ótimo por aqui, e com você? Como posso te ajudar hoje?"). NUNCA comece falando de orçamento ou pedindo detalhes técnicos para um simples cumprimento!
+   - Se o cliente perguntou PREÇO, PRAZO ou SERVIÇO, consulte a base de conhecimento e informe a estimativa com clareza.
+   - Se o cliente AGRADECEU ou CONFIRMOU, finalize de forma cordial desejando um excelente dia/noite.
+2. Seja natural, humanizado e direto (máximo 1 a 2 frases curtas, ideal para leitura no celular).
+3. Nunca invente informações fora do escopo ou use placeholders como [Seu Nome].`;
 
-            botReplyText = await generateWithAI({ prompt: aiPrompt });
+            botReplyText = await generateWithAI({
+              prompt: aiPrompt,
+              apiKey: agentConfig.geminiApiKey || agentConfig.openaiApiKey,
+              provider: agentConfig.geminiApiKey ? 'gemini' : agentConfig.openaiApiKey ? 'openai' : undefined,
+            });
           }
 
           if (botReplyText && botReplyText.trim()) {

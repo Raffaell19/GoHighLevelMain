@@ -26,6 +26,8 @@ const DEFAULT_AGENT_CONFIG = {
 3. Transmita segurança técnica e convide para agendar uma visita ou enviar fotos.
 4. Responda em no máximo 2 a 3 frases concisas para manter a conversa fluida no WhatsApp.`,
   humanHandoffKeywords: 'atendente, falar com atendente, humano, atendente humano, pessoa, reclamacao, urgente',
+  geminiApiKey: '',
+  openaiApiKey: '',
 };
 
 // GET: Buscar treinamento e configurações do Atendente IA da subconta

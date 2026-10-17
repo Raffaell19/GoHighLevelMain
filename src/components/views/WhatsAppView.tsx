@@ -79,6 +79,8 @@ export function WhatsAppView() {
     `1. Sempre seja cordial, rápida e atenciosa.\n2. Pergunte qual a capacidade/modelo do aparelho e em qual bairro será feito o serviço para estimar o orçamento com precisão.\n3. Transmita segurança técnica e convide para agendar uma visita ou enviar fotos.\n4. Responda em no máximo 2 a 3 frases concisas para manter a conversa fluida no WhatsApp.`
   );
   const [humanHandoffKeywords, setHumanHandoffKeywords] = useState('atendente, falar com atendente, humano, atendente humano, pessoa, reclamacao, urgente');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [isSavingAgent, setIsSavingAgent] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -108,6 +110,8 @@ export function WhatsAppView() {
           if (cfg.businessHours) setBusinessHours(cfg.businessHours);
           if (cfg.customInstructions) setCustomInstructions(cfg.customInstructions);
           if (cfg.humanHandoffKeywords) setHumanHandoffKeywords(cfg.humanHandoffKeywords);
+          if (cfg.geminiApiKey) setGeminiApiKey(cfg.geminiApiKey);
+          if (cfg.openaiApiKey) setOpenaiApiKey(cfg.openaiApiKey);
         }
       } catch (err) {
         console.error('Erro ao buscar configuração do atendente:', err);
@@ -139,6 +143,8 @@ export function WhatsAppView() {
             businessHours,
             customInstructions,
             humanHandoffKeywords,
+            geminiApiKey,
+            openaiApiKey,
           },
         }),
       });
@@ -822,6 +828,57 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                   <p className="text-[10px] text-slate-500 mt-1">
                     Se o cliente enviar qualquer uma dessas palavras, o robô pausará a automação e avisará que um humano assumirá a conversa.
                   </p>
+                </div>
+              </div>
+
+              {/* 5. Chaves de API de Inteligência Artificial */}
+              <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-800 space-y-4 text-xs">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>5. Chave de API de IA (Google Gemini / OpenAI)</span>
+                  </h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
+                    Motor Nativo Inteligente Ativo
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  O FlowLevel já conta com nosso <strong>Motor Conversacional Nativo</strong> que interpreta saudações, dúvidas, preços e regiões com total coerência e naturalidade. Caso deseje raciocínio generativo ilimitado para conversas abertas e complexas, insira sua chave gratuita do <strong>Google Gemini</strong> abaixo:
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-slate-400 font-medium">Chave Google Gemini API (Recomendado - Grátis)</label>
+                      <a
+                        href="https://aistudio.google.com/app/apikey"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-blue-400 hover:underline"
+                      >
+                        Gerar chave grátis &rarr;
+                      </a>
+                    </div>
+                    <input
+                      type="password"
+                      value={geminiApiKey}
+                      onChange={(e) => setGeminiApiKey(e.target.value)}
+                      placeholder="AIzaSy..."
+                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Chave OpenAI API (Opcional)</label>
+                    <input
+                      type="password"
+                      value={openaiApiKey}
+                      onChange={(e) => setOpenaiApiKey(e.target.value)}
+                      placeholder="sk-proj-..."
+                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
 
