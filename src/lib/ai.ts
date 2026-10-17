@@ -26,15 +26,23 @@ export async function generateWithAI({
     if (activeGeminiKey) {
       try {
         const genAI = new GoogleGenerativeAI(activeGeminiKey);
-        const model = genAI.getGenerativeModel({
-          model: 'gemini-1.5-flash',
-          systemInstruction: systemInstruction,
-        });
-
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        if (text && text.trim()) {
-          return text.trim();
+        // Usar gemini-flash-latest (modelo estável e de alta velocidade oficial da Google AI)
+        const candidateModels = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+        for (const modelName of candidateModels) {
+          try {
+            const model = genAI.getGenerativeModel({
+              model: modelName,
+              systemInstruction: systemInstruction,
+            });
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            if (text && text.trim()) {
+              return text.trim();
+            }
+          } catch (modelErr: any) {
+            // Tenta o próximo modelo candidato
+            continue;
+          }
         }
       } catch (err: any) {
         console.warn('[AI] Aviso ao chamar Gemini API, tentando fallback:', err.message);
@@ -95,14 +103,17 @@ function contextualConversationalEngine(prompt: string): string {
 
   const botNameMatch =
     prompt.match(/Você é "([^"]+)"/i) ||
-    prompt.match(/Você é o?a? atendente ([A-Za-zÀ-ÿ]+)/i);
+    prompt.match(/atendente chamada? ([A-Za-zÀ-ÿ]+)/i);
 
   const companyMatch = prompt.match(/empresa "([^"]+)"/i);
 
   const customerMessage = customerMsgMatch ? customerMsgMatch[1].trim() : prompt.trim();
   const rawCustomerName = customerNameMatch ? customerNameMatch[1].trim() : '';
   const customerFirstName = rawCustomerName ? rawCustomerName.split(' ')[0] : '';
-  const botName = botNameMatch ? botNameMatch[1].trim() : 'Sofia';
+  let botName = botNameMatch ? botNameMatch[1].trim() : 'Sofia';
+  if (!botName || ['de', 'do', 'da', 'virtual', 'comercial', 'e', 'o'].includes(botName.toLowerCase())) {
+    botName = 'Sofia';
+  }
   const companyName = companyMatch ? companyMatch[1].trim() : 'Alves Climatização & Elétrica';
 
   const lowerMsg = customerMessage.toLowerCase();
