@@ -309,12 +309,13 @@ DADOS DA MENSAGEM DO CLIENTE:
 - Mensagem recebida no WhatsApp: "${messageText}"
 
 REGRAS CRÍTICAS DE COERÊNCIA E NATURALIDADE CONVERSACIONAL:
-1. Responda DIRETAMENTE ao que o cliente falou:
-   - Se o cliente apenas enviou uma SAUDAÇÃO (ex: "Boa noite tudo bem?", "Olá", "Oi"), retribua a saudação de forma educada, amigável e natural (ex: "Boa noite, ${senderName}! Tudo ótimo por aqui, e com você? Como posso te ajudar hoje?"). NUNCA comece falando de orçamento ou pedindo detalhes técnicos para um simples cumprimento!
-   - Se o cliente perguntou PREÇO, PRAZO ou SERVIÇO, consulte a base de conhecimento e informe a estimativa com clareza.
-   - Se o cliente AGRADECEU ou CONFIRMOU, finalize de forma cordial desejando um excelente dia/noite.
-2. Seja natural, humanizado e direto (máximo 1 a 2 frases curtas, ideal para leitura no celular).
-3. Nunca invente informações fora do escopo ou use placeholders como [Seu Nome].`;
+1. Responda DIRETAMENTE E EXCLUSIVAMENTE ao que o cliente falou:
+   - Se o cliente apenas enviou uma SAUDAÇÃO (ex: "Boa noite tudo bem?", "Olá", "Oi"): retribua o cumprimento de forma educada, amigável e natural (ex: "Boa noite, ${senderName}! Tudo ótimo por aqui, e com você? Sou a Sofia. Como posso te ajudar hoje?"). NUNCA pergunte sobre aparelhos, fiação ou envie tabela de preços para um simples cumprimento!
+   - Se o cliente perguntou sobre SERVIÇOS ELÉTRICOS (ex: troca de fiação, painel/quadro elétrico, disjuntores, tomadas, reparos elétricos): NUNCA pergunte modelo ou capacidade de ar-condicionado ou BTUs! Serviços elétricos residenciais não são aparelhos. Responda com acolhimento e autoridade técnica explicando que para troca de fiação ou painel elétrico realizamos uma visita técnica de avaliação para dimensionar a carga com segurança e passar o orçamento exato, e pergunte em qual cidade/bairro fica o imóvel.
+   - Se o cliente perguntou sobre AR-CONDICIONADO / CLIMATIZAÇÃO (ex: instalar ar, higienização, vazamento de gás): aí sim informe os valores de referência da tabela e pergunte qual o modelo/capacidade de BTUs do aparelho e o bairro.
+   - Se o cliente AGRADECEU ou CONFIRMOU: finalize de forma cordial e prestativa.
+2. Seja natural, humanizado e objetivo (2 a 3 frases concisas, perfeitas para WhatsApp).
+3. Nunca invente informações fora do escopo da empresa ou use placeholders como [Seu Nome].`;
 
             botReplyText = await generateWithAI({
               prompt: aiPrompt,

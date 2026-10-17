@@ -229,7 +229,26 @@ function contextualConversationalEngine(prompt: string): string {
     return `Facilitamos o pagamento no cartão de crédito em até 12x, oferecemos 5% de desconto à vista no PIX, ou faturamento em boleto para empresas (PJ). Gostaria de agendar a visita técnica?`;
   }
 
-  // E. Preço, Orçamento ou Serviços Específicos
+  // E. Serviços Elétricos (Troca de Fiação, Painel Elétrico, Quadro de Disjuntores, Tomadas)
+  if (
+    lowerMsg.includes('eletric') ||
+    lowerMsg.includes('elétric') ||
+    lowerMsg.includes('fiação') ||
+    lowerMsg.includes('fiacao') ||
+    lowerMsg.includes('painel') ||
+    lowerMsg.includes('quadro') ||
+    lowerMsg.includes('disjuntor') ||
+    lowerMsg.includes('tomada') ||
+    lowerMsg.includes('curto') ||
+    lowerMsg.includes('padrao') ||
+    lowerMsg.includes('padrão') ||
+    lowerMsg.includes('reforma eletrica') ||
+    lowerMsg.includes('reforma elétrica')
+  ) {
+    return `Olá${customerFirstName ? ` ${customerFirstName}` : ''}! Realizamos serviços elétricos completos, como troca de fiação residencial, montagem de painel elétrico novo e modernização com máxima segurança técnica. Como projetos elétricos dependem do tamanho do imóvel e dos circuitos, nós realizamos uma visita técnica com nosso eletricista especialista para avaliar a estrutura e passar o orçamento exato. Em qual cidade e bairro fica a sua casa?`;
+  }
+
+  // F. Preço, Orçamento ou Serviços Específicos de Climatização
   if (
     lowerMsg.includes('quanto custa') ||
     lowerMsg.includes('qual o valor') ||

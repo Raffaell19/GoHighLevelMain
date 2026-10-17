@@ -76,7 +76,7 @@ export function WhatsAppView() {
   const [paymentTerms, setPaymentTerms] = useState('Cartão de crédito em até 12x, PIX com 5% de desconto à vista, ou boleto para empresas (PJ).');
   const [businessHours, setBusinessHours] = useState('Segunda a Sexta das 08h às 18h30. Sábados das 08h às 13h.');
   const [customInstructions, setCustomInstructions] = useState(
-    `1. Sempre seja cordial, rápida e atenciosa.\n2. Pergunte qual a capacidade/modelo do aparelho e em qual bairro será feito o serviço para estimar o orçamento com precisão.\n3. Transmita segurança técnica e convide para agendar uma visita ou enviar fotos.\n4. Responda em no máximo 2 a 3 frases concisas para manter a conversa fluida no WhatsApp.`
+    `1. Sempre seja cordial, acolhedora e atenciosa.\n2. NUNCA envie respostas de ar-condicionado para quem pergunta sobre elétrica (troca de fiação, painel/quadro elétrico, disjuntores, tomadas).\n3. Para serviços elétricos: explique com autoridade que fazemos visita técnica de avaliação para dimensionar a carga com segurança e passar o orçamento exato, e pergunte o bairro/cidade do imóvel.\n4. Para serviços de ar-condicionado: pergunte a capacidade (BTUs) do aparelho e o bairro para estimar o valor.\n5. Responda em no máximo 2 a 3 frases concisas para manter a conversa fluida e natural no WhatsApp.`
   );
   const [humanHandoffKeywords, setHumanHandoffKeywords] = useState('atendente, falar com atendente, humano, atendente humano, pessoa, reclamacao, urgente');
   const [geminiApiKey, setGeminiApiKey] = useState('');
