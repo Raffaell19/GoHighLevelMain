@@ -121,9 +121,10 @@ function contextualConversationalEngine(prompt: string): string {
 
   // 1. Avaliações do Google Meu Negócio
   if (
-    lowerPrompt.includes('avaliação') ||
     lowerPrompt.includes('google meu negócio') ||
-    lowerPrompt.includes('review')
+    lowerPrompt.includes('responder avaliação de cliente') ||
+    lowerPrompt.includes('avaliação no google') ||
+    lowerPrompt.includes('review no google')
   ) {
     if (
       lowerMsg.includes('5') ||
