@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
       console.log(`[Webhook WhatsApp] Novo Lead criado automaticamente no CRM! ID: ${leadId}`);
     }
 
-    // 7. MOTOR DE CHATBOT IA AUTÔNOMO (Responde o cliente de volta no WhatsApp em tempo real)
+    // 7. MOTOR DE CHATBOT IA AUTÔNOMO TREINADO (Responde o cliente de volta no WhatsApp em tempo real)
     let botReplied = false;
     let botReplyText = '';
 
@@ -219,54 +219,126 @@ export async function POST(request: NextRequest) {
 
     if (!isGroup && senderPhone && messageText && messageText !== '[Mídia ou Áudio]') {
       try {
-        const aiPrompt = `Você é a atendente virtual e especialista comercial da empresa "${subaccount.name}" (segmento: ${subaccount.segment || 'Serviços'}).
-O cliente se chama "${senderName}" e enviou a seguinte mensagem no WhatsApp:
-"${messageText}"
+        // 7.1 Buscar configuração e treinamento personalizado do Atendente IA
+        const { data: cred } = await supabase
+          .from('tenant_credentials')
+          .select('encrypted_credentials')
+          .eq('subaccount_id', subaccount.id)
+          .eq('service_type', 'ai_agent_config')
+          .maybeSingle();
 
-Gere uma resposta educada, acolhedora, profissional e objetiva (máximo 2 frases) para responder imediatamente ao cliente no WhatsApp, tirando dúvidas ou perguntando como podemos ajudá-lo hoje. Responda de forma humanizada e não use placeholders como [Seu Nome].`;
+        let agentConfig: any = {
+          botName: 'Sofia',
+          botRole: 'Consultora Especialista em Climatização & Elétrica',
+          botTone: 'consultive',
+          botEnabled: true,
+          servicesAndPricing: 'Instalação de ar-condicionado a partir de R$ 380. Higienização por R$ 190. Manutenção e elétrica sob consulta.',
+          coverageAreas: 'Porto Alegre, Canoas, Novo Hamburgo e Região Metropolitana.',
+          paymentTerms: 'Cartão de crédito em até 12x, PIX com desconto à vista ou boleto PJ.',
+          customInstructions: 'Seja cordial e pergunte qual modelo do aparelho e o bairro do cliente para dar o orçamento exato.',
+          humanHandoffKeywords: 'atendente, humano, falar com atendente, pessoa, urgente',
+        };
 
-        botReplyText = await generateWithAI({ prompt: aiPrompt });
+        if (cred && cred.encrypted_credentials) {
+          try {
+            const parsed = JSON.parse(cred.encrypted_credentials);
+            agentConfig = { ...agentConfig, ...parsed };
+          } catch (e) {
+            console.error('[AI Chatbot] Erro ao decodificar config do agente:', e);
+          }
+        }
 
-        if (botReplyText && botReplyText.trim()) {
-          console.log(`[AI Chatbot] Resposta para ${senderPhone}: "${botReplyText.slice(0, 80)}..."`);
+        // Se o atendente estiver desativado pelo usuário, não dispara resposta automática
+        if (agentConfig.botEnabled === false) {
+          console.log(`[AI Chatbot] Piloto automático desativado para ${subaccount.name}. Aguardando atendimento humano.`);
+        } else {
+          // Verificar gatilho de transbordo humano
+          const lowerMsg = messageText.toLowerCase();
+          const triggers = (agentConfig.humanHandoffKeywords || 'atendente, humano')
+            .split(',')
+            .map((k: string) => k.trim().toLowerCase())
+            .filter(Boolean);
 
-          // Disparar resposta no WhatsApp via Evolution API
-          const sendRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(activeInstance)}`, {
-            method: 'POST',
-            headers: {
-              'apikey': EVOLUTION_KEY,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              number: senderPhone,
-              text: botReplyText,
-            }),
-          });
+          const isHandoff = triggers.some((trig: string) => lowerMsg.includes(trig));
 
-          console.log(`[AI Chatbot Disparo] Status de envio: ${sendRes.status}`);
+          let aiPrompt = '';
+          if (isHandoff) {
+            botReplyText = `Olá, ${senderName}! Perfeito. Já sinalizei para a nossa equipe e em instantes um de nossos atendentes humanos vai assumir a conversa para lhe atender pessoalmente por aqui.`;
+          } else {
+            aiPrompt = `Você é "${agentConfig.botName || 'Sofia'}", ${agentConfig.botRole || 'Consultora Especialista'} da empresa "${subaccount.name}" (${subaccount.segment || 'Serviços'}).
 
-          if (sendRes.ok) {
-            botReplied = true;
+Seu tom de atendimento deve ser: ${agentConfig.botTone || 'consultivo, empático e focado em resolver a dúvida do cliente'}.
 
-            // Salvar resposta do robô no Supabase
-            if (contactId) {
-              await supabase.from('whatsapp_messages').insert([
-                {
-                  subaccount_id: subaccount.id,
-                  contact_id: contactId,
-                  sender: 'agent',
-                  text: botReplyText,
-                  status: 'sent',
-                },
-              ]);
+BASE DE CONHECIMENTO DA EMPRESA:
+- SERVIÇOS & TABELA DE PREÇOS ESTIMADOS:
+${agentConfig.servicesAndPricing || 'Serviços especializados com orçamento sob medida.'}
 
-              await supabase
-                .from('whatsapp_contacts')
-                .update({
-                  last_message: botReplyText,
-                  last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                })
-                .eq('id', contactId);
+- REGIÕES ATENDIDAS:
+${agentConfig.coverageAreas || 'Consulte disponibilidade da nossa equipe técnica.'}
+
+- CONDIÇÕES DE PAGAMENTO:
+${agentConfig.paymentTerms || 'Cartão, Pix e Boleto.'}
+
+- HORÁRIO DE ATENDIMENTO:
+${agentConfig.businessHours || 'Horário comercial.'}
+
+- INSTRUÇÕES ESPECIAIS DE ATENDIMENTO:
+${agentConfig.customInstructions || 'Seja prestativo e colete informações sobre o serviço necessário.'}
+
+DADOS DA MENSAGEM DO CLIENTE:
+- Nome do cliente: "${senderName}"
+- Mensagem recebida no WhatsApp: "${messageText}"
+
+REGRAS OBRIGATÓRIAS:
+1. Responda diretamente ao que o cliente perguntou usando a base de conhecimento acima.
+2. Seja natural, humanizado e direto (máximo 2 a 3 frases).
+3. Nunca invente informações fora do escopo ou use placeholders como [Seu Nome].
+4. Termine incentivando o cliente a informar mais detalhes (como bairro ou modelo) ou convidando para agendar a visita técnica.`;
+
+            botReplyText = await generateWithAI({ prompt: aiPrompt });
+          }
+
+          if (botReplyText && botReplyText.trim()) {
+            console.log(`[AI Chatbot] Resposta para ${senderPhone}: "${botReplyText.slice(0, 80)}..."`);
+
+            // Disparar resposta no WhatsApp via Evolution API
+            const sendRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(activeInstance)}`, {
+              method: 'POST',
+              headers: {
+                'apikey': EVOLUTION_KEY,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                number: senderPhone,
+                text: botReplyText,
+              }),
+            });
+
+            console.log(`[AI Chatbot Disparo] Status de envio: ${sendRes.status}`);
+
+            if (sendRes.ok) {
+              botReplied = true;
+
+              // Salvar resposta do robô no Supabase
+              if (contactId) {
+                await supabase.from('whatsapp_messages').insert([
+                  {
+                    subaccount_id: subaccount.id,
+                    contact_id: contactId,
+                    sender: 'bot',
+                    text: botReplyText,
+                    status: 'sent',
+                  },
+                ]);
+
+                await supabase
+                  .from('whatsapp_contacts')
+                  .update({
+                    last_message: botReplyText,
+                    last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  })
+                  .eq('id', contactId);
+              }
             }
           }
         }

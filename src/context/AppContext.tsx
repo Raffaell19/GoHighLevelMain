@@ -99,6 +99,7 @@ interface AppContextType {
   messages: Record<string, WhatsAppMessage[]>;
   sendMessage: (contactId: string, text: string) => void;
   updateWhatsAppConfig: (subaccountId: string, config: Partial<Subaccount['whatsappConfig']>) => void;
+  refreshChatData: () => Promise<void>;
   reviews: GMBReview[];
   gmbStats: GMBStats;
   replyToReview: (reviewId: string, replyText: string) => Promise<void>;
@@ -219,7 +220,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (dataChat.contacts && isMounted) {
           setContacts(dataChat.contacts);
-          setActiveContact((prev) => prev || dataChat.contacts[0] || null);
+          setActiveContact((prev) => {
+            if (!prev) return dataChat.contacts[0] || null;
+            const found = dataChat.contacts.find((c: any) => c.id === prev.id);
+            return found || dataChat.contacts[0] || null;
+          });
         }
 
         if (dataChat.messages && isMounted) {
@@ -239,6 +244,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       clearInterval(interval);
     };
   }, [currentSubaccount?.id]);
+
+  const refreshChatData = async () => {
+    if (!currentSubaccount?.id) return;
+    try {
+      const resChat = await fetch(`/api/whatsapp/chat?subaccountId=${currentSubaccount.id}`);
+      const dataChat = await resChat.json();
+      if (dataChat.contacts) {
+        setContacts(dataChat.contacts);
+        setActiveContact((prev) => {
+          if (!prev) return dataChat.contacts[0] || null;
+          const found = dataChat.contacts.find((c: any) => c.id === prev.id);
+          return found || dataChat.contacts[0] || null;
+        });
+      }
+      if (dataChat.messages) {
+        setMessages(dataChat.messages);
+      }
+    } catch (e) {
+      console.error('Erro ao recarregar chat:', e);
+    }
+  };
 
   // Mover lead entre estágios (Atualiza State + Banco Supabase)
   const moveLeadStage = async (leadId: string, newStageId: string) => {
@@ -441,12 +467,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addLead,
         updateLead,
         deleteLead,
-        contacts: contacts.filter((c) => c.subaccountId === currentSubaccount.id),
+        contacts: contacts.filter((c) => !c.subaccountId || c.subaccountId === currentSubaccount.id),
         activeContact,
         setActiveContact,
         messages,
         sendMessage,
         updateWhatsAppConfig,
+        refreshChatData,
         reviews: reviews.filter((r) => r.subaccountId === currentSubaccount.id),
         gmbStats,
         replyToReview,

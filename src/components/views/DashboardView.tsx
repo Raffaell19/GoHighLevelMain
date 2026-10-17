@@ -122,9 +122,12 @@ export function DashboardView({ setActiveTab, onOpenNewLeadModal }: DashboardVie
         </div>
 
         {/* KPI 4 */}
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div
+          onClick={() => setActiveTab('whatsapp')}
+          className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm cursor-pointer hover:border-emerald-500/50 transition group"
+        >
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">WhatsApp Conectado</span>
+            <span className="text-xs font-medium group-hover:text-emerald-400 transition">WhatsApp Conectado</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <MessageSquare className="w-4 h-4" />
             </div>
@@ -133,7 +136,7 @@ export function DashboardView({ setActiveTab, onOpenNewLeadModal }: DashboardVie
             {currentSubaccount.whatsappConfig.status === 'connected' ? 'Instância Ativa' : 'Desconectado'}
           </p>
           <p className="text-xs text-slate-400 mt-2 truncate">
-            Provedor: {currentSubaccount.whatsappConfig.provider === 'evolution' ? 'Evolution API (QR)' : 'Meta Cloud Oficial'}
+            Provedor: {currentSubaccount.whatsappConfig.provider === 'evolution' ? 'Evolution API (QR)' : 'Meta Cloud Oficial'} • Abrir Chat &rarr;
           </p>
         </div>
       </div>

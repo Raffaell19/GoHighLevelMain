@@ -51,11 +51,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: errM.message }, { status: 500 });
     }
 
-    // Agrupar mensagens por contact_id
+    // Agrupar mensagens por contact_id e mapear último timestamp de atividade
     const groupedMessages: Record<string, any[]> = {};
+    const lastMsgTimes: Record<string, number> = {};
+
     (messages || []).forEach((m) => {
       if (!groupedMessages[m.contact_id]) {
         groupedMessages[m.contact_id] = [];
+      }
+      const msgDate = new Date(m.created_at).getTime();
+      if (!lastMsgTimes[m.contact_id] || msgDate > lastMsgTimes[m.contact_id]) {
+        lastMsgTimes[m.contact_id] = msgDate;
       }
       groupedMessages[m.contact_id].push({
         id: m.id,
@@ -69,6 +75,7 @@ export async function GET(req: NextRequest) {
 
     const formattedContacts = (contacts || []).map((c) => ({
       id: c.id,
+      subaccountId: c.subaccount_id || resolvedSubId,
       name: c.name || 'Contato WhatsApp',
       phone: c.phone || '',
       avatar: c.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
@@ -76,7 +83,11 @@ export async function GET(req: NextRequest) {
       lastMessageTime: c.last_message_time || 'Agora',
       unreadCount: c.unread_count || 0,
       tags: c.tags || ['WhatsApp Inbound'],
+      lastActivityTime: lastMsgTimes[c.id] || new Date(c.created_at).getTime(),
     }));
+
+    // Ordenar contatos: quem teve mensagem mais recente fica no topo!
+    formattedContacts.sort((a, b) => b.lastActivityTime - a.lastActivityTime);
 
     return NextResponse.json({
       contacts: formattedContacts,

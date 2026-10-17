@@ -3,9 +3,9 @@ import { generateWithAI } from '@/lib/ai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, contactName, companyName, segment } = await request.json();
+    const { message, contactName, companyName, segment, systemPromptOverride } = await request.json();
 
-    const prompt = `Você é o atendente de vendas e relacionamento no WhatsApp da empresa "${companyName}" (Segmento: ${segment || 'Serviços'}).
+    const prompt = systemPromptOverride || `Você é o atendente de vendas e relacionamento no WhatsApp da empresa "${companyName}" (Segmento: ${segment || 'Serviços'}).
 O cliente se chama: ${contactName || 'Cliente'}.
 Última mensagem enviada pelo cliente no WhatsApp:
 "${message}"
