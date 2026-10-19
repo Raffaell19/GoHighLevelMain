@@ -42,18 +42,25 @@ export async function POST(request: NextRequest) {
       const actorId = 'compass~crawler-google-places';
       const apifyUrl = `https://api.apify.com/v2/acts/${actorId}/runs?token=${token.trim()}`;
 
+      const cleanQuery = searchQuery.trim();
+      const cleanLocation = location.trim();
+      const targetLimit = Math.max(Number(limit) || 20, 20);
+
       const payload = {
-        searchStringsArray: [searchQuery.trim()],
-        locationQuery: location.trim(),
-        maxCrawledPlacesPerSearch: Math.min(Number(limit) || 70, 200),
+        searchStringsArray: [
+          cleanQuery,
+          `${cleanQuery} em ${cleanLocation}`,
+        ],
+        locationQuery: cleanLocation,
+        maxCrawledPlacesPerSearch: targetLimit,
         language: language || 'pt-BR',
         includeWebResults: false,
-        skipClosedPlaces: true,
+        skipClosedPlaces: false,
       };
 
       const response = await fetch(apifyUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify(payload),
       });
 

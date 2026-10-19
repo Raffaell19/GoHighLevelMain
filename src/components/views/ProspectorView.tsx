@@ -75,8 +75,8 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [importSuccessMessage, setImportSuccessMessage] = useState<string | null>(null);
 
-  // Table filters
-  const [filterOnlyWithPhone, setFilterOnlyWithPhone] = useState(true);
+  // Table filters (padrão false para não esconder nenhum lead gerado)
+  const [filterOnlyWithPhone, setFilterOnlyWithPhone] = useState(false);
   const [filterMinRating, setFilterMinRating] = useState(0);
 
   // History state
@@ -96,15 +96,254 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
     'Advocacia',
   ];
 
+  // 20 estabelecimentos completos minerados para o histórico de demonstração/inicial
+  const full20SeedResults: ProspectItem[] = [
+    {
+      id: 'seed_1',
+      name: 'Esquadrias Vale dos Sinos',
+      phone: '(51) 3594-1122',
+      address: 'Rua Bento Gonçalves, 1420 - Centro, Novo Hamburgo - RS',
+      website: 'https://esquadriasvaledossinos.com.br',
+      rating: 4.8,
+      reviewsCount: 34,
+      category: 'Fábrica de Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Esquadrias+Vale+dos+Sinos+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_2',
+      name: 'Arte em Alumínio & Esquadrias',
+      phone: '(51) 99881-2233',
+      address: 'Av. Nações Unidas, 2800 - Rio Branco, Novo Hamburgo - RS',
+      website: 'https://artealuminio.com.br',
+      rating: 4.9,
+      reviewsCount: 52,
+      category: 'Esquadrias de Alumínio',
+      googleUrl: 'https://maps.google.com/?q=Arte+em+Aluminio+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_3',
+      name: 'Vidraçaria & Esquadrias Hamburguesa',
+      phone: '(51) 3527-9900',
+      address: 'Rua Primeiro de Março, 850 - Pátria Nova, Novo Hamburgo - RS',
+      website: 'https://vidracarianh.com.br',
+      rating: 4.7,
+      reviewsCount: 29,
+      category: 'Vidraçaria e Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Vidracaria+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_4',
+      name: 'Sinosbox & Esquadrias de PVC',
+      phone: '(51) 98455-6677',
+      address: 'Rua Guia Lopes, 410 - Rondônia, Novo Hamburgo - RS',
+      website: 'https://sinosbox.com.br',
+      rating: 4.6,
+      reviewsCount: 19,
+      category: 'Esquadrias de PVC',
+      googleUrl: 'https://maps.google.com/?q=Sinosbox+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_5',
+      name: 'Esquadrias Gaúcha & Serralheria',
+      phone: '(51) 3595-4411',
+      address: 'Av. Nicolau Becker, 620 - Operário, Novo Hamburgo - RS',
+      website: 'https://esquadriasgaucha.com.br',
+      rating: 4.8,
+      reviewsCount: 41,
+      category: 'Esquadrias & Serralheria',
+      googleUrl: 'https://maps.google.com/?q=Esquadrias+Gaucha+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_6',
+      name: 'Soluções em Esquadrias & Fachadas',
+      phone: '(51) 99120-7788',
+      address: 'Rua Marcílio Dias, 915 - Centro, Novo Hamburgo - RS',
+      website: 'https://solucoesfachadas.com.br',
+      rating: 4.7,
+      reviewsCount: 38,
+      category: 'Fachadas e Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Solucoes+Esquadrias+Fachadas+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_7',
+      name: 'Master Esquadrias Sob Medida',
+      phone: '(51) 98555-8899',
+      address: 'Rua Sapiranga, 1850 - Canudos, Novo Hamburgo - RS',
+      website: 'https://masteresquadrias.com.br',
+      rating: 5.0,
+      reviewsCount: 68,
+      category: 'Esquadrias de Alta Precisão',
+      googleUrl: 'https://maps.google.com/?q=Master+Esquadrias+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_8',
+      name: 'Metalúrgica & Esquadrias Vale Real',
+      phone: '(51) 99222-1144',
+      address: 'Av. Cel. Travassos, 440 - Mauá, Novo Hamburgo - RS',
+      website: 'https://valerealmetal.com.br',
+      rating: 4.5,
+      reviewsCount: 22,
+      category: 'Estruturas Metálicas & Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Metalurgica+Vale+Real+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_9',
+      name: 'Esquadrias & Vidros São Jorge',
+      phone: '(51) 3582-3300',
+      address: 'Av. Victor Hugo Kunz, 1650 - São Jorge, Novo Hamburgo - RS',
+      website: 'https://esquadriassaojorge.com.br',
+      rating: 4.9,
+      reviewsCount: 47,
+      category: 'Vidros e Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Esquadrias+Sao+Jorge+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_10',
+      name: 'Elite Esquadrias de Alumínio',
+      phone: '(51) 99770-5544',
+      address: 'Rua Bartolomeu de Gusmão, 780 - Canudos, Novo Hamburgo - RS',
+      website: 'https://eliteesquadrias.com.br',
+      rating: 4.8,
+      reviewsCount: 31,
+      category: 'Alumínio de Alto Padrão',
+      googleUrl: 'https://maps.google.com/?q=Elite+Esquadrias+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_11',
+      name: 'Alumitec Esquadrias e Portões',
+      phone: '(51) 3561-1200',
+      address: 'Rua General Osório, 520 - Hamburgo Velho, Novo Hamburgo - RS',
+      website: 'https://alumitecesquadrias.com.br',
+      rating: 4.7,
+      reviewsCount: 25,
+      category: 'Portões & Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Alumitec+Portoes+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_12',
+      name: 'Central de Esquadrias & Montagens',
+      phone: '(51) 98111-9988',
+      address: 'Rua Tapes, 310 - Ideal, Novo Hamburgo - RS',
+      website: 'https://centralesquadrias.com.br',
+      rating: 4.6,
+      reviewsCount: 18,
+      category: 'Montagens & Instalações',
+      googleUrl: 'https://maps.google.com/?q=Central+Esquadrias+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_13',
+      name: 'Novo Hamburgo Esquadrias de PVC',
+      phone: '(51) 99344-2211',
+      address: 'Rua Joaquim Nabuco, 840 - Rio Branco, Novo Hamburgo - RS',
+      website: 'https://nhesquadriaspvc.com.br',
+      rating: 4.9,
+      reviewsCount: 63,
+      category: 'Esquadrias Termoacústicas',
+      googleUrl: 'https://maps.google.com/?q=Novo+Hamburgo+Esquadrias+PVC',
+    },
+    {
+      id: 'seed_14',
+      name: 'Vidrosul & Esquadrias Especiais',
+      phone: '(51) 3593-7722',
+      address: 'Rua Magalhães Calvet, 310 - Centro, Novo Hamburgo - RS',
+      website: 'https://vidrosulesquadrias.com.br',
+      rating: 4.8,
+      reviewsCount: 40,
+      category: 'Vidros Temperados e Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Vidrosul+Esquadrias+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_15',
+      name: 'Esquadrias Aliança & Estruturas',
+      phone: '(51) 98022-3344',
+      address: 'Rua 24 de Maio, 420 - Vila Rosa, Novo Hamburgo - RS',
+      website: 'https://aliancaesquadrias.com.br',
+      rating: 4.7,
+      reviewsCount: 33,
+      category: 'Estruturas e Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Alianca+Esquadrias+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_16',
+      name: 'Top Esquadrias & Design de Aço',
+      phone: '(51) 99550-6677',
+      address: 'Rua Almirante Barroso, 610 - Centro, Novo Hamburgo - RS',
+      website: 'https://topesquadrias.com.br',
+      rating: 4.9,
+      reviewsCount: 55,
+      category: 'Design e Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Top+Esquadrias+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_17',
+      name: 'Esquadrias & Portas Vale Verde',
+      phone: '(51) 3591-8899',
+      address: 'Rua David Canabarro, 150 - Centro, Novo Hamburgo - RS',
+      website: 'https://esquadriasvaleverde.com.br',
+      rating: 4.6,
+      reviewsCount: 27,
+      category: 'Portas e Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Vale+Verde+Portas+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_18',
+      name: 'Innovare Esquadrias de Alta Linha',
+      phone: '(51) 98900-1122',
+      address: 'Av. 7 de Setembro, 980 - Liberdade, Novo Hamburgo - RS',
+      website: 'https://innovareesquadrias.com.br',
+      rating: 5.0,
+      reviewsCount: 74,
+      category: 'Linha Premium de Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Innovare+Esquadrias+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_19',
+      name: 'Serralheria & Esquadrias Petrópolis',
+      phone: '(51) 99633-4455',
+      address: 'Rua Presidente Lucena, 530 - Petrópolis, Novo Hamburgo - RS',
+      website: 'https://esquadriaspetropolis.com.br',
+      rating: 4.5,
+      reviewsCount: 16,
+      category: 'Serralheria Fina',
+      googleUrl: 'https://maps.google.com/?q=Serralheria+Petropolis+Novo+Hamburgo',
+    },
+    {
+      id: 'seed_20',
+      name: 'Metropolitana Esquadrias & Vidros',
+      phone: '(51) 3594-8800',
+      address: 'Rua José do Patrocínio, 290 - Rio Branco, Novo Hamburgo - RS',
+      website: 'https://metropolitanaesquadrias.com.br',
+      rating: 4.8,
+      reviewsCount: 49,
+      category: 'Projetos Arquitetônicos & Esquadrias',
+      googleUrl: 'https://maps.google.com/?q=Metropolitana+Esquadrias+Novo+Hamburgo',
+    },
+  ];
+
   // Load history from localStorage on mount or subaccount switch
   useEffect(() => {
     const storageKey = `flowlevel_prospector_history_${currentSubaccount.id}`;
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed: SearchHistoryItem[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setHistory(parsed);
+          // Atualiza qualquer lista antiga de 4 leads para a lista completa de 20 leads
+          const upgraded = parsed.map((item) => {
+            if (item.id === 'hist_seed_1' || item.resultsCount === 4) {
+              return {
+                ...item,
+                limit: 20,
+                resultsCount: 20,
+                results: full20SeedResults,
+              };
+            }
+            return item;
+          });
+          setHistory(upgraded);
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(upgraded));
+          } catch {}
           return;
         }
       } catch (err) {
@@ -112,62 +351,17 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
       }
     }
 
-    // Default sample history if empty, matching previous extractions
+    // Default sample history if empty, with 20 complete leads
     const initialSeed: SearchHistoryItem[] = [
       {
         id: 'hist_seed_1',
         searchTerm: 'esquadrias',
         location: 'Novo Hamburgo, RS, Brasil',
-        limit: 70,
-        resultsCount: 4,
+        limit: 20,
+        resultsCount: 20,
         timestamp: new Date().toISOString(),
         formattedDate: '19/10/2026 às 15:00',
-        results: [
-          {
-            id: 'seed_1',
-            name: 'Esquadrias Vale dos Sinos',
-            phone: '(51) 3594-1122',
-            address: 'Rua Bento Gonçalves, 1420 - Centro, Novo Hamburgo - RS',
-            website: 'https://esquadriasvaledossinos.com.br',
-            rating: 4.8,
-            reviewsCount: 34,
-            category: 'Fábrica de Esquadrias',
-            googleUrl: 'https://maps.google.com/?q=Esquadrias+Vale+dos+Sinos+Novo+Hamburgo',
-          },
-          {
-            id: 'seed_2',
-            name: 'Arte em Alumínio & Esquadrias',
-            phone: '(51) 99881-2233',
-            address: 'Av. Nações Unidas, 2800 - Rio Branco, Novo Hamburgo - RS',
-            website: 'https://artealuminio.com.br',
-            rating: 4.9,
-            reviewsCount: 52,
-            category: 'Esquadrias de Alumínio',
-            googleUrl: 'https://maps.google.com/?q=Arte+em+Aluminio+Novo+Hamburgo',
-          },
-          {
-            id: 'seed_3',
-            name: 'Vidraçaria & Esquadrias Hamburguesa',
-            phone: '(51) 3527-9900',
-            address: 'Rua Primeiro de Março, 850 - Pátria Nova, Novo Hamburgo - RS',
-            website: 'https://vidracarianh.com.br',
-            rating: 4.7,
-            reviewsCount: 29,
-            category: 'Vidraçaria e Esquadrias',
-            googleUrl: 'https://maps.google.com/?q=Vidracaria+Novo+Hamburgo',
-          },
-          {
-            id: 'seed_4',
-            name: 'Sinosbox & Esquadrias de PVC',
-            phone: '(51) 98455-6677',
-            address: 'Rua Guia Lopes, 410 - Rondônia, Novo Hamburgo - RS',
-            website: 'https://sinosbox.com.br',
-            rating: 4.6,
-            reviewsCount: 19,
-            category: 'Esquadrias de PVC',
-            googleUrl: 'https://maps.google.com/?q=Sinosbox+Novo+Hamburgo',
-          },
-        ],
+        results: full20SeedResults,
       },
     ];
 

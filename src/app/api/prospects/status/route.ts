@@ -54,95 +54,76 @@ export async function GET(request: NextRequest) {
 
     // Caso 1: Run Mock / Demonstração
     if (runId.startsWith('mock-run-') || !token || token.trim().length < 5) {
-      // Simula 10 a 20 resultados realistas baseados na consulta do usuário
-      const mockItems: ProspectItem[] = [
-        {
-          id: `place-mock-1`,
-          name: `${capitalize(searchQuery)} Vale dos Sinos`,
-          phone: '(51) 99812-4589',
-          address: `Rua Bento Gonçalves, 1420 - Centro, ${location}`,
-          website: `https://${searchQuery.toLowerCase().replace(/[^a-z0-9]/g, '')}valedossinos.com.br`,
-          rating: 4.9,
-          reviewsCount: 84,
-          category: capitalize(searchQuery),
-          googleUrl: 'https://maps.google.com',
-        },
-        {
-          id: `place-mock-2`,
-          name: `Alumínio & ${capitalize(searchQuery)} Gaúcha`,
-          phone: '(51) 98744-1230',
-          address: `Av. Nações Unidas, 2800 - Ideal, ${location}`,
-          website: 'https://esquadriasgaucha.com.br',
-          rating: 4.8,
-          reviewsCount: 52,
-          category: 'Indústria & Instalações',
-          googleUrl: 'https://maps.google.com',
-        },
-        {
-          id: `place-mock-3`,
-          name: `Soluções em ${capitalize(searchQuery)} & Fachadas`,
-          phone: '(51) 99120-7788',
-          address: `Rua Guia Lopes, 915 - Rondônia, ${location}`,
-          website: 'https://solucoesfachadas.com.br',
-          rating: 4.7,
-          reviewsCount: 39,
-          category: capitalize(searchQuery),
-          googleUrl: 'https://maps.google.com',
-        },
-        {
-          id: `place-mock-4`,
-          name: `Vidraçaria & ${capitalize(searchQuery)} Elite`,
-          phone: '(51) 99345-6677',
-          address: `Rua Marcílio Dias, 650 - Rio Branco, ${location}`,
-          website: 'https://vidracariaelite.com.br',
-          rating: 4.9,
-          reviewsCount: 110,
-          category: 'Vidros e Esquadrias',
-          googleUrl: 'https://maps.google.com',
-        },
-        {
-          id: `place-mock-5`,
-          name: `Central de ${capitalize(searchQuery)} & Serralheria`,
-          phone: '(51) 98011-3344',
-          address: `Av. Nicolau Becker, 310 - Operário, ${location}`,
-          rating: 4.6,
-          reviewsCount: 27,
-          category: 'Serralheria & Montagem',
-          googleUrl: 'https://maps.google.com',
-        },
-        {
-          id: `place-mock-6`,
-          name: `Master ${capitalize(searchQuery)} Sob Medida`,
-          phone: '(51) 98555-8899',
-          address: `Rua Primeiro de Março, 1850 - Pátria Nova, ${location}`,
-          website: 'https://masteresquadrias.com.br',
-          rating: 5.0,
-          reviewsCount: 68,
-          category: capitalize(searchQuery),
-          googleUrl: 'https://maps.google.com',
-        },
-        {
-          id: `place-mock-7`,
-          name: `Metalúrgica & PVC ${capitalize(searchQuery)}`,
-          phone: '(51) 99222-1144',
-          address: `Rua Sapiranga, 440 - Mauá, ${location}`,
-          rating: 4.5,
-          reviewsCount: 19,
-          category: 'Esquadrias de PVC',
-          googleUrl: 'https://maps.google.com',
-        },
-        {
-          id: `place-mock-8`,
-          name: `Arte em Alumínio & ${capitalize(searchQuery)}`,
-          phone: '(51) 98440-2211',
-          address: `Av. Cel. Travassos, 1120 - Rondônia, ${location}`,
-          website: 'https://arteemaluminio.com.br',
-          rating: 4.8,
-          reviewsCount: 43,
-          category: 'Fábrica de Esquadrias',
-          googleUrl: 'https://maps.google.com',
-        },
+      const targetCount = Math.max(Number(limit) || 20, 20);
+      const streetNames = [
+        'Rua Bento Gonçalves, 1420 - Centro',
+        'Av. Nações Unidas, 2800 - Ideal',
+        'Rua Guia Lopes, 915 - Rondônia',
+        'Rua Marcílio Dias, 650 - Rio Branco',
+        'Av. Nicolau Becker, 310 - Operário',
+        'Rua Primeiro de Março, 1850 - Pátria Nova',
+        'Rua Sapiranga, 440 - Mauá',
+        'Av. Cel. Travassos, 1120 - Rondônia',
+        'Rua Bartolomeu de Gusmão, 780 - Canudos',
+        'Av. Pedro Adams Filho, 3420 - Centro',
+        'Rua General Osório, 520 - Hamburgo Velho',
+        'Rua Tapes, 190 - Ideal',
+        'Rua Joaquim Nabuco, 840 - Rio Branco',
+        'Av. Victor Hugo Kunz, 1650 - São Jorge',
+        'Rua Magalhães Calvet, 310 - Centro',
+        'Rua 24 de Maio, 420 - Vila Rosa',
+        'Rua Almirante Barroso, 610 - Centro',
+        'Rua David Canabarro, 150 - Centro',
+        'Av. 7 de Setembro, 980 - Liberdade',
+        'Rua Presidente Lucena, 530 - Petrópolis',
       ];
+
+      const suffixes = [
+        'Vale dos Sinos',
+        'Gaúcha',
+        'Elite',
+        'Premium Soluções',
+        'Sob Medida',
+        'Instalações & Serviços',
+        'Indústria & Comércio',
+        'Central & Montagem',
+        'Master',
+        'Brasil',
+        'São Jorge',
+        'Hamburgo',
+        'Metropolitana',
+        'Líder',
+        'Aliança',
+        'Express',
+        'Inovação',
+        'Serralheria & Metal',
+        'Sul',
+        'Top Quality',
+      ];
+
+      const cleanQuery = capitalize(searchQuery);
+      const mockItems: ProspectItem[] = Array.from({ length: targetCount }).map((_, idx) => {
+        const suffix = suffixes[idx % suffixes.length];
+        const street = streetNames[idx % streetNames.length];
+        const phoneDDD = location.toLowerCase().includes('rs') || location.toLowerCase().includes('hamburgo') ? '51' : '11';
+        const numPart = 98000 + (idx * 37) % 9999;
+        const numEnd = 1000 + (idx * 83) % 8999;
+        const rating = +(4.5 + (idx % 6) * 0.1).toFixed(1);
+        const reviewsCount = 15 + (idx * 17) % 150;
+        const slug = `${searchQuery.toLowerCase().replace(/[^a-z0-9]/g, '')}${suffix.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
+        return {
+          id: `place-mock-${idx + 1}`,
+          name: `${cleanQuery} ${suffix}`,
+          phone: `(${phoneDDD}) 9${numPart}-${numEnd}`,
+          address: `${street}, ${location}`,
+          website: `https://${slug}.com.br`,
+          rating,
+          reviewsCount,
+          category: cleanQuery,
+          googleUrl: `https://maps.google.com/?q=${encodeURIComponent(`${cleanQuery} ${suffix} ${location}`)}`,
+        };
+      });
 
       return NextResponse.json({
         status: 'SUCCEEDED',
@@ -164,17 +145,17 @@ export async function GET(request: NextRequest) {
 
     if (runStatus === 'SUCCEEDED') {
       const datasetId = defaultDatasetId || runJson.data?.defaultDatasetId;
-      const datasetUrl = `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token.trim()}&format=json&clean=true`;
+      const datasetUrl = `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token.trim()}&format=json&clean=true&limit=200`;
       const dataRes = await fetch(datasetUrl);
       const items = await dataRes.json();
 
       const normalized: ProspectItem[] = (Array.isArray(items) ? items : []).map((p: any, idx: number) => ({
-        id: p.placeId || `apify-${idx}`,
+        id: p.placeId || p.cid || `apify-${idx}`,
         name: p.title || p.name || 'Empresa sem nome',
         phone: p.phone || p.phoneUnformatted || '',
         address: p.address || p.street || `${p.city || ''}, ${p.state || ''}`,
         website: p.website || p.url || '',
-        rating: p.totalScore || 0,
+        rating: p.totalScore || p.stars || p.rating || 0,
         reviewsCount: p.reviewsCount || 0,
         category: p.categoryName || searchQuery,
         googleUrl: p.googleUrl || p.url || '',
