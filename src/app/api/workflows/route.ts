@@ -38,7 +38,7 @@ const defaultSeedWorkflows = (subaccountId: string): WorkflowRule[] => [
             label: 'Enviar Mensagem com Apresentação & Tabela de Serviços',
             config: {
               messageTemplate:
-                'Olá {{contact.name}}! Aqui é da Alves Climatização & Elétrica. ❄️ Já recebemos seu pedido de orçamento. Em instantes um técnico especializado entrará em contato para agendar uma vistoria!',
+                'Olá {{contact.name}}! Aqui é da Connect Digital. 🚀 Já recebemos seu contato e em instantes um especialista da nossa equipe falará com você!',
             },
           },
           {

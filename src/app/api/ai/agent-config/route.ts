@@ -11,19 +11,19 @@ const DEFAULT_AGENT_CONFIG = {
   botRole: 'Consultora Especialista em Atendimento & Vendas',
   botTone: 'consultive', // friendly, consultive, commercial, formal
   botEnabled: true,
-  businessName: 'Alves Climatização & Elétrica',
-  segment: 'Climatização, Refrigeração e Instalações Elétricas',
-  servicesAndPricing: `• Instalação de Ar-Condicionado Split (9.000 a 12.000 BTUs): A partir de R$ 380,00
-• Instalação de Ar-Condicionado (18.000 a 30.000 BTUs): A partir de R$ 550,00
-• Higienização e Limpeza Completa com Laudo: R$ 190,00
-• Carga de Gás e Manutenção Preventiva: A partir de R$ 220,00
-• Serviços e Instalações Elétricas (Quadro, Tomadas, Fiação): Sob consulta com visita técnica`,
-  coverageAreas: 'Porto Alegre, Canoas, Novo Hamburgo, São Leopoldo e Região Metropolitana.',
-  paymentTerms: 'Cartão de crédito em até 12x, PIX com 5% de desconto à vista, ou boleto para empresas (PJ).',
-  businessHours: 'Segunda a Sexta das 08h às 18h30. Sábados das 08h às 13h.',
-  customInstructions: `1. Sempre seja cordial, rápida e atenciosa.
-2. Pergunte qual a capacidade/modelo do aparelho e em qual bairro será feito o serviço para estimar o orçamento com precisão.
-3. Transmita segurança técnica e convide para agendar uma visita ou enviar fotos.
+  businessName: 'Connect Digital',
+  segment: 'Agência de Marketing & Automação Digital',
+  servicesAndPricing: `• Implementação de CRM & Funil de Vendas Automatizado
+• Chatbots com Inteligência Artificial para WhatsApp
+• Mineração e Prospecção Ativa B2B no Google Maps
+• Gestão de Tráfego Pago & Presença Digital
+• Disparos em Massa Personalizados e Cadenciados`,
+  coverageAreas: 'Brasil (atendimento online) e presencial na Região Metropolitana.',
+  paymentTerms: 'PIX, Boleto e Cartão de crédito.',
+  businessHours: 'Segunda a Sexta das 08h30 às 18h30.',
+  customInstructions: `1. Você é Sofia, consultora da Connect Digital (Agência de Marketing e Automação).
+2. Seja sempre cordial, profissional e focada em entender as necessidades comerciais do cliente.
+3. Explique que ajudamos empresas a captar mais clientes e automatizar seus atendimentos com IA e CRM.
 4. Responda em no máximo 2 a 3 frases concisas para manter a conversa fluida no WhatsApp.`,
   humanHandoffKeywords: 'atendente, falar com atendente, humano, atendente humano, pessoa, reclamacao, urgente',
   geminiApiKey: '',

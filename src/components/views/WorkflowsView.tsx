@@ -102,7 +102,7 @@ export function WorkflowsView() {
           actionType: 'send_whatsapp',
           label: 'Disparar WhatsApp de Boas-Vindas',
           config: {
-            messageTemplate: 'Olá {{contact.name}}, obrigado pelo contato com a Alves Climatização & Elétrica! Como podemos te ajudar hoje?',
+            messageTemplate: 'Olá {{contact.name}}, obrigado pelo contato com a Connect Digital! Como podemos te ajudar hoje?',
           },
         },
       ],
@@ -217,7 +217,7 @@ export function WorkflowsView() {
         actionType: 'send_whatsapp',
         label: 'Disparo de WhatsApp',
         config: {
-          messageTemplate: 'Olá {{contact.name}}, estamos à disposição na Alves Climatização!',
+          messageTemplate: 'Olá {{contact.name}}, estamos à disposição na Connect Digital!',
         },
       };
     }

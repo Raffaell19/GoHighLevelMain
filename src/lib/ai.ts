@@ -114,7 +114,7 @@ function contextualConversationalEngine(prompt: string): string {
   if (!botName || ['de', 'do', 'da', 'virtual', 'comercial', 'e', 'o'].includes(botName.toLowerCase())) {
     botName = 'Sofia';
   }
-  const companyName = companyMatch ? companyMatch[1].trim() : 'Alves Climatização & Elétrica';
+  const companyName = companyMatch ? companyMatch[1].trim() : 'Connect Digital';
 
   const lowerMsg = customerMessage.toLowerCase();
   const lowerPrompt = prompt.toLowerCase();

@@ -52,7 +52,7 @@ export function WhatsAppView() {
   // Estados locais para configuração da conexão
   const config = currentSubaccount.whatsappConfig;
   const [selectedProvider, setSelectedProvider] = useState<WhatsAppProvider>(config.provider);
-  const [instanceName, setInstanceName] = useState(config.instanceName || 'alves-climatiza--o---el-trica');
+  const [instanceName, setInstanceName] = useState(config.instanceName || 'connect-digital');
   const [apiUrl, setApiUrl] = useState(config.evolutionApiUrl || 'https://evolution-api-kix9.onrender.com');
   const [apiKey, setApiKey] = useState(config.evolutionApiKey || 'flowlevel_secret_key_2026');
   const [metaPhoneId, setMetaPhoneId] = useState(config.metaPhoneNumberId || '102938475610293');
@@ -84,13 +84,13 @@ export function WhatsAppView() {
   const [botTone, setBotTone] = useState<'consultive' | 'friendly' | 'commercial' | 'formal'>('consultive');
   const [botEnabled, setBotEnabled] = useState(true);
   const [servicesAndPricing, setServicesAndPricing] = useState(
-    `• Instalação de Ar-Condicionado Split (9.000 a 12.000 BTUs): A partir de R$ 380,00\n• Instalação de Ar-Condicionado (18.000 a 30.000 BTUs): A partir de R$ 550,00\n• Higienização e Limpeza Completa com Laudo: R$ 190,00\n• Carga de Gás e Manutenção Preventiva: A partir de R$ 220,00\n• Serviços e Instalações Elétricas (Quadro, Tomadas, Fiação): Sob consulta com visita técnica`
+    `• Implementação de CRM & Funil de Vendas Automatizado\n• Chatbots com Inteligência Artificial para WhatsApp\n• Prospecção Ativa B2B & Mineração no Google Maps\n• Tráfego Pago & Gestão de Redes Sociais\n• Automações de Atendimento & Disparos em Massa`
   );
-  const [coverageAreas, setCoverageAreas] = useState('Porto Alegre, Canoas, Novo Hamburgo, São Leopoldo e Região Metropolitana.');
-  const [paymentTerms, setPaymentTerms] = useState('Cartão de crédito em até 12x, PIX com 5% de desconto à vista, ou boleto para empresas (PJ).');
-  const [businessHours, setBusinessHours] = useState('Segunda a Sexta das 08h às 18h30. Sábados das 08h às 13h.');
+  const [coverageAreas, setCoverageAreas] = useState('Brasil inteiro (atendimento online) e presencial na Região Metropolitana.');
+  const [paymentTerms, setPaymentTerms] = useState('PIX, Boleto bancário e Cartão de crédito.');
+  const [businessHours, setBusinessHours] = useState('Segunda a Sexta das 08h30 às 18h30.');
   const [customInstructions, setCustomInstructions] = useState(
-    `1. Sempre seja cordial, acolhedora e atenciosa.\n2. NUNCA envie respostas de ar-condicionado para quem pergunta sobre elétrica (troca de fiação, painel/quadro elétrico, disjuntores, tomadas).\n3. Para serviços elétricos: explique com autoridade que fazemos visita técnica de avaliação para dimensionar a carga com segurança e passar o orçamento exato, e pergunte o bairro/cidade do imóvel.\n4. Para serviços de ar-condicionado: pergunte a capacidade (BTUs) do aparelho e o bairro para estimar o valor.\n5. Responda em no máximo 2 a 3 frases concisas para manter a conversa fluida e natural no WhatsApp.`
+    `1. Você é Sofia, consultora da Connect Digital (Agência de Marketing e Automação).\n2. Seja sempre cordial, profissional e focada em entender as necessidades comerciais do cliente.\n3. Explique que ajudamos empresas a captar mais clientes e automatizar seus atendimentos com IA e CRM.\n4. Para orçamentos, colete o nome da empresa e o principal objetivo do cliente.\n5. Responda em no máximo 2 a 3 frases concisas para manter a conversa fluida no WhatsApp.`
   );
   const [humanHandoffKeywords, setHumanHandoffKeywords] = useState('atendente, falar com atendente, humano, atendente humano, pessoa, reclamacao, urgente');
   const [geminiApiKey, setGeminiApiKey] = useState('');
@@ -100,7 +100,7 @@ export function WhatsAppView() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Simulador de Atendimento IA
-  const [simulationInput, setSimulationInput] = useState('Olá! Quanto custa para instalar um ar condicionado 12.000 BTUs no bairro Centro?');
+  const [simulationInput, setSimulationInput] = useState('Olá! Gostaria de saber como a Connect Digital pode ajudar minha empresa a captar mais clientes.');
   const [simulationResponse, setSimulationResponse] = useState('');
   const [isSimulating, setIsSimulating] = useState(false);
 

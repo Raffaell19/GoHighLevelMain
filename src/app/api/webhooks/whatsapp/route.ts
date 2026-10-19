@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         msgData?.message?.conversation ||
         msgData?.message?.extendedTextMessage?.text ||
         '[Mídia ou Áudio]';
-      targetInstanceOrPhone = payload.instance || 'alves-climatiza--o---el-trica';
+      targetInstanceOrPhone = payload.instance || 'connect-digital';
     }
     // 2. Detectar payload da Meta Cloud API Oficial
     else if (payload.object === 'whatsapp_business_account') {
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       senderPhone = payload.phone.replace(/[^0-9]/g, '');
       senderName = payload.name || `Contato ${senderPhone.slice(-4)}`;
       messageText = payload.text;
-      targetInstanceOrPhone = payload.subaccountId || 'alves-climatiza--o---el-trica';
+      targetInstanceOrPhone = payload.subaccountId || 'connect-digital';
     }
 
     if (!senderPhone || !messageText) {
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
           (s) =>
             s.id === targetInstanceOrPhone ||
             s.phone.replace(/[^0-9]/g, '').includes(targetInstanceOrPhone) ||
-            s.name.toLowerCase().includes('alves')
+            s.name.toLowerCase().includes('connect')
         );
       }
       if (!subaccount) {
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 
     const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evolution-api-kix9.onrender.com';
     const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'flowlevel_secret_key_2026';
-    const activeInstance = targetInstanceOrPhone || 'alves-climatiza--o---el-trica';
+    const activeInstance = targetInstanceOrPhone || 'connect-digital';
 
     if (!isGroup && senderPhone && messageText && messageText !== '[Mídia ou Áudio]') {
       try {

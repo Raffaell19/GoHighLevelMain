@@ -26,16 +26,16 @@ const defaultStages: PipelineStage[] = [
 const initialSubaccounts: Subaccount[] = [
   {
     id: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
-    name: 'Alves Climatização & Elétrica',
-    segment: 'Serviços & Instalações',
-    logo: '⚡',
+    name: 'Connect Digital',
+    segment: 'Marketing & Automações',
+    logo: '🚀',
     phone: '+55 11 98877-6655',
-    email: 'contato@alvesinstaladora.com.br',
+    email: 'contato@connectdigital.com.br',
     whatsappConfig: {
       provider: 'evolution',
       status: 'connected',
       phone: '+55 11 98877-6655',
-      instanceName: 'alves-principal',
+      instanceName: 'connect-digital',
       evolutionApiUrl: 'https://api.evolution.local',
       evolutionApiKey: 'evo_sec_993817481',
     },
@@ -487,7 +487,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           phone: targetContact?.phone || '',
           text,
           subaccountId: currentSubaccount.id,
-          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
+          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'connect-digital',
         }),
       });
     } catch (err) {
@@ -579,7 +579,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           phone: leadPhone,
           text,
           subaccountId: currentSubaccount.id,
-          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
+          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'connect-digital',
         }),
       });
     } catch (e) {

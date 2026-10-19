@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = getServiceSupabase();
     const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
-    const instance = instanceName || 'alves-climatiza--o---el-trica';
+    const instance = instanceName || 'connect-digital';
 
     let resolvedSubId = isUuid(subaccountId) ? subaccountId : null;
     if (!resolvedSubId) {
