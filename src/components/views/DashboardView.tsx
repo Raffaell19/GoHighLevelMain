@@ -47,7 +47,7 @@ export function DashboardView({ setActiveTab, onOpenNewLeadModal }: DashboardVie
               onClick={() => setActiveTab('crm')}
               className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition"
             >
-              Abrir Funil CRM (Kanban)
+              Abrir Funil CRM
             </button>
             <button
               onClick={() => setActiveTab('whatsapp')}

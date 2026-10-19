@@ -33,8 +33,8 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
   const menuItems = [
     { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard },
-    { id: 'crm', label: 'CRM & Funil (Kanban)', icon: KanbanSquare },
-    { id: 'prospects', label: 'Gerador de Leads (Apify)', icon: Compass, badge: 'Novo' },
+    { id: 'crm', label: 'CRM & Funil', icon: KanbanSquare },
+    { id: 'prospects', label: 'Gerador de Leads', icon: Compass, badge: 'Novo' },
     { id: 'whatsapp', label: 'WhatsApp & Chatbot', icon: MessageSquare, badge: 'Live' },
     { id: 'gmb', label: 'Google Meu Negócio', icon: Star },
     { id: 'social', label: 'Agendador de Redes', icon: Share2 },

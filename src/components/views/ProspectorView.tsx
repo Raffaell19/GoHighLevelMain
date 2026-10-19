@@ -225,7 +225,7 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
               <Compass className="w-4 h-4" />
             </div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Gerador de Prospectos B2B (Google Maps via Apify)
+              Gerador de Leads B2B (Google Maps)
             </h2>
             <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-blue-500/10 text-blue-500 border border-blue-500/20">
               compass/crawler-google-places
@@ -352,7 +352,7 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
               ) : (
                 <>
                   <Zap className="w-4 h-4 fill-current text-cyan-300" />
-                  <span>Save & Start Extração (Apify)</span>
+                  <span>Save & Start Extração</span>
                 </>
               )}
             </button>
