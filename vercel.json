@@ -1,8 +1,2 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/keepalive",
-      "schedule": "*/10 * * * *"
-    }
-  ]
-}
+{}
+
