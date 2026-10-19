@@ -333,22 +333,12 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
     if (saved) {
       try {
         const parsed: SearchHistoryItem[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Atualiza qualquer lista antiga de 4 leads para a lista completa de 20 leads
-          const upgraded = parsed.map((item) => {
-            if (item.id === 'hist_seed_1' || item.resultsCount === 4) {
-              return {
-                ...item,
-                limit: 20,
-                resultsCount: 20,
-                results: full20SeedResults,
-              };
-            }
-            return item;
-          });
-          setHistory(upgraded);
+        if (Array.isArray(parsed)) {
+          // Filtra e remove qualquer lista demo antiga de teste
+          const realHistory = parsed.filter((item) => item.id !== 'hist_seed_1');
+          setHistory(realHistory);
           try {
-            localStorage.setItem(storageKey, JSON.stringify(upgraded));
+            localStorage.setItem(storageKey, JSON.stringify(realHistory));
           } catch {}
           return;
         }
@@ -357,23 +347,10 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
       }
     }
 
-    // Default sample history if empty, with 20 complete leads
-    const initialSeed: SearchHistoryItem[] = [
-      {
-        id: 'hist_seed_1',
-        searchTerm: 'esquadrias',
-        location: 'Novo Hamburgo, RS, Brasil',
-        limit: 20,
-        resultsCount: 20,
-        timestamp: new Date().toISOString(),
-        formattedDate: '19/10/2026 às 15:00',
-        results: full20SeedResults,
-      },
-    ];
-
-    setHistory(initialSeed);
+    // Inicializa vazio para ambiente de produção real
+    setHistory([]);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(initialSeed));
+      localStorage.removeItem(storageKey);
     } catch {}
   }, [currentSubaccount.id]);
 

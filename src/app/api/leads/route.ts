@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 
+function isUuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = getServiceSupabase();
@@ -8,7 +13,7 @@ export async function GET(request: NextRequest) {
     const subaccountId = searchParams.get('subaccountId');
 
     let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
-    if (subaccountId) {
+    if (subaccountId && isUuid(subaccountId)) {
       query = query.eq('subaccount_id', subaccountId);
     }
 
@@ -17,7 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ leads: data });
+    return NextResponse.json({ leads: data || [] });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -87,6 +92,15 @@ export async function DELETE(request: NextRequest) {
     const supabase = getServiceSupabase();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const all = searchParams.get('all') === 'true';
+
+    if (all) {
+      const { error } = await supabase.from('leads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, message: 'Todos os leads foram zerados' });
+    }
 
     if (!id) {
       return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });

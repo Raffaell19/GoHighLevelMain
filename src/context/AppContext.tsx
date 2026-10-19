@@ -45,28 +45,16 @@ const initialSubaccounts: Subaccount[] = [
 ];
 
 const initialGMBStats: GMBStats = {
-  views: 3840,
-  searches: 2150,
-  calls: 94,
-  directions: 340,
-  websiteClicks: 520,
-  ratingAverage: 4.9,
-  totalReviews: 138,
+  views: 0,
+  searches: 0,
+  calls: 0,
+  directions: 0,
+  websiteClicks: 0,
+  ratingAverage: 0,
+  totalReviews: 0,
 };
 
-const initialSocialPosts: SocialPost[] = [
-  {
-    id: 'post-1',
-    subaccountId: 'sub-1',
-    platforms: ['instagram', 'facebook'],
-    content: '❄️ Seu ar-condicionado está pingando ou com cheiro estranho? Agende uma revisão preventiva e respire ar puro! Chame no WhatsApp. #Climatizacao #AlvesInstalacoes',
-    mediaUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&auto=format&fit=crop&q=80',
-    scheduledDate: '2026-10-18 11:00',
-    status: 'scheduled',
-    likes: 0,
-    comments: 0,
-  },
-];
+const initialSocialPosts: SocialPost[] = [];
 
 const initialWorkflows: WorkflowRule[] = [
   {
@@ -77,7 +65,7 @@ const initialWorkflows: WorkflowRule[] = [
     triggerType: 'whatsapp_received',
     triggerLabel: 'Nova mensagem de contato não cadastrado',
     isActive: true,
-    totalExecutions: 342,
+    totalExecutions: 0,
     actions: [
       { id: 'a1', type: 'add_tag', label: 'Adicionar Tag #WhatsAppLead', config: { tag: 'WhatsApp Inbound' } },
       { id: 'a2', type: 'update_stage', label: 'Mover para etapa "Novos Leads"', config: { stageId: 'stage-1' } },
