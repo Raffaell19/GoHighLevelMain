@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   Users,
   MessageCircle,
+  UserCheck,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { WhatsAppProvider } from '@/types';
@@ -517,8 +518,16 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                           <span className="text-[10px] text-slate-400 shrink-0">{contact.lastMessageTime}</span>
                         </div>
                         <p className="text-[11px] text-slate-400 truncate mt-0.5">{contact.lastMessage || 'Iniciou conversa'}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          {isGroup ? (
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          {contact.isDecisionMaker || contact.tags?.includes('#DecisorIdentificado') ? (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                              🎯 Decisor
+                            </span>
+                          ) : contact.tags?.includes('#ProspeccaoMaps') ? (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                              Maps Lead
+                            </span>
+                          ) : isGroup ? (
                             <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
                               Grupo
                             </span>
@@ -551,6 +560,13 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {(activeContact.isDecisionMaker || activeContact.tags?.includes('#DecisorIdentificado')) && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold animate-pulse">
+                      <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Decisor Identificado • Atendimento Humanizado</span>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleGenerateAiChatbotReply}
                     disabled={isGeneratingAi}
@@ -598,6 +614,13 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                               <span>Resposta Automática Treinada</span>
                             </div>
                           )}
+
+                          {msg.mediaUrl && msg.mediaType === 'audio' && (
+                            <div className="mb-2 p-2 rounded-xl bg-black/25 flex items-center gap-2">
+                              <audio controls src={msg.mediaUrl} className="h-8 w-56 max-w-full" />
+                            </div>
+                          )}
+
                           <p className="whitespace-pre-wrap">{msg.text}</p>
                           <div
                             className={`flex items-center justify-end gap-1 text-[10px] mt-1 ${

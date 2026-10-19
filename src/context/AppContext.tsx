@@ -105,6 +105,27 @@ interface AppContextType {
   setActiveContact: (contact: WhatsAppContact) => void;
   messages: Record<string, WhatsAppMessage[]>;
   sendMessage: (contactId: string, text: string) => void;
+  dispatchWhatsAppLead: (params: {
+    leadName: string;
+    leadPhone: string;
+    companyName: string;
+    city?: string;
+    category?: string;
+    rating?: number;
+    text: string;
+    mediaUrl?: string;
+    mediaType?: 'audio' | 'image' | 'video' | 'document';
+  }) => Promise<{ success: boolean; contactId: string }>;
+  handleInboundLeadResponse: (params: {
+    contactId: string;
+    responseText: string;
+    prospectData?: {
+      company?: string;
+      city?: string;
+      category?: string;
+      phone?: string;
+    };
+  }) => Promise<void>;
   updateWhatsAppConfig: (subaccountId: string, config: Partial<Subaccount['whatsappConfig']>) => void;
   refreshChatData: () => Promise<void>;
   reviews: GMBReview[];
@@ -486,6 +507,172 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const dispatchWhatsAppLead = async ({
+    leadName,
+    leadPhone,
+    companyName,
+    city,
+    category,
+    rating,
+    text,
+    mediaUrl,
+    mediaType,
+  }: {
+    leadName: string;
+    leadPhone: string;
+    companyName: string;
+    city?: string;
+    category?: string;
+    rating?: number;
+    text: string;
+    mediaUrl?: string;
+    mediaType?: 'audio' | 'image' | 'video' | 'document';
+  }) => {
+    const cleanPhone = leadPhone.replace(/[^0-9]/g, '');
+    let existingContact = contacts.find(
+      (c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone || c.name === leadName
+    );
+
+    let contactId = existingContact?.id;
+
+    if (!contactId) {
+      contactId = `contact_outreach_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newContact: WhatsAppContact = {
+        id: contactId,
+        subaccountId: currentSubaccount.id,
+        name: leadName || companyName,
+        phone: leadPhone,
+        avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80`,
+        lastMessage: text,
+        lastMessageTime: 'Agora',
+        unreadCount: 0,
+        tags: ['#ProspeccaoMaps', '#AguardandoDecisor'],
+        needsHumanAttention: false,
+        source: 'Google Maps Prospector',
+      };
+      setContacts((prev) => [newContact, ...prev]);
+    } else {
+      setContacts((prev) =>
+        prev.map((c) =>
+          c.id === contactId
+            ? {
+                ...c,
+                lastMessage: text,
+                lastMessageTime: 'Agora',
+                tags: Array.from(new Set([...(c.tags || []), '#ProspeccaoMaps', '#AguardandoDecisor'])),
+              }
+            : c
+        )
+      );
+    }
+
+    const newMsg: WhatsAppMessage = {
+      id: `msg_out_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      contactId,
+      sender: 'agent',
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'sent',
+      mediaUrl,
+      mediaType,
+    };
+
+    setMessages((prev) => ({
+      ...prev,
+      [contactId]: [...(prev[contactId] || []), newMsg],
+    }));
+
+    try {
+      await fetch('/api/whatsapp/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactId,
+          phone: leadPhone,
+          text,
+          subaccountId: currentSubaccount.id,
+          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
+        }),
+      });
+    } catch (e) {
+      console.error('Erro ao disparar outreach:', e);
+    }
+
+    return { success: true, contactId };
+  };
+
+  const handleInboundLeadResponse = async ({
+    contactId,
+    responseText,
+    prospectData,
+  }: {
+    contactId: string;
+    responseText: string;
+    prospectData?: {
+      company?: string;
+      city?: string;
+      category?: string;
+      phone?: string;
+    };
+  }) => {
+    const contact = contacts.find((c) => c.id === contactId);
+    if (!contact) return;
+
+    const incomingMsg: WhatsAppMessage = {
+      id: `msg_in_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      contactId,
+      sender: 'contact',
+      text: responseText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'read',
+    };
+
+    setMessages((prev) => ({
+      ...prev,
+      [contactId]: [...(prev[contactId] || []), incomingMsg],
+    }));
+
+    setContacts((prev) =>
+      prev.map((c) =>
+        c.id === contactId
+          ? {
+              ...c,
+              lastMessage: responseText,
+              lastMessageTime: 'Agora',
+              unreadCount: (c.unreadCount || 0) + 1,
+              isDecisionMaker: true,
+              needsHumanAttention: true,
+              tags: Array.from(new Set([...(c.tags || []).filter((t) => t !== '#AguardandoDecisor'), '#DecisorIdentificado', '#RespondeuWhatsApp'])),
+            }
+          : c
+      )
+    );
+
+    // GATILHO SOLICITADO PELO USUÁRIO (Ponto 2):
+    // Inserir imediatamente este lead na 1ª coluna do CRM & Funil
+    const cleanContactPhone = contact.phone.replace(/[^0-9]/g, '');
+    const leadExists = leads.some(
+      (l) =>
+        (l.phone && l.phone.replace(/[^0-9]/g, '') === cleanContactPhone) ||
+        l.name.toLowerCase() === contact.name.toLowerCase()
+    );
+
+    if (!leadExists) {
+      await addLead({
+        name: contact.name,
+        company: prospectData?.company || contact.name,
+        phone: contact.phone,
+        email: '',
+        value: 1800,
+        stageId: stages[0]?.id || 'stage_1',
+        status: 'open',
+        tags: ['#ProspeccaoMaps', '#DecisorRespondeu'],
+        notes: `🎯 Decisor respondeu abordagem no WhatsApp: "${responseText}". Lead qualificado automaticamente para atendimento humanizado.`,
+        subaccountId: currentSubaccount.id,
+      });
+    }
+  };
+
   const updateWhatsAppConfig = (subaccountId: string, config: Partial<Subaccount['whatsappConfig']>) => {
     setSubaccounts((prev) =>
       prev.map((s) => {
@@ -619,6 +806,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setActiveContact,
         messages,
         sendMessage,
+        dispatchWhatsAppLead,
+        handleInboundLeadResponse,
         updateWhatsAppConfig,
         refreshChatData,
         reviews: reviews.filter((r) => r.subaccountId === currentSubaccount.id),

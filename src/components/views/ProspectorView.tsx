@@ -32,9 +32,11 @@ import {
   FolderOpen,
   Layers,
   ArrowUpRight,
+  MessageCircle,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { ProspectItem } from '@/app/api/prospects/status/route';
+import { ProspectItem } from '@/types';
+import { MassOutreachModal } from './MassOutreachModal';
 
 export interface SearchHistoryItem {
   id: string;
@@ -49,10 +51,14 @@ export interface SearchHistoryItem {
 
 interface ProspectorViewProps {
   onNavigateToCrm?: () => void;
+  onNavigateToWhatsApp?: () => void;
 }
 
-export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
+export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: ProspectorViewProps) {
   const { currentSubaccount, stages } = useApp();
+
+  // Modal de Disparo em Massa
+  const [isOutreachModalOpen, setIsOutreachModalOpen] = useState(false);
 
   // Navigation tab between "Nova Extração" and "Histórico de Listas"
   const [activeTab, setActiveTab] = useState<'search' | 'history'>('search');
@@ -1086,7 +1092,7 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
                 </div>
 
                 {/* Batch Actions */}
-                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
                   <button
                     onClick={exportCurrentSelectionToCsv}
                     disabled={selectedIds.size === 0}
@@ -1094,6 +1100,15 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
                     <span>Exportar CSV</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsOutreachModalOpen(true)}
+                    disabled={selectedIds.size === 0}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition disabled:opacity-40 cursor-pointer"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>Disparar WhatsApp ({selectedIds.size})</span>
                   </button>
 
                   <button
@@ -1109,7 +1124,7 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
                     ) : (
                       <>
                         <Download className="w-3.5 h-3.5" />
-                        <span>Importar {selectedIds.size} para o Funil de Vendas</span>
+                        <span>Importar {selectedIds.size} para o Funil</span>
                       </>
                     )}
                   </button>
@@ -1290,6 +1305,15 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
           </div>
         </div>
       )}
+
+      {/* Modal de Disparo em Massa & Filtro de Decisor WhatsApp */}
+      <MassOutreachModal
+        isOpen={isOutreachModalOpen}
+        onClose={() => setIsOutreachModalOpen(false)}
+        selectedLeads={results.filter((r) => selectedIds.has(r.id))}
+        onNavigateToWhatsApp={onNavigateToWhatsApp}
+        onNavigateToCrm={onNavigateToCrm}
+      />
     </div>
   );
 }

@@ -66,6 +66,9 @@ export interface WhatsAppMessage {
   text: string;
   timestamp: string;
   status: 'sent' | 'delivered' | 'read';
+  mediaUrl?: string;
+  mediaType?: 'audio' | 'image' | 'video' | 'document';
+  audioDuration?: number;
 }
 
 export interface WhatsAppContact {
@@ -79,6 +82,9 @@ export interface WhatsAppContact {
   unreadCount: number;
   tags: string[];
   assignedTo?: string;
+  isDecisionMaker?: boolean;
+  needsHumanAttention?: boolean;
+  source?: string;
 }
 
 export interface GMBReview {
@@ -184,5 +190,17 @@ export interface WorkflowRule {
   totalExecutions: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ProspectItem {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+  website?: string;
+  rating: number;
+  reviewsCount: number;
+  category?: string;
+  googleUrl?: string;
 }
 

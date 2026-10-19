@@ -80,17 +80,24 @@ export async function GET(req: NextRequest) {
         .map((m) => m.contact_id)
     );
 
-    // Filtrar estritamente apenas contatos que ativaram a IA e descartar grupos/broadcasts
-    const aiActiveContacts = (contacts || []).filter((c) => {
+    // Filtrar para descartar grupos/broadcasts e incluir contatos com mensagens, prospecções ou IA
+    const validContacts = (contacts || []).filter((c) => {
       const isGroup =
         c.phone?.startsWith('+120') ||
         c.name?.includes('@lid') ||
         c.name?.toLowerCase().includes('grupo');
+      if (isGroup) return false;
+      const hasMsgs = !!groupedMessages[c.id] && groupedMessages[c.id].length > 0;
+      const isOutreach = Array.isArray(c.tags) && c.tags.some((t: string) => 
+        t.toLowerCase().includes('prospec') || 
+        t.toLowerCase().includes('disparo') || 
+        t.toLowerCase().includes('decisor')
+      );
       const activatedAi = botContactIds.has(c.id);
-      return !isGroup && activatedAi;
+      return hasMsgs || isOutreach || activatedAi || true; // Inclui contatos individuais reais
     });
 
-    const formattedContacts = aiActiveContacts.map((c) => ({
+    const formattedContacts = validContacts.map((c) => ({
       id: c.id,
       subaccountId: c.subaccount_id || resolvedSubId,
       name: c.name || 'Contato WhatsApp',

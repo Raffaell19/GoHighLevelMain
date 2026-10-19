@@ -61,7 +61,10 @@ export default function Home() {
           )}
 
           {activeTab === 'prospects' && (
-            <ProspectorView onNavigateToCrm={() => setActiveTab('crm')} />
+            <ProspectorView
+              onNavigateToCrm={() => setActiveTab('crm')}
+              onNavigateToWhatsApp={() => setActiveTab('whatsapp')}
+            />
           )}
 
           {activeTab === 'whatsapp' && <WhatsAppView />}
