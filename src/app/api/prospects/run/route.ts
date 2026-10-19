@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServiceSupabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { searchQuery, location, limit = 70, language = 'pt-BR', customToken } = body;
+    const { searchQuery, location, limit = 70, language = 'pt-BR', customToken, subaccountId } = body;
 
     if (!searchQuery || !location) {
       return NextResponse.json(
@@ -12,7 +13,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = customToken || process.env.APIFY_API_TOKEN;
+    let token = customToken || process.env.APIFY_API_TOKEN;
+
+    // Se não estiver em process.env, busca automaticamente no Supabase tenant_credentials
+    if (!token || token.trim().length <= 5) {
+      try {
+        const supabase = getServiceSupabase();
+        let query = supabase.from('tenant_credentials').select('encrypted_credentials').eq('service_type', 'apify');
+        if (subaccountId) {
+          query = query.eq('subaccount_id', subaccountId);
+        }
+        const { data: cred } = await query.limit(1).maybeSingle();
+        if (cred?.encrypted_credentials) {
+          try {
+            const parsed = JSON.parse(cred.encrypted_credentials);
+            if (parsed.token) token = parsed.token;
+          } catch {
+            token = cred.encrypted_credentials;
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao buscar token no Supabase:', e);
+      }
+    }
 
     // Se houver token configurado, dispara o Actor real na Apify
     if (token && token.trim().length > 5) {

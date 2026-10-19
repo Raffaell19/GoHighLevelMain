@@ -92,6 +92,7 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
           limit,
           language,
           customToken: apiToken || undefined,
+          subaccountId: currentSubaccount.id,
         }),
       });
 
@@ -107,7 +108,7 @@ export function ProspectorView({ onNavigateToCrm }: ProspectorViewProps) {
         const statusRes = await fetch(
           `/api/prospects/status?runId=${runJson.runId}&defaultDatasetId=${runJson.defaultDatasetId || ''}&searchQuery=${encodeURIComponent(
             searchTerm
-          )}&location=${encodeURIComponent(location)}&limit=${limit}&customToken=${encodeURIComponent(apiToken)}`
+          )}&location=${encodeURIComponent(location)}&limit=${limit}&customToken=${encodeURIComponent(apiToken)}&subaccountId=${currentSubaccount.id}`
         );
         const statusJson = await statusRes.json();
 

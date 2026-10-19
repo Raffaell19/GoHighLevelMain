@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServiceSupabase } from '@/lib/supabase';
 
 export interface ProspectItem {
   id: string;
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
     const runId = searchParams.get('runId');
     const defaultDatasetId = searchParams.get('defaultDatasetId');
     const customToken = searchParams.get('customToken');
+    const subaccountId = searchParams.get('subaccountId');
     const searchQuery = searchParams.get('searchQuery') || 'Empresas';
     const location = searchParams.get('location') || 'Brasil';
     const limit = Number(searchParams.get('limit')) || 25;
@@ -26,7 +28,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'runId é obrigatório' }, { status: 400 });
     }
 
-    const token = customToken || process.env.APIFY_API_TOKEN;
+    let token = customToken || process.env.APIFY_API_TOKEN;
+
+    // Se não estiver em process.env, busca automaticamente no Supabase tenant_credentials
+    if (!token || token.trim().length <= 5) {
+      try {
+        const supabase = getServiceSupabase();
+        let query = supabase.from('tenant_credentials').select('encrypted_credentials').eq('service_type', 'apify');
+        if (subaccountId) {
+          query = query.eq('subaccount_id', subaccountId);
+        }
+        const { data: cred } = await query.limit(1).maybeSingle();
+        if (cred?.encrypted_credentials) {
+          try {
+            const parsed = JSON.parse(cred.encrypted_credentials);
+            if (parsed.token) token = parsed.token;
+          } catch {
+            token = cred.encrypted_credentials;
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao buscar token no Supabase:', e);
+      }
+    }
 
     // Caso 1: Run Mock / Demonstração
     if (runId.startsWith('mock-run-') || !token || token.trim().length < 5) {
