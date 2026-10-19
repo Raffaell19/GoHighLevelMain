@@ -113,6 +113,8 @@ interface AppContextType {
       category?: string;
       phone?: string;
     };
+    intent?: 'decisor' | 'intermediary' | 'objection';
+    botReplyText?: string;
   }) => Promise<void>;
   updateWhatsAppConfig: (subaccountId: string, config: Partial<Subaccount['whatsappConfig']>) => void;
   refreshChatData: () => Promise<void>;
@@ -593,6 +595,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     contactId,
     responseText,
     prospectData,
+    intent,
+    botReplyText,
   }: {
     contactId: string;
     responseText: string;
@@ -602,9 +606,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       category?: string;
       phone?: string;
     };
+    intent?: 'decisor' | 'intermediary' | 'objection';
+    botReplyText?: string;
   }) => {
     const contact = contacts.find((c) => c.id === contactId);
     if (!contact) return;
+
+    // Detectar intenção semântica automaticamente se não especificada
+    let resolvedIntent: 'decisor' | 'intermediary' | 'objection' = intent || 'decisor';
+    if (!intent) {
+      const lower = responseText.toLowerCase();
+      if (
+        lower.includes('secretár') ||
+        lower.includes('secretar') ||
+        lower.includes('recepç') ||
+        lower.includes('recepc') ||
+        lower.includes('funcionár') ||
+        lower.includes('atendente') ||
+        lower.includes('não sou o dono') ||
+        lower.includes('nao sou o dono') ||
+        lower.includes('ele não está') ||
+        lower.includes('fale no fixo')
+      ) {
+        resolvedIntent = 'intermediary';
+      } else if (
+        lower.includes('não tenho interesse') ||
+        lower.includes('nao tenho interesse') ||
+        lower.includes('sem interesse') ||
+        lower.includes('retire meu') ||
+        lower.includes('pare de mandar') ||
+        lower.includes('não quero')
+      ) {
+        resolvedIntent = 'objection';
+      } else {
+        resolvedIntent = 'decisor';
+      }
+    }
 
     const incomingMsg: WhatsAppMessage = {
       id: `msg_in_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -614,6 +651,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'read',
     };
+
+    const isDecisor = resolvedIntent === 'decisor';
+    const tagToAdd = isDecisor
+      ? '#DecisorIdentificado'
+      : resolvedIntent === 'intermediary'
+      ? '#IntermediarioSecretaria'
+      : '#SemInteresse';
 
     setMessages((prev) => ({
       ...prev,
@@ -628,36 +672,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               lastMessage: responseText,
               lastMessageTime: 'Agora',
               unreadCount: (c.unreadCount || 0) + 1,
-              isDecisionMaker: true,
-              needsHumanAttention: true,
-              tags: Array.from(new Set([...(c.tags || []).filter((t) => t !== '#AguardandoDecisor'), '#DecisorIdentificado', '#RespondeuWhatsApp'])),
+              isDecisionMaker: isDecisor,
+              needsHumanAttention: isDecisor,
+              tags: Array.from(
+                new Set([
+                  ...(c.tags || []).filter((t) => t !== '#AguardandoDecisor'),
+                  tagToAdd,
+                  '#RespondeuWhatsApp',
+                ])
+              ),
             }
           : c
       )
     );
 
-    // GATILHO SOLICITADO PELO USUÁRIO (Ponto 2):
-    // Inserir imediatamente este lead na 1ª coluna do CRM & Funil
-    const cleanContactPhone = contact.phone.replace(/[^0-9]/g, '');
-    const leadExists = leads.some(
-      (l) =>
-        (l.phone && l.phone.replace(/[^0-9]/g, '') === cleanContactPhone) ||
-        l.name.toLowerCase() === contact.name.toLowerCase()
-    );
+    // Se houver resposta automática inteligente do robô/IA
+    if (botReplyText) {
+      setTimeout(() => {
+        const replyMsg: WhatsAppMessage = {
+          id: `msg_bot_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          contactId,
+          sender: 'agent',
+          text: botReplyText,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: 'sent',
+        };
 
-    if (!leadExists) {
-      await addLead({
-        name: contact.name,
-        company: prospectData?.company || contact.name,
-        phone: contact.phone,
-        email: '',
-        value: 1800,
-        stageId: stages[0]?.id || 'stage_1',
-        status: 'open',
-        tags: ['#ProspeccaoMaps', '#DecisorRespondeu'],
-        notes: `🎯 Decisor respondeu abordagem no WhatsApp: "${responseText}". Lead qualificado automaticamente para atendimento humanizado.`,
-        subaccountId: currentSubaccount.id,
-      });
+        setMessages((prev) => ({
+          ...prev,
+          [contactId]: [...(prev[contactId] || []), replyMsg],
+        }));
+
+        setContacts((prev) =>
+          prev.map((c) =>
+            c.id === contactId
+              ? {
+                  ...c,
+                  lastMessage: botReplyText,
+                  lastMessageTime: 'Agora',
+                }
+              : c
+          )
+        );
+      }, 700);
+    }
+
+    // Se for Decisor, insere no CRM Funil na 1ª coluna (se ainda não existir)
+    if (isDecisor) {
+      const cleanContactPhone = contact.phone.replace(/[^0-9]/g, '');
+      const leadExists = leads.some(
+        (l) =>
+          (l.phone && l.phone.replace(/[^0-9]/g, '') === cleanContactPhone) ||
+          l.name.toLowerCase() === contact.name.toLowerCase()
+      );
+
+      if (!leadExists) {
+        await addLead({
+          name: contact.name,
+          company: prospectData?.company || contact.name,
+          phone: contact.phone,
+          email: '',
+          value: 1800,
+          stageId: stages[0]?.id || 'stage_1',
+          status: 'open',
+          tags: ['#ProspeccaoMaps', '#DecisorRespondeu'],
+          notes: `🎯 Decisor respondeu abordagem no WhatsApp: "${responseText}". Lead qualificado automaticamente para atendimento humanizado.`,
+          subaccountId: currentSubaccount.id,
+        });
+      }
     }
   };
 

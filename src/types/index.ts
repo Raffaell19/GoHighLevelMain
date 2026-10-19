@@ -71,6 +71,24 @@ export interface WhatsAppMessage {
   audioDuration?: number;
 }
 
+export interface AudioTrackItem {
+  id: string;
+  name: string;
+  duration: number;
+  url: string;
+  createdAt: string;
+  isCustom?: boolean;
+}
+
+export interface SequenceStepItem {
+  id: string;
+  type: 'text' | 'audio' | 'delay';
+  title?: string;
+  textContent?: string;
+  audioId?: string;
+  delaySeconds?: number;
+}
+
 export interface WhatsAppContact {
   id: string;
   subaccountId: string;
