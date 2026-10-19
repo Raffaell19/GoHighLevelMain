@@ -46,7 +46,17 @@ export async function POST(request: NextRequest) {
       }
 
       const remoteJid = keyObj.remoteJid || '';
-      isGroup = remoteJid.endsWith('@g.us') || remoteJid.includes('@broadcast');
+      isGroup =
+        remoteJid.endsWith('@g.us') ||
+        remoteJid.includes('@broadcast') ||
+        remoteJid.includes('@newsletter') ||
+        remoteJid.includes('@lid');
+
+      // Ignora estritamente grupos e listas de transmissão para não poluir contatos e CRM
+      if (isGroup) {
+        console.log(`[Webhook WhatsApp] Ignorando mensagem de grupo/transmissão: ${remoteJid}`);
+        return NextResponse.json({ status: 'ignored_group' });
+      }
 
       // Em novas versões do WhatsApp com privacidade/LID, o número real vem em remoteJidAlt
       const rawJid = keyObj.remoteJidAlt || remoteJid;

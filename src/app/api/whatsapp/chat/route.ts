@@ -73,7 +73,24 @@ export async function GET(req: NextRequest) {
       });
     });
 
-    const formattedContacts = (contacts || []).map((c) => ({
+    // Identificar contatos onde a IA realmente foi ativada (possuem mensagens do bot)
+    const botContactIds = new Set(
+      (messages || [])
+        .filter((m) => m.sender === 'bot')
+        .map((m) => m.contact_id)
+    );
+
+    // Filtrar estritamente apenas contatos que ativaram a IA e descartar grupos/broadcasts
+    const aiActiveContacts = (contacts || []).filter((c) => {
+      const isGroup =
+        c.phone?.startsWith('+120') ||
+        c.name?.includes('@lid') ||
+        c.name?.toLowerCase().includes('grupo');
+      const activatedAi = botContactIds.has(c.id);
+      return !isGroup && activatedAi;
+    });
+
+    const formattedContacts = aiActiveContacts.map((c) => ({
       id: c.id,
       subaccountId: c.subaccount_id || resolvedSubId,
       name: c.name || 'Contato WhatsApp',
@@ -82,7 +99,7 @@ export async function GET(req: NextRequest) {
       lastMessage: c.last_message || '',
       lastMessageTime: c.last_message_time || 'Agora',
       unreadCount: c.unread_count || 0,
-      tags: c.tags || ['WhatsApp Inbound'],
+      tags: c.tags || ['WhatsApp IA'],
       lastActivityTime: lastMsgTimes[c.id] || new Date(c.created_at).getTime(),
     }));
 

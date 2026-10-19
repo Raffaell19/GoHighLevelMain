@@ -64,6 +64,19 @@ export function WhatsAppView() {
   const [isLoadingQr, setIsLoadingQr] = useState<boolean>(false);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
 
+  // Sincronizar dados de conexão exclusivos quando a subconta mudar
+  useEffect(() => {
+    if (currentSubaccount?.whatsappConfig) {
+      const cfg = currentSubaccount.whatsappConfig;
+      setSelectedProvider(cfg.provider || 'evolution');
+      setInstanceName(cfg.instanceName || `empresa-${currentSubaccount.id.slice(0, 8)}`);
+      if (cfg.evolutionApiUrl) setApiUrl(cfg.evolutionApiUrl);
+      if (cfg.evolutionApiKey) setApiKey(cfg.evolutionApiKey);
+      if (cfg.metaPhoneNumberId) setMetaPhoneId(cfg.metaPhoneNumberId);
+      if (cfg.metaAccessToken) setMetaToken(cfg.metaAccessToken);
+    }
+  }, [currentSubaccount?.id]);
+
   // Estados do Treinamento do Atendente de IA
   const [botName, setBotName] = useState('Sofia');
   const [botRole, setBotRole] = useState('Consultora Especialista em Atendimento & Vendas');
@@ -326,16 +339,20 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
     }, 1200);
   };
 
-  // Filtragem de contatos (Busca + Filtro de Clientes/Grupos)
+  // Filtragem de contatos: exibe estritamente conversas reais que ativaram a IA
   const filteredContacts = contacts.filter((c) => {
     if (!c) return false;
 
-    // Filtro de Categoria
-    const isGroup = (c.phone && c.phone.includes('@g.us')) || (c.tags && c.tags.includes('Grupo WhatsApp')) || c.phone.startsWith('+12036');
-    if (contactFilter === 'direct' && isGroup) return false;
-    if (contactFilter === 'groups' && !isGroup) return false;
+    // Exclui estritamente grupos e listas de transmissão
+    const isGroup =
+      (c.phone && c.phone.includes('@g.us')) ||
+      (c.tags && c.tags.includes('Grupo WhatsApp')) ||
+      c.phone.startsWith('+120') ||
+      c.name.includes('@lid') ||
+      c.name.toLowerCase().includes('grupo');
+    if (isGroup) return false;
 
-    // Filtro de Texto
+    // Filtro de Busca por Texto
     const term = (searchTerm || '').trim().toLowerCase();
     if (!term) return true;
     const nameMatch = (c.name || '').toLowerCase().includes(term);
@@ -450,37 +467,11 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               </div>
 
               {/* Filter Pills */}
-              <div className="flex items-center gap-1.5 text-[11px]">
-                <button
-                  onClick={() => setContactFilter('all')}
-                  className={`px-2 py-0.5 rounded-md font-medium transition ${
-                    contactFilter === 'all'
-                      ? 'bg-emerald-500/20 text-emerald-400 font-bold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Todos ({contacts.length})
-                </button>
-                <button
-                  onClick={() => setContactFilter('direct')}
-                  className={`px-2 py-0.5 rounded-md font-medium transition ${
-                    contactFilter === 'direct'
-                      ? 'bg-blue-500/20 text-blue-400 font-bold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Clientes
-                </button>
-                <button
-                  onClick={() => setContactFilter('groups')}
-                  className={`px-2 py-0.5 rounded-md font-medium transition ${
-                    contactFilter === 'groups'
-                      ? 'bg-purple-500/20 text-purple-400 font-bold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Grupos
-                </button>
+              <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold">
+                  <Bot className="w-3.5 h-3.5" />
+                  <span>Conversas com IA Ativada ({filteredContacts.length})</span>
+                </div>
               </div>
             </div>
 

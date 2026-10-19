@@ -17,7 +17,7 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenNewLeadModal }: HeaderProps) {
-  const { currentSubaccount, isDbConnected } = useApp();
+  const { currentSubaccount, isDbConnected, currentUser, isSuperAdmin } = useApp();
 
   return (
     <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between shrink-0">
@@ -78,11 +78,22 @@ export function Header({ onOpenNewLeadModal }: HeaderProps) {
         {/* Profile Avatar */}
         <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
           <div className="w-8 h-8 rounded-full bg-slate-800 border border-blue-500/40 text-blue-400 flex items-center justify-center font-bold text-xs">
-            RA
+            {currentUser?.name
+              ? currentUser.name
+                  .split(' ')
+                  .map((n: string) => n[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()
+              : 'FL'}
           </div>
           <div className="hidden lg:block text-left text-xs">
-            <p className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">Rafael Admin</p>
-            <p className="text-[10px] text-slate-400">Master Account</p>
+            <p className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+              {currentUser?.name || 'Administrador'}
+            </p>
+            <p className="text-[10px] text-slate-400">
+              {isSuperAdmin ? 'Master Agência' : 'Dono da Empresa'}
+            </p>
           </div>
         </div>
       </div>

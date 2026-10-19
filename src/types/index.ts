@@ -1,5 +1,15 @@
 export type WhatsAppProvider = 'evolution' | 'meta_cloud';
 
+export type UserRole = 'superadmin' | 'owner' | 'agent';
+
+export interface AppUser {
+  id: string;
+  email: string;
+  name?: string;
+  role: UserRole;
+  subaccountId?: string;
+}
+
 export interface WhatsAppConfig {
   provider: WhatsAppProvider;
   status: 'connected' | 'disconnected' | 'connecting';
@@ -107,9 +117,49 @@ export interface SocialPost {
   comments?: number;
 }
 
+export type WorkflowStepType = 'action' | 'condition' | 'delay' | 'webhook';
+
+export type WorkflowActionType =
+  | 'send_whatsapp'
+  | 'add_tag'
+  | 'remove_tag'
+  | 'update_stage'
+  | 'wait_delay'
+  | 'send_webhook'
+  | 'ai_toggle';
+
+export type WorkflowConditionOperator = 'contains' | 'equals' | 'greater_than' | 'starts_with';
+
+export interface WorkflowCondition {
+  field: 'message' | 'tag' | 'lead_value' | 'rating' | 'stage';
+  operator: WorkflowConditionOperator;
+  value: string;
+}
+
+export interface WorkflowStep {
+  id: string;
+  stepOrder: number;
+  stepType: WorkflowStepType;
+  actionType?: WorkflowActionType;
+  label: string;
+  config?: {
+    messageTemplate?: string;
+    delayMinutes?: number;
+    tag?: string;
+    stageId?: string;
+    webhookUrl?: string;
+    aiEnabled?: boolean;
+    condition?: WorkflowCondition;
+    [key: string]: any;
+  };
+  branch?: 'yes' | 'no' | 'default';
+  yesSteps?: WorkflowStep[];
+  noSteps?: WorkflowStep[];
+}
+
 export interface WorkflowAction {
   id: string;
-  type: 'send_whatsapp' | 'create_task' | 'update_stage' | 'add_tag' | 'notify_team';
+  type: 'send_whatsapp' | 'create_task' | 'update_stage' | 'add_tag' | 'notify_team' | 'wait_delay' | 'send_webhook' | 'ai_toggle';
   label: string;
   config: Record<string, any>;
 }
@@ -119,9 +169,20 @@ export interface WorkflowRule {
   subaccountId: string;
   name: string;
   description: string;
-  triggerType: 'lead_created' | 'stage_changed' | 'whatsapp_received' | 'gmb_review_received';
+  triggerType: 'lead_created' | 'stage_changed' | 'whatsapp_received' | 'gmb_review_received' | 'tag_added';
   triggerLabel: string;
+  triggerConfig?: {
+    keywords?: string[];
+    minRating?: number;
+    stageId?: string;
+    tag?: string;
+    [key: string]: any;
+  };
+  steps?: WorkflowStep[];
   actions: WorkflowAction[];
   isActive: boolean;
   totalExecutions: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
+

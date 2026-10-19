@@ -11,7 +11,9 @@ import {
   GMBStats,
   SocialPost,
   WorkflowRule,
+  AppUser,
 } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 const defaultStages: PipelineStage[] = [
   { id: 'stage-1', name: 'Novos Leads', color: 'border-blue-500 text-blue-500', order: 1 },
@@ -84,6 +86,11 @@ const initialWorkflows: WorkflowRule[] = [
 ];
 
 interface AppContextType {
+  currentUser: AppUser | null;
+  isAuthenticated: boolean;
+  isAuthLoading: boolean;
+  isSuperAdmin: boolean;
+  logout: () => Promise<void>;
   subaccounts: Subaccount[];
   currentSubaccount: Subaccount;
   setCurrentSubaccount: (sub: Subaccount) => void;
@@ -107,13 +114,19 @@ interface AppContextType {
   addSocialPost: (post: Omit<SocialPost, 'id'>) => void;
   workflows: WorkflowRule[];
   toggleWorkflow: (workflowId: string) => void;
-  addWorkflow: (wf: Omit<WorkflowRule, 'id' | 'totalExecutions'>) => void;
+  addWorkflow: (wf: Omit<WorkflowRule, 'id' | 'totalExecutions'>) => Promise<void>;
+  updateWorkflow: (wf: WorkflowRule) => Promise<void>;
+  deleteWorkflow: (id: string) => Promise<void>;
   isDbConnected: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
   const [subaccounts, setSubaccounts] = useState<Subaccount[]>(initialSubaccounts);
   const [currentSubaccount, setCurrentSubaccount] = useState<Subaccount>(initialSubaccounts[0]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -127,42 +140,110 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [workflows, setWorkflows] = useState<WorkflowRule[]>(initialWorkflows);
   const [isDbConnected, setIsDbConnected] = useState(false);
 
-  // Carregar subcontas e dados da subconta ativa
+  // 1. Sincronização de Sessão e Subconta Isolada
   useEffect(() => {
-    async function loadInitial() {
+    let isMounted = true;
+
+    async function checkAuthAndLoadTenant() {
       try {
-        const resSubs = await fetch('/api/subaccounts');
-        const dataSubs = await resSubs.json();
+        const { data: { session } } = await supabase.auth.getSession();
 
-        if (dataSubs.subaccounts && dataSubs.subaccounts.length > 0) {
-          const formattedSubs: Subaccount[] = dataSubs.subaccounts.map((s: any) => ({
-            id: s.id,
-            name: s.name,
-            segment: s.segment || 'Serviços',
-            logo: s.logo || '⚡',
-            phone: s.phone || '',
-            email: s.email || '',
-            whatsappConfig: {
-              provider: 'evolution',
-              status: 'connected',
-              phone: s.phone || '',
-              instanceName: s.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        if (session) {
+          const resMe = await fetch('/api/auth/me', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
             },
-            gmbConnected: s.gmb_connected,
-            socialConnected: s.social_connected,
-          }));
+          });
+          const meData = await resMe.json();
 
-          setSubaccounts(formattedSubs);
-          setCurrentSubaccount(formattedSubs[0]);
-          setIsDbConnected(true);
+          if (meData.authenticated && meData.user && isMounted) {
+            setCurrentUser(meData.user);
+            setIsSuperAdmin(!!meData.user.isSuperAdmin);
+
+            if (meData.subaccounts && meData.subaccounts.length > 0) {
+              const formattedSubs: Subaccount[] = meData.subaccounts.map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                segment: s.segment || 'Serviços',
+                logo: s.logo || '🏢',
+                phone: s.phone || '',
+                email: s.email || '',
+                whatsappConfig: {
+                  provider: 'evolution',
+                  status: 'disconnected',
+                  phone: s.phone || '',
+                  instanceName: s.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                },
+                gmbConnected: s.gmb_connected,
+                socialConnected: s.social_connected,
+              }));
+
+              setSubaccounts(formattedSubs);
+              setCurrentSubaccount(formattedSubs[0]);
+              setIsDbConnected(true);
+            }
+          }
+        } else {
+          // Sem sessão ativa: carregar catálogo público para pré-visualização ou redirecionar
+          const resSubs = await fetch('/api/subaccounts');
+          const dataSubs = await resSubs.json();
+          if (dataSubs.subaccounts && dataSubs.subaccounts.length > 0 && isMounted) {
+            const formattedSubs: Subaccount[] = dataSubs.subaccounts.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              segment: s.segment || 'Serviços',
+              logo: s.logo || '🏢',
+              phone: s.phone || '',
+              email: s.email || '',
+              whatsappConfig: {
+                provider: 'evolution',
+                status: 'connected',
+                phone: s.phone || '',
+                instanceName: s.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+              },
+              gmbConnected: s.gmb_connected,
+              socialConnected: s.social_connected,
+            }));
+            setSubaccounts(formattedSubs);
+            setCurrentSubaccount(formattedSubs[0]);
+            setIsDbConnected(true);
+          }
         }
       } catch (err) {
-        console.error('Erro ao conectar ao Supabase:', err);
+        console.error('Erro na inicialização de autenticação e subcontas:', err);
+      } finally {
+        if (isMounted) setIsAuthLoading(false);
       }
     }
 
-    loadInitial();
+    checkAuthAndLoadTenant();
+
+    // Ouvir alterações de login/logout no Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        checkAuthAndLoadTenant();
+      } else {
+        setCurrentUser(null);
+        setIsSuperAdmin(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setCurrentUser(null);
+      setIsSuperAdmin(false);
+      window.location.href = '/login';
+    } catch (e) {
+      console.error('Erro ao realizar logout:', e);
+    }
+  };
 
   // Carregar dados da subconta ativa e sincronizar em tempo real
   useEffect(() => {
@@ -229,6 +310,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (dataChat.messages && isMounted) {
           setMessages(dataChat.messages);
+        }
+
+        // 4. Buscar Workflows GoHighLevel Style
+        const resWf = await fetch(`/api/workflows?subaccountId=${currentSubaccount.id}`);
+        const dataWf = await resWf.json();
+        if (dataWf.workflows && isMounted) {
+          setWorkflows(dataWf.workflows);
         }
       } catch (err) {
         console.error('Erro ao sincronizar dados em tempo real:', err);
@@ -440,13 +528,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSocialPosts((prev) => [newPost, ...prev]);
   };
 
-  const toggleWorkflow = (workflowId: string) => {
+  const toggleWorkflow = async (workflowId: string) => {
+    let nextState = false;
     setWorkflows((prev) =>
-      prev.map((w) => (w.id === workflowId ? { ...w, isActive: !w.isActive } : w))
+      prev.map((w) => {
+        if (w.id === workflowId) {
+          nextState = !w.isActive;
+          return { ...w, isActive: nextState };
+        }
+        return w;
+      })
     );
+
+    try {
+      await fetch('/api/workflows', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: workflowId, isActive: nextState }),
+      });
+    } catch (e) {
+      console.error('Erro ao sincronizar toggle do workflow:', e);
+    }
   };
 
-  const addWorkflow = (wf: Omit<WorkflowRule, 'id' | 'totalExecutions'>) => {
+  const addWorkflow = async (wf: Omit<WorkflowRule, 'id' | 'totalExecutions'>) => {
+    try {
+      const res = await fetch('/api/workflows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wf),
+      });
+      const data = await res.json();
+      if (data.workflow) {
+        setWorkflows((prev) => [data.workflow, ...prev]);
+        return;
+      }
+    } catch (e) {
+      console.error('Erro ao persistir workflow:', e);
+    }
+
     const newWf: WorkflowRule = {
       ...wf,
       id: `wf-${Date.now()}`,
@@ -455,9 +575,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setWorkflows((prev) => [newWf, ...prev]);
   };
 
+  const updateWorkflow = async (wf: WorkflowRule) => {
+    setWorkflows((prev) => prev.map((w) => (w.id === wf.id ? wf : w)));
+    try {
+      await fetch('/api/workflows', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wf),
+      });
+    } catch (e) {
+      console.error('Erro ao atualizar workflow:', e);
+    }
+  };
+
+  const deleteWorkflow = async (id: string) => {
+    setWorkflows((prev) => prev.filter((w) => w.id !== id));
+    try {
+      await fetch(`/api/workflows?id=${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Erro ao deletar workflow:', e);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
+        currentUser,
+        isAuthenticated: !!currentUser,
+        isAuthLoading,
+        isSuperAdmin,
+        logout,
         subaccounts,
         currentSubaccount,
         setCurrentSubaccount,
@@ -482,6 +629,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         workflows: workflows.filter((w) => w.subaccountId === currentSubaccount.id),
         toggleWorkflow,
         addWorkflow,
+        updateWorkflow,
+        deleteWorkflow,
         isDbConnected,
       }}
     >
