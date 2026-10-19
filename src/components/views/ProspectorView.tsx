@@ -640,6 +640,20 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
           </div>
 
           <button
+            type="button"
+            onClick={() => setIsOutreachModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md shadow-emerald-600/20"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>Disparo & Filtro WhatsApp</span>
+            {selectedIds.size > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-900 text-emerald-200 text-[10px]">
+                {selectedIds.size}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setIsTokenModalOpen(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition border border-slate-300 dark:border-slate-700"
           >
@@ -1287,7 +1301,13 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
       <MassOutreachModal
         isOpen={isOutreachModalOpen}
         onClose={() => setIsOutreachModalOpen(false)}
-        selectedLeads={results.filter((r) => selectedIds.has(r.id))}
+        selectedLeads={
+          results.filter((r) => selectedIds.has(r.id)).length > 0
+            ? results.filter((r) => selectedIds.has(r.id))
+            : results.length > 0
+            ? results
+            : full20SeedResults
+        }
         onNavigateToWhatsApp={onNavigateToWhatsApp}
         onNavigateToCrm={onNavigateToCrm}
       />
