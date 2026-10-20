@@ -149,12 +149,14 @@ const PRESET_SEQUENCES = [
         title: 'Passo 1: Mensagem de Quebra de Gelo',
         textContent:
           'Olá time da {{empresa}}, tudo bem? Sou o Rafael da Connect Digital aqui em {{cidade}}.',
+        requireResponse: true,
       },
       {
         id: 'step_2',
         type: 'audio' as const,
         title: 'Passo 2: Áudio de Apresentação (PTT)',
         audioId: undefined,
+        requireResponse: true,
       },
       {
         id: 'step_3',
@@ -162,6 +164,7 @@ const PRESET_SEQUENCES = [
         title: 'Passo 3: Pergunta-Chave do Decisor',
         textContent:
           'Poderia me confirmar se este é o WhatsApp direto do proprietário ou responsável pelas decisões da empresa?',
+        requireResponse: false,
       },
     ],
   },
@@ -176,12 +179,14 @@ const PRESET_SEQUENCES = [
         title: 'Passo 1: Elogio de Nota Google Maps',
         textContent:
           'Oi pessoal da {{empresa}}! Acompanho o trabalho de vocês em {{categoria}} e vi a excelente nota de {{avaliacao}} ⭐ no Google Maps.',
+        requireResponse: true,
       },
       {
         id: 'step_2',
         type: 'audio' as const,
         title: 'Passo 2: Áudio de Parceria Estratégica (PTT)',
         audioId: undefined,
+        requireResponse: true,
       },
       {
         id: 'step_3',
@@ -189,6 +194,7 @@ const PRESET_SEQUENCES = [
         title: 'Passo 3: Solicitação do Contato Direto',
         textContent:
           'Temos soluções de captação e inteligência comercial para empresas referência em {{cidade}}. Seria você o responsável por avaliar novas parcerias comerciais?',
+        requireResponse: false,
       },
     ],
   },
@@ -203,12 +209,14 @@ const PRESET_SEQUENCES = [
         title: 'Passo 1: Pergunta Direta',
         textContent:
           'Olá {{empresa}}! Tudo bem? Gostaria de saber se este contato é direto do proprietário ou diretor da empresa.',
+        requireResponse: true,
       },
       {
         id: 'step_2',
         type: 'audio' as const,
         title: 'Passo 2: Áudio Rápido (PTT)',
         audioId: undefined,
+        requireResponse: false,
       },
     ],
   },
@@ -301,18 +309,153 @@ export function MassOutreachModal({
     return allAvailableLeads;
   }, [allAvailableLeads, contactSourceFilter]);
 
+  // Estados de Cadência e Modo de Disparo (Domínio de cada mensagem 1, 2, 3...)
+  const [cadenceFilter, setCadenceFilter] = useState<
+    'all' | 'waiting_1' | 'waiting_reply_1' | 'ready_for_2' | 'waiting_reply_2' | 'ready_for_3' | 'completed' | 'objection'
+  >('all');
+  const [dispatchMode, setDispatchMode] = useState<'single_step' | 'full_sequence'>('single_step');
+  const [targetStepIndexToDispatch, setTargetStepIndexToDispatch] = useState<number>(0);
+
+  // Helper para localizar o contato WhatsApp correspondente a um lead
+  const findContactForLead = (lead: ProspectItem) => {
+    const clean = lead.phone ? lead.phone.replace(/[^0-9]/g, '') : '';
+    if (!clean) return null;
+    return (contacts || []).find((c) => {
+      const cClean = c.phone ? c.phone.replace(/[^0-9]/g, '') : '';
+      if (!cClean) return false;
+      return (
+        cClean === clean ||
+        (clean.length >= 8 && cClean.endsWith(clean.slice(-8))) ||
+        (cClean.length >= 8 && clean.endsWith(cClean.slice(-8))) ||
+        c.name === lead.name
+      );
+    });
+  };
+
+  // Helper para identificar o estágio exato da cadência/conversa de cada lead
+  const getLeadCadenceStage = (lead: ProspectItem): {
+    stage: 'waiting_1' | 'waiting_reply_1' | 'ready_for_2' | 'waiting_reply_2' | 'ready_for_3' | 'completed' | 'objection';
+    label: string;
+    badgeColor: string;
+    stepToDispatch: number;
+  } => {
+    const c = findContactForLead(lead);
+    if (!c || !c.tags || c.tags.length === 0) {
+      return {
+        stage: 'waiting_1',
+        label: 'Aguardando Msg 1',
+        badgeColor: 'bg-slate-800 text-slate-300 border-slate-700',
+        stepToDispatch: 0,
+      };
+    }
+    const tags = c.tags;
+    if (tags.includes('#SemInteresse')) {
+      return {
+        stage: 'objection',
+        label: 'Objeção / Sem Interesse',
+        badgeColor: 'bg-red-950/60 text-red-300 border-red-500/40',
+        stepToDispatch: 0,
+      };
+    }
+    if (tags.includes('#Msg3_Enviada') || tags.includes('#Passo3_Enviado')) {
+      return {
+        stage: 'completed',
+        label: 'Sequência Concluída (Passo 3)',
+        badgeColor: 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40',
+        stepToDispatch: 2,
+      };
+    }
+    if (
+      tags.includes('#Respondeu_Msg2') ||
+      (tags.includes('#Msg2_Enviada') && tags.includes('#RespondeuWhatsApp'))
+    ) {
+      return {
+        stage: 'ready_for_3',
+        label: 'Respondeu Msg 2 (Pronto p/ Msg 3)',
+        badgeColor: 'bg-purple-950/60 text-purple-300 border-purple-500/40',
+        stepToDispatch: 2,
+      };
+    }
+    if (tags.includes('#Msg2_Enviada') || tags.includes('#Passo2_Enviado')) {
+      return {
+        stage: 'waiting_reply_2',
+        label: 'Msg 2 Enviada (Aguardando Retorno)',
+        badgeColor: 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40',
+        stepToDispatch: 1,
+      };
+    }
+    if (
+      tags.includes('#Respondeu_Msg1') ||
+      tags.includes('#DecisorIdentificado') ||
+      tags.includes('#Pronto_Msg2') ||
+      (tags.includes('#Msg1_Enviada') && tags.includes('#RespondeuWhatsApp'))
+    ) {
+      return {
+        stage: 'ready_for_2',
+        label: 'Respondeu Msg 1 (Pronto p/ Msg 2)',
+        badgeColor: 'bg-teal-950/60 text-teal-300 border-teal-500/40',
+        stepToDispatch: 1,
+      };
+    }
+    if (
+      tags.includes('#Msg1_Enviada') ||
+      tags.includes('#Passo1_Enviado') ||
+      tags.includes('#AguardandoDecisor')
+    ) {
+      return {
+        stage: 'waiting_reply_1',
+        label: 'Msg 1 Enviada (Aguardando Resposta)',
+        badgeColor: 'bg-amber-950/60 text-amber-300 border-amber-500/40',
+        stepToDispatch: 0,
+      };
+    }
+    return {
+      stage: 'waiting_1',
+      label: 'Aguardando Msg 1',
+      badgeColor: 'bg-slate-800 text-slate-300 border-slate-700',
+      stepToDispatch: 0,
+    };
+  };
+
+  // Contadores dinâmicos para cada status de cadência
+  const cadenceCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: sourceFilteredLeads.length,
+      waiting_1: 0,
+      waiting_reply_1: 0,
+      ready_for_2: 0,
+      waiting_reply_2: 0,
+      ready_for_3: 0,
+      completed: 0,
+      objection: 0,
+    };
+    sourceFilteredLeads.forEach((lead) => {
+      const { stage } = getLeadCadenceStage(lead);
+      if (counts[stage] !== undefined) {
+        counts[stage]++;
+      }
+    });
+    return counts;
+  }, [sourceFilteredLeads, contacts]);
+
+  // Filtragem combinada: Fonte + Cadência
+  const cadenceFilteredLeads = useMemo(() => {
+    if (cadenceFilter === 'all') return sourceFilteredLeads;
+    return sourceFilteredLeads.filter((l) => getLeadCadenceStage(l).stage === cadenceFilter);
+  }, [sourceFilteredLeads, cadenceFilter, contacts]);
+
   // Filtragem por busca
   const displayedLeads = useMemo(() => {
-    if (!contactSearchTerm.trim()) return sourceFilteredLeads;
+    if (!contactSearchTerm.trim()) return cadenceFilteredLeads;
     const term = contactSearchTerm.toLowerCase();
-    return sourceFilteredLeads.filter(
+    return cadenceFilteredLeads.filter(
       (l) =>
         l.name.toLowerCase().includes(term) ||
         (l.phone && l.phone.includes(term)) ||
         (l.address && l.address.toLowerCase().includes(term)) ||
         (l.category && l.category.toLowerCase().includes(term))
     );
-  }, [sourceFilteredLeads, contactSearchTerm]);
+  }, [cadenceFilteredLeads, contactSearchTerm]);
 
   // Seleção de Leads via Checkbox
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(() => {
@@ -737,6 +880,7 @@ export function MassOutreachModal({
       type: 'text',
       title: `Passo ${steps.length + 1}: Mensagem de Texto`,
       textContent: 'Olá {{empresa}}, gostaria de confirmar uma informação com o proprietário.',
+      requireResponse: true,
     };
     setSteps([...steps, newStep]);
   };
@@ -749,6 +893,7 @@ export function MassOutreachModal({
       type: 'audio',
       title: `Passo ${steps.length + 1}: Áudio Gravado PTT`,
       audioId: selectedAudio?.id,
+      requireResponse: true,
     };
     setSteps([...steps, newStep]);
   };
@@ -922,6 +1067,9 @@ export function MassOutreachModal({
     }));
     setDispatchLogs(initialLogs);
 
+    const targetStep = steps[targetStepIndexToDispatch] || steps[0];
+    const targetStepNum = targetStepIndexToDispatch + 1;
+
     // Executar para cada lead selecionado
     for (let lIdx = 0; lIdx < leadsToDispatch.length; lIdx++) {
       setCurrentLeadIndex(lIdx);
@@ -930,7 +1078,14 @@ export function MassOutreachModal({
       setDispatchLogs((prev) =>
         prev.map((log, idx) =>
           idx === lIdx
-            ? { ...log, status: 'sending', message: 'Iniciando sequência personalizada...' }
+            ? {
+                ...log,
+                status: 'sending',
+                message:
+                  dispatchMode === 'single_step'
+                    ? `Enviando ${targetStep.title || `Passo ${targetStepNum}`}...`
+                    : 'Iniciando sequência personalizada...',
+              }
             : log
         )
       );
@@ -939,24 +1094,20 @@ export function MassOutreachModal({
       let hasLeadError = false;
       let lastErrorMessage = '';
 
-      // Executar cada passo da sequência configurada
-      for (let sIdx = 0; sIdx < steps.length; sIdx++) {
-        setCurrentStepIndex(sIdx);
-        const step = steps[sIdx];
-
-        if (step.type === 'delay') {
-          await new Promise((res) => setTimeout(res, (step.delaySeconds || 2) * 1000));
-          continue;
-        }
+      if (dispatchMode === 'single_step') {
+        // ==========================================
+        // MODO 1: DISPARO INDIVIDUAL DE PASSO ESPECÍFICO
+        // ==========================================
+        setCurrentStepIndex(targetStepIndexToDispatch);
 
         let mediaUrl: string | undefined = undefined;
         let mediaType: 'audio' | undefined = undefined;
         let textToSend = '';
 
-        if (step.type === 'text') {
-          textToSend = renderPersonalizedText(step.textContent || '', lead);
-        } else if (step.type === 'audio') {
-          const track = audioTracks.find((a) => a.id === step.audioId) || audioTracks[0];
+        if (targetStep.type === 'text') {
+          textToSend = renderPersonalizedText(targetStep.textContent || '', lead);
+        } else if (targetStep.type === 'audio') {
+          const track = audioTracks.find((a) => a.id === targetStep.audioId) || audioTracks[0];
           mediaUrl = track?.url;
           mediaType = 'audio';
           textToSend = '🎙️ Mensagem de voz (Áudio gravado)';
@@ -973,6 +1124,8 @@ export function MassOutreachModal({
             text: textToSend,
             mediaUrl,
             mediaType,
+            stepNumber: targetStepNum,
+            requireResponse: targetStep.requireResponse !== false,
           });
 
           if (!res.success) {
@@ -985,14 +1138,75 @@ export function MassOutreachModal({
             setLastDispatchedContactId(res.contactId);
           }
         } catch (e: any) {
-          console.error('Erro ao enviar passo da sequência:', e);
+          console.error('Erro ao enviar passo individual:', e);
           hasLeadError = true;
           lastErrorMessage = e?.message || 'Erro inesperado no envio';
         }
+      } else {
+        // ==========================================
+        // MODO 2: DISPARO SEQUENCIAL CONTÍNUO
+        // ==========================================
+        for (let sIdx = 0; sIdx < steps.length; sIdx++) {
+          setCurrentStepIndex(sIdx);
+          const step = steps[sIdx];
 
-        // Breve intervalo entre passos para humanização do envio
-        if (sIdx < steps.length - 1) {
-          await new Promise((res) => setTimeout(res, 1800));
+          if (step.type === 'delay') {
+            await new Promise((res) => setTimeout(res, (step.delaySeconds || 2) * 1000));
+            continue;
+          }
+
+          let mediaUrl: string | undefined = undefined;
+          let mediaType: 'audio' | undefined = undefined;
+          let textToSend = '';
+
+          if (step.type === 'text') {
+            textToSend = renderPersonalizedText(step.textContent || '', lead);
+          } else if (step.type === 'audio') {
+            const track = audioTracks.find((a) => a.id === step.audioId) || audioTracks[0];
+            mediaUrl = track?.url;
+            mediaType = 'audio';
+            textToSend = '🎙️ Mensagem de voz (Áudio gravado)';
+          }
+
+          try {
+            const res = await dispatchWhatsAppLead({
+              leadName: lead.name,
+              leadPhone: lead.phone,
+              companyName: lead.name,
+              city: lead.address,
+              category: lead.category,
+              rating: lead.rating,
+              text: textToSend,
+              mediaUrl,
+              mediaType,
+              stepNumber: sIdx + 1,
+              requireResponse: step.requireResponse !== false,
+            });
+
+            if (!res.success) {
+              hasLeadError = true;
+              lastErrorMessage = res.error || 'Falha no envio via Evolution API';
+            }
+
+            if (res.contactId) {
+              leadContactId = res.contactId;
+              setLastDispatchedContactId(res.contactId);
+            }
+          } catch (e: any) {
+            console.error('Erro ao enviar passo da sequência:', e);
+            hasLeadError = true;
+            lastErrorMessage = e?.message || 'Erro inesperado no envio';
+          }
+
+          // Se o passo requer resposta do cliente, pausa a sequência para aguardar retorno
+          if (step.requireResponse !== false && sIdx < steps.length - 1) {
+            break;
+          }
+
+          // Breve intervalo entre passos para humanização do envio
+          if (sIdx < steps.length - 1) {
+            await new Promise((res) => setTimeout(res, 1800));
+          }
         }
       }
 
@@ -1005,7 +1219,9 @@ export function MassOutreachModal({
                 status: hasLeadError ? 'error' : 'success',
                 message: hasLeadError
                   ? `Falha: ${lastErrorMessage}`
-                  : `Sequência completa enviada (${steps.length} passos)`,
+                  : dispatchMode === 'single_step'
+                  ? `${targetStep.title || `Passo ${targetStepNum}`} enviado com sucesso`
+                  : `Passo inicial enviado (Aguardando resposta do lead)`,
                 time: new Date().toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -1277,7 +1493,213 @@ export function MassOutreachModal({
                       </button>
                     </div>
 
-                    {/* Campo de Busca e Ações Rápidas de Seleção */}
+                    {/* Barra de Filtros Inteligentes por Etapa da Cadência (Disparos Individuais) */}
+                    <div className="pt-2.5 border-t border-slate-700/60 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Status da Cadência de Disparo:</span>
+                        </label>
+                        {cadenceFilter !== 'all' && (
+                          <button
+                            type="button"
+                            onClick={() => setCadenceFilter('all')}
+                            className="text-[10px] text-amber-400 hover:underline font-semibold"
+                          >
+                            Mostrar Todos ({allAvailableLeads.length})
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCadenceFilter('all')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
+                            cadenceFilter === 'all'
+                              ? 'bg-slate-700 border-slate-500 text-white shadow-sm'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          Todos os Leads ({cadenceCounts.all || 0})
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCadenceFilter('waiting_1')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
+                            cadenceFilter === 'waiting_1'
+                              ? 'bg-blue-600/30 border-blue-500 text-blue-200 shadow-sm'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-blue-400" />
+                          <span>Aguardando Msg 1 ({cadenceCounts.waiting_1 || 0})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCadenceFilter('waiting_reply_1')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
+                            cadenceFilter === 'waiting_reply_1'
+                              ? 'bg-amber-600/30 border-amber-500 text-amber-200 shadow-sm'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-amber-400" />
+                          <span>Msg 1 Enviada ({cadenceCounts.waiting_reply_1 || 0})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCadenceFilter('ready_for_2')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 ${
+                            cadenceFilter === 'ready_for_2'
+                              ? 'bg-teal-600/40 border-teal-400 text-teal-200 shadow-md ring-1 ring-teal-400/50'
+                              : 'bg-teal-950/30 border-teal-800/60 text-teal-300 hover:bg-teal-900/40'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-teal-400 animate-ping" />
+                          <span>💬 Responderam Msg 1 (Prontos p/ Msg 2) ({cadenceCounts.ready_for_2 || 0})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCadenceFilter('waiting_reply_2')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
+                            cadenceFilter === 'waiting_reply_2'
+                              ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200 shadow-sm'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                          <span>Msg 2 Enviada ({cadenceCounts.waiting_reply_2 || 0})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCadenceFilter('ready_for_3')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 ${
+                            cadenceFilter === 'ready_for_3'
+                              ? 'bg-purple-600/40 border-purple-400 text-purple-200 shadow-md ring-1 ring-purple-400/50'
+                              : 'bg-purple-950/30 border-purple-800/60 text-purple-300 hover:bg-purple-900/40'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-purple-400" />
+                          <span>🚀 Responderam Msg 2 (Prontos p/ Msg 3) ({cadenceCounts.ready_for_3 || 0})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCadenceFilter('completed')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
+                            cadenceFilter === 'completed'
+                              ? 'bg-emerald-600/30 border-emerald-500 text-emerald-200 shadow-sm'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span>Concluídos ({cadenceCounts.completed || 0})</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Banners de Ação Rápida de Acordo com a Etapa da Cadência */}
+                    {cadenceFilter === 'ready_for_2' && (
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-teal-950/80 via-emerald-950/50 to-slate-900 border border-teal-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-300 flex items-center justify-center font-bold text-sm shrink-0">
+                            💬
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-white">
+                              {displayedLeads.length} estabelecimento(s) responderam à Mensagem 1
+                            </div>
+                            <p className="text-[11px] text-teal-200/90">
+                              Interagiram com a quebra de gelo e estão prontos para receber o <strong>Passo 2 ({steps[1]?.title || 'Áudio PTT / Apresentação'})</strong>.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const ids = new Set<string>(displayedLeads.map((l) => l.id));
+                            setSelectedLeadIds(ids);
+                            setDispatchMode('single_step');
+                            setTargetStepIndexToDispatch(1);
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-lg shadow-teal-600/30 transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Selecionar Todos & Disparar Passo 2</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {cadenceFilter === 'ready_for_3' && (
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-purple-950/80 via-indigo-950/50 to-slate-900 border border-purple-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-sm shrink-0">
+                            🚀
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-white">
+                              {displayedLeads.length} estabelecimento(s) responderam à Mensagem 2
+                            </div>
+                            <p className="text-[11px] text-purple-200/90">
+                              Prontos para o fechamento ou envio do <strong>Passo 3 ({steps[2]?.title || 'Pergunta-Chave do Decisor'})</strong>.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const ids = new Set<string>(displayedLeads.map((l) => l.id));
+                            setSelectedLeadIds(ids);
+                            setDispatchMode('single_step');
+                            setTargetStepIndexToDispatch(2);
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Selecionar Todos & Disparar Passo 3</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {cadenceFilter === 'waiting_1' && (
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-blue-950/80 via-slate-900 to-slate-900 border border-blue-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold text-sm shrink-0">
+                            🎯
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-white">
+                              {displayedLeads.length} novo(s) estabelecimento(s) aguardando abordagem inicial
+                            </div>
+                            <p className="text-[11px] text-blue-200/90">
+                              Nunca foram contatados. Selecione-os para disparar o <strong>Passo 1 ({steps[0]?.title || 'Quebra de Gelo'})</strong>.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const ids = new Set<string>(displayedLeads.map((l) => l.id));
+                            setSelectedLeadIds(ids);
+                            setDispatchMode('single_step');
+                            setTargetStepIndexToDispatch(0);
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Selecionar Todos & Disparar Passo 1</span>
+                        </button>
+                      </div>
+                    )}
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                       <div className="relative flex-1">
                         <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1402,6 +1824,7 @@ export function MassOutreachModal({
                       {displayedLeads.map((lead) => {
                         const isSelected = selectedLeadIds.has(lead.id);
                         const isPreviewing = sampleLead.id === lead.id;
+                        const cadenceInfo = getLeadCadenceStage(lead);
 
                         return (
                           <div
@@ -1455,6 +1878,13 @@ export function MassOutreachModal({
                                       : (lead as any).sourceType === 'custom'
                                       ? 'Manual'
                                       : 'Maps'}
+                                  </span>
+
+                                  {/* Badge do Status da Cadência */}
+                                  <span
+                                    className={`text-[9px] px-2 py-0.5 rounded-full font-semibold border ${cadenceInfo.badgeColor}`}
+                                  >
+                                    {cadenceInfo.label}
                                   </span>
                                 </div>
 
@@ -1610,6 +2040,17 @@ export function MassOutreachModal({
                                   {step.type === 'audio' && '🎙️ Áudio Gravado PTT'}
                                   {step.type === 'delay' && '⏳ Intervalo / Pausa'}
                                 </span>
+                                {step.type !== 'delay' && (
+                                  <span
+                                    className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
+                                      step.requireResponse !== false
+                                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                        : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                                    }`}
+                                  >
+                                    {step.requireResponse !== false ? '⏳ Exige Resposta' : '⚡ Sem Resposta'}
+                                  </span>
+                                )}
                               </div>
 
                               {/* Ações: Subir, Descer, Excluir */}
@@ -1923,6 +2364,76 @@ export function MassOutreachModal({
                                   className="w-16 p-1 rounded bg-slate-900 border border-slate-700 text-center font-bold text-emerald-400 focus:outline-none"
                                 />
                                 <span>segundos antes de prosseguir para o próximo passo</span>
+                              </div>
+                            )}
+
+                            {/* Configuração de Dependência de Resposta & Gatilho Individual */}
+                            {step.type !== 'delay' && (
+                              <div className="pt-2.5 mt-2.5 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-2.5">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`w-2.5 h-2.5 rounded-full ${
+                                      step.requireResponse !== false
+                                        ? 'bg-amber-400 animate-pulse'
+                                        : 'bg-blue-400'
+                                    }`}
+                                  />
+                                  <div>
+                                    <div className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                                      <span>Requer resposta do lead antes do próximo passo?</span>
+                                      <span
+                                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                          step.requireResponse !== false
+                                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                                        }`}
+                                      >
+                                        {step.requireResponse !== false ? 'Sim (Aguardar Retorno)' : 'Não (Direto / Follow-up)'}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">
+                                      {step.requireResponse !== false
+                                        ? 'O próximo passo é pausado até o contato responder no WhatsApp (ou simular resposta).'
+                                        : 'Este passo pode ser disparado em massa diretamente, sem depender de retorno do cliente.'}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSteps((prev) =>
+                                        prev.map((s, idx) =>
+                                          idx === index
+                                            ? { ...s, requireResponse: s.requireResponse === false ? true : false }
+                                            : s
+                                        )
+                                      );
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                                      step.requireResponse !== false
+                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                                        : 'bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30'
+                                    }`}
+                                  >
+                                    <span>Mudar para: {step.requireResponse !== false ? 'Não Exigir' : 'Exigir Resposta'}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDispatchMode('single_step');
+                                      setTargetStepIndexToDispatch(index);
+                                      setActiveTab('recipients');
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-emerald-500 flex items-center gap-1.5 transition cursor-pointer"
+                                    title="Focar este passo para envio individual aos contatos selecionados"
+                                  >
+                                    <Send className="w-3 h-3 text-emerald-400" />
+                                    <span>Focar Disparo Neste Passo</span>
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2597,16 +3108,28 @@ export function MassOutreachModal({
                 <h3 className="text-xl font-bold text-white">
                   {dispatchLogs.every((l) => l.status === 'error')
                     ? 'Atenção: Falha no Disparo'
+                    : dispatchMode === 'single_step'
+                    ? `${steps[targetStepIndexToDispatch]?.title || `Passo ${targetStepIndexToDispatch + 1}`} Disparado com Sucesso!`
                     : 'Disparo em Massa Concluído!'}
                 </h3>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  {dispatchLogs.filter((l) => l.status === 'success').length} de {leadsToDispatch.length} estabelecimentos receberam a sequência com sucesso.
+                <div className="text-xs text-slate-400 max-w-md mx-auto space-y-1.5">
+                  <p>
+                    {dispatchLogs.filter((l) => l.status === 'success').length} de {leadsToDispatch.length} estabelecimentos receberam a mensagem com sucesso.
+                  </p>
                   {dispatchLogs.some((l) => l.status === 'error') && (
                     <span className="block text-red-400 font-semibold mt-1">
                       {dispatchLogs.filter((l) => l.status === 'error').length} contato(s) apresentaram erro.
                     </span>
                   )}
-                </p>
+                  {steps[targetStepIndexToDispatch]?.requireResponse !== false && dispatchMode === 'single_step' && (
+                    <div className="text-teal-200 text-[11px] mt-2 font-medium bg-teal-950/40 p-2.5 rounded-xl border border-teal-500/30 text-left flex items-start gap-2">
+                      <span className="text-base shrink-0">⏳</span>
+                      <span>
+                        Este passo aguarda resposta do contato. Assim que o cliente responder no WhatsApp, ele ficará disponível automaticamente no filtro <strong>&quot;Responderam Msg {targetStepIndexToDispatch + 1} (Prontos p/ Msg {targetStepIndexToDispatch + 2})&quot;</strong> na aba Destinatários.
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Card de Teste do Cérebro IA (Solicitação do Usuário) */}
@@ -2626,7 +3149,7 @@ export function MassOutreachModal({
                     type="button"
                     onClick={() => handleSimulateInboundReply('decisor')}
                     disabled={isSimulatingLiveReply}
-                    className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
                   >
                     {isSimulatingLiveReply ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -2640,7 +3163,7 @@ export function MassOutreachModal({
                     type="button"
                     onClick={() => handleSimulateInboundReply('intermediary')}
                     disabled={isSimulatingLiveReply}
-                    className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold transition disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold transition disabled:opacity-50 cursor-pointer"
                   >
                     <span>Simular: &quot;Aqui é a secretária&quot;</span>
                   </button>
@@ -2659,10 +3182,23 @@ export function MassOutreachModal({
                 <button
                   type="button"
                   onClick={() => {
+                    setModalStage('builder');
+                    setActiveTab('recipients');
+                    setCadenceFilter(targetStepIndexToDispatch === 0 ? 'ready_for_2' : 'ready_for_3');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/40 text-xs font-bold transition cursor-pointer"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Ver Contatos & Avançar Próximo Passo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
                     if (onClose) onClose();
                     if (onNavigateToWhatsApp) onNavigateToWhatsApp();
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>Ver Conversas no WhatsApp</span>
@@ -2674,7 +3210,7 @@ export function MassOutreachModal({
                     if (onClose) onClose();
                     if (onNavigateToCrm) onNavigateToCrm();
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition cursor-pointer"
                 >
                   <Kanban className="w-4 h-4" />
                   <span>Ver Leads no Funil CRM</span>
@@ -2686,20 +3222,70 @@ export function MassOutreachModal({
 
         {/* Rodapé do Modal (Builder Mode) */}
         {modalStage === 'builder' && (
-          <div className="p-4 border-t border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
-            {/* Intervalo Anti-bloqueio */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400">Intervalo entre contatos:</span>
-              <select
-                value={leadDelaySeconds}
-                onChange={(e) => setLeadDelaySeconds(Number(e.target.value))}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-white border border-slate-700 text-xs font-semibold focus:outline-none focus:border-emerald-500"
-              >
-                <option value={5}>5 seg (Rápido)</option>
-                <option value={8}>8 seg (Recomendado)</option>
-                <option value={12}>12 seg (Seguro)</option>
-                <option value={18}>18 seg (Ultra Seguro)</option>
-              </select>
+          <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            {/* Controles de Modo e Intervalo */}
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              {/* Seletor de Modo de Disparo */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400 font-semibold">Modo:</span>
+                <div className="flex rounded-lg bg-slate-950 p-0.5 border border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setDispatchMode('single_step')}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-md transition flex items-center gap-1.5 cursor-pointer ${
+                      dispatchMode === 'single_step'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>🎯 Passo Individual</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDispatchMode('full_sequence')}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-md transition flex items-center gap-1.5 cursor-pointer ${
+                      dispatchMode === 'full_sequence'
+                        ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>⚡ Sequência Contínua</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Seletor de Passo Específico quando no modo single_step */}
+              {dispatchMode === 'single_step' && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400 font-semibold">Passo:</span>
+                  <select
+                    value={targetStepIndexToDispatch}
+                    onChange={(e) => setTargetStepIndexToDispatch(Number(e.target.value))}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    {steps.map((s, idx) => (
+                      <option key={s.id} value={idx}>
+                        Passo {idx + 1}: {s.title || (s.type === 'audio' ? 'Áudio PTT' : 'Texto')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Intervalo Anti-bloqueio */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400">Cadência:</span>
+                <select
+                  value={leadDelaySeconds}
+                  onChange={(e) => setLeadDelaySeconds(Number(e.target.value))}
+                  className="px-2 py-1.5 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value={5}>5 seg (Rápido)</option>
+                  <option value={8}>8 seg (Recomendado)</option>
+                  <option value={12}>12 seg (Seguro)</option>
+                  <option value={18}>18 seg (Ultra Seguro)</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -2717,13 +3303,15 @@ export function MassOutreachModal({
                 type="button"
                 onClick={handleStartMassDispatch}
                 disabled={leadsToDispatch.length === 0 || steps.length === 0}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Send className="w-4 h-4" />
                 <span>
-                  {leadsToDispatch.length > 0
-                    ? `Iniciar Disparo em Massa (${leadsToDispatch.length} Leads)`
-                    : 'Nenhum lead selecionado'}
+                  {leadsToDispatch.length === 0
+                    ? 'Nenhum lead selecionado'
+                    : dispatchMode === 'single_step'
+                    ? `Disparar ${steps[targetStepIndexToDispatch]?.title || `Passo ${targetStepIndexToDispatch + 1}`} (${leadsToDispatch.length} Leads)`
+                    : `Disparar Sequência Completa (${leadsToDispatch.length} Leads)`}
                 </span>
               </button>
             </div>

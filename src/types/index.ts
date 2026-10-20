@@ -87,6 +87,7 @@ export interface SequenceStepItem {
   textContent?: string;
   audioId?: string;
   delaySeconds?: number;
+  requireResponse?: boolean;
 }
 
 export interface WhatsAppContact {

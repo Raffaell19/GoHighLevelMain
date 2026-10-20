@@ -103,6 +103,8 @@ interface AppContextType {
     text: string;
     mediaUrl?: string;
     mediaType?: 'audio' | 'image' | 'video' | 'document';
+    stepNumber?: number;
+    requireResponse?: boolean;
   }) => Promise<{ success: boolean; contactId: string; error?: string }>;
   handleInboundLeadResponse: (params: {
     contactId: string;
@@ -507,6 +509,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     text,
     mediaUrl,
     mediaType,
+    stepNumber = 1,
+    requireResponse = true,
   }: {
     leadName: string;
     leadPhone: string;
@@ -517,6 +521,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     text: string;
     mediaUrl?: string;
     mediaType?: 'audio' | 'image' | 'video' | 'document';
+    stepNumber?: number;
+    requireResponse?: boolean;
   }): Promise<{ success: boolean; contactId: string; error?: string }> => {
     const cleanPhone = leadPhone.replace(/[^0-9]/g, '');
     let existingContact = contacts.find(
@@ -524,6 +530,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     let contactId = existingContact?.id;
+
+    const stepNum = stepNumber || 1;
+    const stepSentTag = `#Msg${stepNum}_Enviada`;
+    const stepWaitingTag = requireResponse !== false ? `#Aguardando_Resposta_Msg${stepNum}` : null;
+    const readyNextTag = requireResponse === false ? `#Pronto_Msg${stepNum + 1}` : null;
+
+    const buildTags = (prevTags: string[] = []) => {
+      const filtered = prevTags.filter(
+        (t) =>
+          t !== `#Aguardando_Resposta_Msg${stepNum}` &&
+          t !== `#Pronto_Msg${stepNum}` &&
+          t !== `#AguardandoDecisor`
+      );
+      const s = new Set([
+        ...filtered,
+        '#ProspeccaoMaps',
+        stepSentTag,
+        ...(stepWaitingTag ? [stepWaitingTag] : []),
+        ...(readyNextTag ? [readyNextTag] : []),
+      ]);
+      return Array.from(s);
+    };
 
     if (!contactId) {
       contactId = `contact_outreach_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -536,7 +564,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         lastMessage: text,
         lastMessageTime: 'Agora',
         unreadCount: 0,
-        tags: ['#ProspeccaoMaps', '#AguardandoDecisor'],
+        tags: buildTags(),
         needsHumanAttention: false,
         source: 'Google Maps Prospector',
       };
@@ -549,7 +577,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ...c,
                 lastMessage: text,
                 lastMessageTime: 'Agora',
-                tags: Array.from(new Set([...(c.tags || []), '#ProspeccaoMaps', '#AguardandoDecisor'])),
+                tags: buildTags(c.tags),
               }
             : c
         )
@@ -686,13 +714,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               unreadCount: (c.unreadCount || 0) + 1,
               isDecisionMaker: isDecisor,
               needsHumanAttention: isDecisor,
-              tags: Array.from(
-                new Set([
-                  ...(c.tags || []).filter((t) => t !== '#AguardandoDecisor'),
+              tags: (() => {
+                const curTags = c.tags || [];
+                const updated = new Set([
+                  ...curTags.filter(
+                    (t) =>
+                      t !== '#AguardandoDecisor' &&
+                      t !== '#Aguardando_Resposta_Msg1' &&
+                      t !== '#Aguardando_Resposta_Msg2' &&
+                      t !== '#Aguardando_Resposta_Msg3'
+                  ),
                   tagToAdd,
                   '#RespondeuWhatsApp',
-                ])
-              ),
+                ]);
+                if (curTags.includes('#Msg1_Enviada') && !curTags.includes('#Msg2_Enviada')) {
+                  updated.add('#Respondeu_Msg1');
+                  updated.add('#Pronto_Msg2');
+                } else if (curTags.includes('#Msg2_Enviada') && !curTags.includes('#Msg3_Enviada')) {
+                  updated.add('#Respondeu_Msg2');
+                  updated.add('#Pronto_Msg3');
+                } else if (curTags.includes('#Msg3_Enviada')) {
+                  updated.add('#Respondeu_Msg3');
+                }
+                return Array.from(updated);
+              })(),
             }
           : c
       )

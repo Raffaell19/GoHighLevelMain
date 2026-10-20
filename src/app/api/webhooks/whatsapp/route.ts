@@ -125,13 +125,34 @@ export async function POST(request: NextRequest) {
 
     const { data: existingContact } = await supabase
       .from('whatsapp_contacts')
-      .select('id, unread_count')
+      .select('id, unread_count, tags')
       .eq('subaccount_id', subaccount.id)
       .eq('phone', formattedPhone)
       .maybeSingle();
 
     if (existingContact) {
       contactId = existingContact.id;
+      const curTags = Array.isArray(existingContact.tags) ? existingContact.tags : [];
+      const updatedTags = new Set(
+        curTags.filter(
+          (t: string) =>
+            t !== '#AguardandoDecisor' &&
+            t !== '#Aguardando_Resposta_Msg1' &&
+            t !== '#Aguardando_Resposta_Msg2' &&
+            t !== '#Aguardando_Resposta_Msg3'
+        )
+      );
+      updatedTags.add('#RespondeuWhatsApp');
+      if (curTags.includes('#Msg1_Enviada') && !curTags.includes('#Msg2_Enviada')) {
+        updatedTags.add('#Respondeu_Msg1');
+        updatedTags.add('#Pronto_Msg2');
+      } else if (curTags.includes('#Msg2_Enviada') && !curTags.includes('#Msg3_Enviada')) {
+        updatedTags.add('#Respondeu_Msg2');
+        updatedTags.add('#Pronto_Msg3');
+      } else if (curTags.includes('#Msg3_Enviada')) {
+        updatedTags.add('#Respondeu_Msg3');
+      }
+
       await supabase
         .from('whatsapp_contacts')
         .update({
@@ -139,6 +160,7 @@ export async function POST(request: NextRequest) {
           last_message: messageText,
           last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread_count: (existingContact.unread_count || 0) + 1,
+          tags: Array.from(updatedTags),
         })
         .eq('id', contactId);
     } else {
