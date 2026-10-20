@@ -10,7 +10,7 @@ const DEFAULT_AGENT_CONFIG = {
   botName: 'Sofia',
   botRole: 'Consultora Especialista em Atendimento & Vendas',
   botTone: 'consultive', // friendly, consultive, commercial, formal
-  botEnabled: true,
+  botEnabled: false, // Padrão: Desativado até que o usuário ative expressamente no botão
   businessName: 'Connect Digital',
   segment: 'Agência de Marketing & Automação Digital',
   servicesAndPricing: `• Implementação de CRM & Funil de Vendas Automatizado
@@ -50,14 +50,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ config: DEFAULT_AGENT_CONFIG });
     }
 
-    const { data: cred, error } = await supabase
+    let { data: cred, error } = await supabase
       .from('tenant_credentials')
       .select('encrypted_credentials')
       .eq('subaccount_id', resolvedSubId)
       .eq('service_type', 'ai_agent_config')
       .maybeSingle();
 
-    if (error) {
+    if (!cred) {
+      const { data: fallbackCred } = await supabase
+        .from('tenant_credentials')
+        .select('encrypted_credentials')
+        .eq('service_type', 'ai_agent_config')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (fallbackCred) {
+        cred = fallbackCred;
+      }
+    }
+
+    if (error && !cred) {
       console.error('[Agent Config API] Erro ao buscar configuração:', error);
       return NextResponse.json({ config: DEFAULT_AGENT_CONFIG });
     }

@@ -84,7 +84,9 @@ export function WhatsAppView() {
   const [botName, setBotName] = useState('Sofia');
   const [botRole, setBotRole] = useState('Consultora Especialista em Atendimento & Vendas');
   const [botTone, setBotTone] = useState<'consultive' | 'friendly' | 'commercial' | 'formal'>('consultive');
-  const [botEnabled, setBotEnabled] = useState(true);
+  const [botEnabled, setBotEnabled] = useState(false); // Padrão: Desativado até que o usuário ative expressamente
+  const [isTogglingBot, setIsTogglingBot] = useState(false);
+  const [toggleFeedback, setToggleFeedback] = useState<string | null>(null);
   const [servicesAndPricing, setServicesAndPricing] = useState(
     `• Implementação de CRM & Funil de Vendas Automatizado\n• Chatbots com Inteligência Artificial para WhatsApp\n• Prospecção Ativa B2B & Mineração no Google Maps\n• Tráfego Pago & Gestão de Redes Sociais\n• Automações de Atendimento & Disparos em Massa`
   );
@@ -112,6 +114,14 @@ export function WhatsAppView() {
     async function loadAgentConfig() {
       setIsLoadingConfig(true);
       try {
+        // Verificar cache local primeiro para resposta visual imediata
+        try {
+          const cachedBotState = localStorage.getItem(`flowlevel_bot_enabled_${currentSubaccount.id}`);
+          if (cachedBotState !== null) {
+            setBotEnabled(cachedBotState === 'true');
+          }
+        } catch (e) {}
+
         const res = await fetch(`/api/ai/agent-config?subaccountId=${currentSubaccount.id}`);
         const data = await res.json();
         if (data.config) {
@@ -119,7 +129,15 @@ export function WhatsAppView() {
           if (cfg.botName) setBotName(cfg.botName);
           if (cfg.botRole) setBotRole(cfg.botRole);
           if (cfg.botTone) setBotTone(cfg.botTone);
-          if (cfg.botEnabled !== undefined) setBotEnabled(cfg.botEnabled);
+          if (cfg.botEnabled !== undefined) {
+            const isEnabled = Boolean(cfg.botEnabled);
+            setBotEnabled(isEnabled);
+            try {
+              localStorage.setItem(`flowlevel_bot_enabled_${currentSubaccount.id}`, String(isEnabled));
+            } catch (e) {}
+          } else {
+            setBotEnabled(false);
+          }
           if (cfg.servicesAndPricing) setServicesAndPricing(cfg.servicesAndPricing);
           if (cfg.coverageAreas) setCoverageAreas(cfg.coverageAreas);
           if (cfg.paymentTerms) setPaymentTerms(cfg.paymentTerms);
@@ -137,6 +155,54 @@ export function WhatsAppView() {
     }
     loadAgentConfig();
   }, [currentSubaccount?.id]);
+
+  // Alternar Piloto Automático com salvamento imediato no Servidor e Supabase
+  const handleToggleBot = async () => {
+    const nextState = !botEnabled;
+    setBotEnabled(nextState);
+    setIsTogglingBot(true);
+    setToggleFeedback(nextState ? 'Ativando no servidor...' : 'Pausando no servidor...');
+
+    try {
+      localStorage.setItem(`flowlevel_bot_enabled_${currentSubaccount.id}`, String(nextState));
+    } catch (e) {}
+
+    try {
+      const res = await fetch('/api/ai/agent-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subaccountId: currentSubaccount.id,
+          config: {
+            botName,
+            botRole,
+            botTone,
+            botEnabled: nextState,
+            servicesAndPricing,
+            coverageAreas,
+            paymentTerms,
+            businessHours,
+            customInstructions,
+            humanHandoffKeywords,
+            geminiApiKey,
+            openaiApiKey,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        setToggleFeedback(nextState ? 'Sofia Ativada no Servidor ⚡' : 'Sofia Pausada no Servidor 🔒');
+      } else {
+        setToggleFeedback('Erro ao sincronizar status ⚠️');
+      }
+    } catch (err) {
+      console.error('Erro ao alternar status do atendente no servidor:', err);
+      setToggleFeedback('Erro de conexão ao salvar ⚠️');
+    } finally {
+      setIsTogglingBot(false);
+      setTimeout(() => setToggleFeedback(null), 3500);
+    }
+  };
 
   // Salvar treinamento do Atendente IA
   const handleSaveAgentTraining = async () => {
@@ -698,19 +764,34 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               </p>
             </div>
 
-            {/* Auto-Pilot Toggle */}
+            {/* Auto-Pilot Toggle com Salvamento Instantâneo */}
             <div className="flex items-center gap-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700">
               <div className="text-right">
-                <p className="text-xs font-semibold text-white">Piloto Automático</p>
+                <div className="flex items-center justify-end gap-1.5">
+                  <p className="text-xs font-semibold text-white">Piloto Automático</p>
+                  {isTogglingBot && (
+                    <RefreshCw className="w-3 h-3 text-cyan-400 animate-spin" />
+                  )}
+                </div>
                 <p className="text-[10px] text-slate-400">
-                  {botEnabled ? 'Respondendo WhatsApp' : 'Pausado (Somente Humano)'}
+                  {toggleFeedback ? (
+                    <span className={botEnabled ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                      {toggleFeedback}
+                    </span>
+                  ) : botEnabled ? (
+                    <span className="text-emerald-400 font-semibold">Respondendo WhatsApp (Ativo)</span>
+                  ) : (
+                    <span className="text-slate-400">Pausado (Somente Humano)</span>
+                  )}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setBotEnabled(!botEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  botEnabled ? 'bg-emerald-500' : 'bg-slate-700'
+                onClick={handleToggleBot}
+                disabled={isTogglingBot}
+                title={botEnabled ? 'Clique para desativar o atendimento da IA (Pausar Sofia)' : 'Clique para ativar o atendimento da IA no WhatsApp'}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                  botEnabled ? 'bg-emerald-500 shadow-lg shadow-emerald-500/30' : 'bg-slate-700'
                 }`}
               >
                 <span

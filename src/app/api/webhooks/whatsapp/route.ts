@@ -252,22 +252,36 @@ export async function POST(request: NextRequest) {
     if (!isGroup && senderPhone && messageText && messageText !== '[Mídia ou Áudio]') {
       try {
         // 7.1 Buscar configuração e treinamento personalizado do Atendente IA
-        const { data: cred } = await supabase
+        let credQuery = await supabase
           .from('tenant_credentials')
           .select('encrypted_credentials')
           .eq('subaccount_id', subaccount.id)
           .eq('service_type', 'ai_agent_config')
           .maybeSingle();
 
+        let cred = credQuery.data;
+        if (!cred) {
+          const { data: fallbackCred } = await supabase
+            .from('tenant_credentials')
+            .select('encrypted_credentials')
+            .eq('service_type', 'ai_agent_config')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (fallbackCred) {
+            cred = fallbackCred;
+          }
+        }
+
         let agentConfig: any = {
           botName: 'Sofia',
-          botRole: 'Consultora Especialista em Climatização & Elétrica',
+          botRole: 'Consultora Especialista em Atendimento & Vendas',
           botTone: 'consultive',
-          botEnabled: true,
-          servicesAndPricing: 'Instalação de ar-condicionado a partir de R$ 380. Higienização por R$ 190. Manutenção e elétrica sob consulta.',
-          coverageAreas: 'Porto Alegre, Canoas, Novo Hamburgo e Região Metropolitana.',
-          paymentTerms: 'Cartão de crédito em até 12x, PIX com desconto à vista ou boleto PJ.',
-          customInstructions: 'Seja cordial e pergunte qual modelo do aparelho e o bairro do cliente para dar o orçamento exato.',
+          botEnabled: false, // Padrão: Desativado até confirmação explícita de ativação no botão
+          servicesAndPricing: 'Serviços especializados com orçamento sob medida.',
+          coverageAreas: 'Consulte disponibilidade da nossa equipe.',
+          paymentTerms: 'Cartão de crédito, PIX ou boleto.',
+          customInstructions: 'Seja cordial e concisa.',
           humanHandoffKeywords: 'atendente, humano, falar com atendente, pessoa, urgente',
         };
 
@@ -280,9 +294,11 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Se o atendente estiver desativado pelo usuário, não dispara resposta automática
-        if (agentConfig.botEnabled === false) {
-          console.log(`[AI Chatbot] Piloto automático desativado para ${subaccount.name}. Aguardando atendimento humano.`);
+        // Validação estrita: O atendente SÓ responde se botEnabled for explicitamente TRUE
+        const isBotActive = agentConfig.botEnabled === true || agentConfig.botEnabled === 'true';
+
+        if (!isBotActive) {
+          console.log(`[AI Chatbot] 🛑 Piloto Automático DESATIVADO para ${subaccount.name}. Sofia NÃO responderá ao lead ${senderPhone}.`);
         } else {
           // Verificar gatilho de transbordo humano
           const lowerMsg = messageText.toLowerCase();
