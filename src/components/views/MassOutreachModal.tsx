@@ -43,6 +43,7 @@ import {
   Filter,
   CheckCheck,
   CheckSquare,
+  Upload,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { ProspectItem, AudioTrackItem, SequenceStepItem } from '@/types';
@@ -132,25 +133,8 @@ const DEFAULT_SEED_PROSPECTS: ProspectItem[] = [
   },
 ];
 
-// Áudios Padrão da Plataforma (Alta Qualidade)
-const DEFAULT_AUDIOS: AudioTrackItem[] = [
-  {
-    id: 'audio_default_1',
-    name: '🎙️ Áudio 1 - Apresentação Connect Digital',
-    duration: 14,
-    url: 'https://cdn.freesound.org/previews/608/608645_11861866-lq.mp3',
-    createdAt: 'Padrão Connect Digital',
-    isCustom: false,
-  },
-  {
-    id: 'audio_default_2',
-    name: '🎙️ Áudio 2 - Pergunta Direta ao Proprietário',
-    duration: 18,
-    url: 'https://cdn.freesound.org/previews/608/608645_11861866-lq.mp3',
-    createdAt: 'Padrão Connect Digital',
-    isCustom: false,
-  },
-];
+// Áudios Padrão da Plataforma (Inicia zerado para gravações reais do usuário)
+const DEFAULT_AUDIOS: AudioTrackItem[] = [];
 
 // Modelos de Sequência Pré-configurados
 const PRESET_SEQUENCES = [
@@ -170,7 +154,7 @@ const PRESET_SEQUENCES = [
         id: 'step_2',
         type: 'audio' as const,
         title: 'Passo 2: Áudio de Apresentação (PTT)',
-        audioId: 'audio_default_1',
+        audioId: undefined,
       },
       {
         id: 'step_3',
@@ -196,8 +180,8 @@ const PRESET_SEQUENCES = [
       {
         id: 'step_2',
         type: 'audio' as const,
-        title: 'Passo 2: Áudio de Parceria Estratégica',
-        audioId: 'audio_default_2',
+        title: 'Passo 2: Áudio de Parceria Estratégica (PTT)',
+        audioId: undefined,
       },
       {
         id: 'step_3',
@@ -223,8 +207,8 @@ const PRESET_SEQUENCES = [
       {
         id: 'step_2',
         type: 'audio' as const,
-        title: 'Passo 2: Áudio Rápido (0:14s)',
-        audioId: 'audio_default_1',
+        title: 'Passo 2: Áudio Rápido (PTT)',
+        audioId: undefined,
       },
     ],
   },
@@ -443,31 +427,54 @@ export function MassOutreachModal({
   // ==========================================
   // 1. ESTADO DA BIBLIOTECA DE ÁUDIOS
   // ==========================================
-  const [audioTracks, setAudioTracks] = useState<AudioTrackItem[]>(DEFAULT_AUDIOS);
+  const [audioTracks, setAudioTracks] = useState<AudioTrackItem[]>([]);
   const [activePlayingId, setActivePlayingId] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [newAudioTitle, setNewAudioTitle] = useState('');
-  const [recordedBlobUrl, setRecordedBlobUrl] = useState<string | null>(null);
+  const [recordingTargetStepIndex, setRecordingTargetStepIndex] = useState<number | null>(null);
+  const [recordedAudioPayload, setRecordedAudioPayload] = useState<{
+    url: string;
+    duration: number;
+    targetStepIndex: number | null;
+  } | null>(null);
+
+  const [uploadTargetStepIndex, setUploadTargetStepIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<any>(null);
+  const secondsRecordedRef = useRef<number>(0);
 
-  // Carregar áudios salvos no localStorage
+  // Carregar áudios salvos no localStorage (higienizando áudios de exemplo e URLs temporárias blob)
   useEffect(() => {
     try {
       const storageKey = `flowlevel_audio_library_${currentSubaccount.id}`;
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setAudioTracks([...DEFAULT_AUDIOS, ...parsed]);
+        if (Array.isArray(parsed)) {
+          // Filtrar somente áudios reais salvos em Base64 ou URL permanente
+          const validTracks = parsed.filter(
+            (track: any) =>
+              track &&
+              track.id &&
+              !track.id.startsWith('audio_default_') &&
+              track.url &&
+              !track.url.startsWith('blob:') &&
+              (track.url.startsWith('data:audio') || track.url.startsWith('http'))
+          );
+          setAudioTracks(validTracks);
+          localStorage.setItem(storageKey, JSON.stringify(validTracks));
+          return;
         }
       }
+      setAudioTracks([]);
     } catch (e) {
       console.warn('Erro ao carregar áudios do storage:', e);
+      setAudioTracks([]);
     }
   }, [currentSubaccount.id]);
 
@@ -481,12 +488,26 @@ export function MassOutreachModal({
     }
   };
 
-  // Iniciar Gravação com Microfone
-  const startRecording = async () => {
+  // Iniciar Gravação com Microfone (pode ser disparada do Estúdio ou direto do Passo da Sequência)
+  const startRecording = async (targetStepIndex: number | null = null) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream);
+
+      let options: MediaRecorderOptions | undefined = undefined;
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          options = { mimeType: 'audio/webm;codecs=opus' };
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          options = { mimeType: 'audio/webm' };
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          options = { mimeType: 'audio/mp4' };
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          options = { mimeType: 'audio/ogg' };
+        }
+      }
+
+      const mediaRecorder = options ? new MediaRecorder(stream, options) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -496,18 +517,32 @@ export function MassOutreachModal({
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const url = URL.createObjectURL(audioBlob);
-        setRecordedBlobUrl(url);
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64Url = reader.result as string;
+          const durationSec = Math.max(secondsRecordedRef.current, 1);
+          setRecordedAudioPayload({
+            url: base64Url,
+            duration: durationSec,
+            targetStepIndex,
+          });
+        };
       };
 
       mediaRecorder.start();
       setIsRecording(true);
+      setRecordingTargetStepIndex(targetStepIndex);
       setRecordingSeconds(0);
+      secondsRecordedRef.current = 0;
       setNewAudioTitle(`Áudio ${audioTracks.length + 1} - Gravação`);
 
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
+        secondsRecordedRef.current += 1;
+        setRecordingSeconds(secondsRecordedRef.current);
       }, 1000);
     } catch (err) {
       console.error('Erro ao acessar microfone:', err);
@@ -525,35 +560,143 @@ export function MassOutreachModal({
     }
   };
 
-  // Salvar Áudio Gravado na Galeria
+  // Salvar Áudio Gravado na Galeria e opcionalmente vincular ao Passo ativo
   const handleSaveRecordedAudio = () => {
-    if (!recordedBlobUrl) return;
+    if (!recordedAudioPayload) return;
 
     const newTrack: AudioTrackItem = {
       id: `audio_custom_${Date.now()}`,
       name: newAudioTitle.trim() || `Áudio ${audioTracks.length + 1}`,
-      duration: Math.max(recordingSeconds, 3),
-      url: recordedBlobUrl,
+      duration: Math.max(recordedAudioPayload.duration, 1),
+      url: recordedAudioPayload.url,
       createdAt: 'Gravado por você',
       isCustom: true,
     };
 
     const updated = [...audioTracks, newTrack];
     setAudioTracks(updated);
-    saveCustomAudios(updated.filter((a) => a.isCustom));
-    setRecordedBlobUrl(null);
+    saveCustomAudios(updated);
+
+    // Se o áudio foi gravado diretamente para um passo da sequência, vincula de imediato
+    if (
+      recordedAudioPayload.targetStepIndex !== null &&
+      recordedAudioPayload.targetStepIndex >= 0 &&
+      recordedAudioPayload.targetStepIndex < steps.length
+    ) {
+      const targetIdx = recordedAudioPayload.targetStepIndex;
+      setSteps((prev) =>
+        prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id } : s))
+      );
+    }
+
+    setRecordedAudioPayload(null);
+    setRecordingTargetStepIndex(null);
     setRecordingSeconds(0);
+    secondsRecordedRef.current = 0;
+  };
+
+  // Descartar gravação em andamento
+  const handleDiscardRecordedAudio = () => {
+    setRecordedAudioPayload(null);
+    setRecordingTargetStepIndex(null);
+    setRecordingSeconds(0);
+    secondsRecordedRef.current = 0;
+  };
+
+  // Acionar Upload de Arquivo de Áudio
+  const handleTriggerUpload = (targetStepIndex: number | null = null) => {
+    setUploadTargetStepIndex(targetStepIndex);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  // Processar Upload do Arquivo de Áudio
+  const handleAudioFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = () => {
+      const base64Url = reader.result as string;
+      const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
+
+      // Tentar calcular duração real via elemento temporário Audio
+      const tempAudio = new Audio(base64Url);
+      tempAudio.onloadedmetadata = () => {
+        const durationSec = Math.round(tempAudio.duration) || 5;
+        const newTrack: AudioTrackItem = {
+          id: `audio_custom_${Date.now()}`,
+          name: cleanFileName || `Áudio ${audioTracks.length + 1}`,
+          duration: durationSec,
+          url: base64Url,
+          createdAt: 'Arquivo importado',
+          isCustom: true,
+        };
+
+        const updated = [...audioTracks, newTrack];
+        setAudioTracks(updated);
+        saveCustomAudios(updated);
+
+        if (
+          uploadTargetStepIndex !== null &&
+          uploadTargetStepIndex >= 0 &&
+          uploadTargetStepIndex < steps.length
+        ) {
+          const targetIdx = uploadTargetStepIndex;
+          setSteps((prev) =>
+            prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id } : s))
+          );
+        }
+      };
+
+      tempAudio.onerror = () => {
+        const newTrack: AudioTrackItem = {
+          id: `audio_custom_${Date.now()}`,
+          name: cleanFileName || `Áudio ${audioTracks.length + 1}`,
+          duration: 10,
+          url: base64Url,
+          createdAt: 'Arquivo importado',
+          isCustom: true,
+        };
+        const updated = [...audioTracks, newTrack];
+        setAudioTracks(updated);
+        saveCustomAudios(updated);
+
+        if (
+          uploadTargetStepIndex !== null &&
+          uploadTargetStepIndex >= 0 &&
+          uploadTargetStepIndex < steps.length
+        ) {
+          const targetIdx = uploadTargetStepIndex;
+          setSteps((prev) =>
+            prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id } : s))
+          );
+        }
+      };
+    };
   };
 
   // Excluir Áudio
   const handleDeleteAudio = (id: string) => {
+    if (activePlayingId === id) {
+      if (audioPlayerRef.current) audioPlayerRef.current.pause();
+      setActivePlayingId(null);
+    }
     const updated = audioTracks.filter((t) => t.id !== id);
     setAudioTracks(updated);
-    saveCustomAudios(updated.filter((a) => a.isCustom));
+    saveCustomAudios(updated);
+    // Remove vínculo de qualquer passo que estava usando este áudio
+    setSteps((prev) =>
+      prev.map((s) => (s.audioId === id ? { ...s, audioId: undefined } : s))
+    );
   };
 
   // Reproduzir / Pausar Áudio
-  const togglePlayAudio = (track: AudioTrackItem) => {
+  const togglePlayAudio = (track: AudioTrackItem | { id: string; url: string; name?: string }) => {
+    if (!track?.url) return;
     if (activePlayingId === track.id) {
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause();
@@ -563,7 +706,10 @@ export function MassOutreachModal({
       setActivePlayingId(track.id);
       if (audioPlayerRef.current) {
         audioPlayerRef.current.src = track.url;
-        audioPlayerRef.current.play();
+        audioPlayerRef.current.play().catch((err) => {
+          console.warn('Erro ao reproduzir áudio:', err);
+          setActivePlayingId(null);
+        });
       }
     }
   };
@@ -595,13 +741,13 @@ export function MassOutreachModal({
     setSteps([...steps, newStep]);
   };
 
-  // Adicionar Passo de Áudio
+  // Adicionar Passo de Áudio (inicia zerado para que o usuário grave ou escolha)
   const handleAddAudioStep = (audioId?: string) => {
-    const selectedAudio = audioTracks.find((a) => a.id === audioId) || audioTracks[0];
+    const selectedAudio = audioId ? audioTracks.find((a) => a.id === audioId) : undefined;
     const newStep: SequenceStepItem = {
       id: `step_${Date.now()}`,
       type: 'audio',
-      title: `Passo ${steps.length + 1}: Áudio Gravado`,
+      title: `Passo ${steps.length + 1}: Áudio Gravado PTT`,
       audioId: selectedAudio?.id,
     };
     setSteps([...steps, newStep]);
@@ -1031,10 +1177,21 @@ export function MassOutreachModal({
 
       {/* Corpo do Modal */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-        {/* Audio Player escondido para reprodução */}
+        {/* Audio Player escondido e input de arquivo de áudio */}
         <audio
           ref={audioPlayerRef}
           onEnded={() => setActivePlayingId(null)}
+          onError={() => {
+            console.warn('Erro na reprodução do áudio');
+            setActivePlayingId(null);
+          }}
+          className="hidden"
+        />
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleAudioFileUpload}
+          accept="audio/*"
           className="hidden"
         />
 
@@ -1513,63 +1670,226 @@ export function MassOutreachModal({
                             )}
 
                             {step.type === 'audio' && (
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="text-slate-400">Selecione o áudio que será enviado:</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setActiveTab('audio_studio')}
-                                    className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
-                                  >
-                                    <Mic className="w-3 h-3" />
-                                    <span>Gravar Novo Áudio</span>
-                                  </button>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {audioTracks.map((track) => (
-                                    <div
-                                      key={track.id}
-                                      onClick={() => {
-                                        setSteps((prev) =>
-                                          prev.map((s, idx) =>
-                                            idx === index ? { ...s, audioId: track.id } : s
-                                          )
-                                        );
-                                      }}
-                                      className={`p-2 rounded-lg border cursor-pointer text-xs flex items-center justify-between transition ${
-                                        step.audioId === track.id
-                                          ? 'bg-emerald-950/40 border-emerald-500/60 text-white ring-1 ring-emerald-500/40'
-                                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-2 min-w-0">
+                              <div className="space-y-3">
+                                {/* Estado 1: Gravando neste passo específico */}
+                                {isRecording && recordingTargetStepIndex === index ? (
+                                  <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/60 space-y-3 animate-in fade-in">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2 text-xs font-bold text-red-300">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                                        <span>Gravando áudio com seu microfone...</span>
+                                      </div>
+                                      <span className="font-mono text-xs font-bold text-red-300 bg-red-950 px-2 py-0.5 rounded border border-red-500/40">
+                                        0:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}s
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={stopRecording}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-lg shadow-red-600/30 animate-pulse"
+                                      >
+                                        <Square className="w-3.5 h-3.5 fill-white" />
+                                        <span>Parar e Concluir Gravação ({recordingSeconds}s)</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : recordedAudioPayload && recordedAudioPayload.targetStepIndex === index ? (
+                                  /* Estado 2: Gravação concluída aguardando salvar para este passo */
+                                  <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/60 space-y-3 animate-in fade-in">
+                                    <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
+                                      <div className="flex items-center gap-1.5">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                        <span>Áudio gravado com sucesso! (0:{recordedAudioPayload.duration < 10 ? `0${recordedAudioPayload.duration}` : recordedAudioPayload.duration}s)</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          togglePlayAudio({
+                                            id: 'temp_preview_step',
+                                            url: recordedAudioPayload.url,
+                                            name: 'Prévia da Gravação',
+                                          })
+                                        }
+                                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-semibold transition"
+                                      >
+                                        {activePlayingId === 'temp_preview_step' ? (
+                                          <>
+                                            <Pause className="w-3.5 h-3.5" />
+                                            <span>Pausar</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Play className="w-3.5 h-3.5" />
+                                            <span>Ouvir Gravação</span>
+                                          </>
+                                        )}
+                                      </button>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                      <input
+                                        type="text"
+                                        value={newAudioTitle}
+                                        onChange={(e) => setNewAudioTitle(e.target.value)}
+                                        placeholder="Nome deste áudio (Ex: Áudio 1 - Apresentação)"
+                                        className="flex-1 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs border border-slate-700 focus:outline-none focus:border-emerald-500"
+                                      />
+                                      <div className="flex items-center gap-2">
                                         <button
                                           type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            togglePlayAudio(track);
-                                          }}
-                                          className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"
+                                          onClick={handleSaveRecordedAudio}
+                                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition"
                                         >
-                                          {activePlayingId === track.id ? (
-                                            <Pause className="w-3 h-3" />
-                                          ) : (
-                                            <Play className="w-3 h-3" />
-                                          )}
+                                          <Save className="w-3.5 h-3.5" />
+                                          <span>Salvar e Usar</span>
                                         </button>
-                                        <div className="min-w-0">
-                                          <div className="font-semibold truncate">{track.name}</div>
-                                          <div className="text-[10px] text-slate-500">
-                                            0:{track.duration < 10 ? `0${track.duration}` : track.duration}s • {track.createdAt}
-                                          </div>
-                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={handleDiscardRecordedAudio}
+                                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs transition"
+                                        >
+                                          Descartar
+                                        </button>
                                       </div>
-                                      {step.audioId === track.id && (
-                                        <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />
-                                      )}
                                     </div>
-                                  ))}
-                                </div>
+                                  </div>
+                                ) : audioTracks.length === 0 ? (
+                                  /* Estado 3: Nenhum áudio gravado ainda no sistema */
+                                  <div className="p-4 rounded-xl bg-slate-900/60 border border-dashed border-slate-700 text-center space-y-3">
+                                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center">
+                                      <Mic className="w-5 h-5" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                      <div className="text-xs font-bold text-white">Nenhum áudio cadastrado ainda</div>
+                                      <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+                                        Grave seu áudio agora usando seu microfone ou envie um arquivo (.mp3, .ogg, .wav). Ele ficará salvo no histórico para você reutilizar.
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => startRecording(index)}
+                                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-lg shadow-red-600/20"
+                                      >
+                                        <Mic className="w-4 h-4" />
+                                        <span>Gravar com Microfone</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleTriggerUpload(index)}
+                                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition"
+                                      >
+                                        <Upload className="w-4 h-4 text-emerald-400" />
+                                        <span>Subir Arquivo de Áudio</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* Estado 4: Biblioteca possui áudios reais gravados pelo usuário */
+                                  <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-slate-300 font-medium">
+                                        Selecione o áudio deste passo ou grave um novo:
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => startRecording(index)}
+                                          className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
+                                        >
+                                          <Mic className="w-3 h-3" />
+                                          <span>+ Gravar para Este Passo</span>
+                                        </button>
+                                        <span className="text-slate-600">•</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleTriggerUpload(index)}
+                                          className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
+                                        >
+                                          <Upload className="w-3 h-3" />
+                                          <span>Subir Arquivo</span>
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Grid de Áudios Salvos */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {audioTracks.map((track) => {
+                                        const isSelected = step.audioId === track.id;
+                                        return (
+                                          <div
+                                            key={track.id}
+                                            onClick={() => {
+                                              setSteps((prev) =>
+                                                prev.map((s, idx) =>
+                                                  idx === index ? { ...s, audioId: track.id } : s
+                                                )
+                                              );
+                                            }}
+                                            className={`p-2.5 rounded-xl border cursor-pointer text-xs flex items-center justify-between transition ${
+                                              isSelected
+                                                ? 'bg-emerald-950/40 border-emerald-500 text-white ring-1 ring-emerald-500/50 shadow-sm'
+                                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                                            }`}
+                                          >
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  togglePlayAudio(track);
+                                                }}
+                                                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition ${
+                                                  activePlayingId === track.id
+                                                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                                    : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                                                }`}
+                                                title={activePlayingId === track.id ? 'Pausar áudio' : 'Ouvir áudio'}
+                                              >
+                                                {activePlayingId === track.id ? (
+                                                  <Pause className="w-3.5 h-3.5" />
+                                                ) : (
+                                                  <Play className="w-3.5 h-3.5 ml-0.5" />
+                                                )}
+                                              </button>
+                                              <div className="min-w-0">
+                                                <div className="font-semibold text-xs text-white truncate max-w-[160px]">
+                                                  {track.name}
+                                                </div>
+                                                <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                                  <span>
+                                                    0:{track.duration < 10 ? `0${track.duration}` : track.duration}s
+                                                  </span>
+                                                  <span>•</span>
+                                                  <span>{track.createdAt}</span>
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                                              {isSelected && (
+                                                <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow">
+                                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                                </span>
+                                              )}
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeleteAudio(track.id);
+                                                }}
+                                                className="p-1 text-slate-600 hover:text-rose-400 hover:bg-rose-950/20 rounded transition"
+                                                title="Excluir este áudio do histórico"
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
 
@@ -1606,7 +1926,7 @@ export function MassOutreachModal({
                 {/* ==================================================== */}
                 {activeTab === 'audio_studio' && (
                   <div className="space-y-5">
-                    {/* Gravador com Microfone Real */}
+                    {/* Gravador com Microfone Real e Upload */}
                     <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-slate-800 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1618,7 +1938,7 @@ export function MassOutreachModal({
                               Gravação de Áudio com seu Microfone
                             </h4>
                             <p className="text-[11px] text-slate-400">
-                              Grave quantos áudios desejar (apresentação, quebra de gelo, perguntas).
+                              Grave quantos áudios desejar (apresentação, quebra de gelo, perguntas diretas).
                             </p>
                           </div>
                         </div>
@@ -1631,17 +1951,27 @@ export function MassOutreachModal({
                         )}
                       </div>
 
-                      {/* Botões do Gravador */}
+                      {/* Botões do Gravador e Upload */}
                       <div className="flex flex-wrap items-center gap-3">
                         {!isRecording ? (
-                          <button
-                            type="button"
-                            onClick={startRecording}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition"
-                          >
-                            <Mic className="w-4 h-4" />
-                            <span>Iniciar Nova Gravação</span>
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startRecording(null)}
+                              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition"
+                            >
+                              <Mic className="w-4 h-4" />
+                              <span>Iniciar Nova Gravação</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerUpload(null)}
+                              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-200 text-xs font-semibold transition"
+                            >
+                              <Upload className="w-4 h-4 text-emerald-400" />
+                              <span>Subir Arquivo (.mp3, .ogg, .wav)</span>
+                            </button>
+                          </>
                         ) : (
                           <button
                             type="button"
@@ -1653,23 +1983,55 @@ export function MassOutreachModal({
                           </button>
                         )}
 
-                        {recordedBlobUrl && !isRecording && (
-                          <div className="flex-1 flex flex-wrap items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        {recordedAudioPayload && !isRecording && recordedAudioPayload.targetStepIndex === null && (
+                          <div className="w-full flex flex-wrap items-center gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800 animate-in fade-in">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                togglePlayAudio({
+                                  id: 'temp_studio_preview',
+                                  url: recordedAudioPayload.url,
+                                  name: 'Prévia Gravada',
+                                })
+                              }
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-semibold"
+                            >
+                              {activePlayingId === 'temp_studio_preview' ? (
+                                <>
+                                  <Pause className="w-3.5 h-3.5" />
+                                  <span>Pausar</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-3.5 h-3.5" />
+                                  <span>Ouvir ({recordedAudioPayload.duration}s)</span>
+                                </>
+                              )}
+                            </button>
                             <input
                               type="text"
                               value={newAudioTitle}
                               onChange={(e) => setNewAudioTitle(e.target.value)}
                               placeholder="Nome do Áudio (Ex: Apresentação Connect Digital)"
-                              className="flex-1 min-w-[180px] px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs border border-slate-700 focus:outline-none focus:border-emerald-500"
+                              className="flex-1 min-w-[200px] px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs border border-slate-700 focus:outline-none focus:border-emerald-500"
                             />
-                            <button
-                              type="button"
-                              onClick={handleSaveRecordedAudio}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm"
-                            >
-                              <Save className="w-3.5 h-3.5" />
-                              <span>Salvar na Galeria</span>
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={handleSaveRecordedAudio}
+                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm"
+                              >
+                                <Save className="w-3.5 h-3.5" />
+                                <span>Salvar na Galeria</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleDiscardRecordedAudio}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs transition"
+                              >
+                                Descartar
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1683,81 +2045,84 @@ export function MassOutreachModal({
                           <span>Galeria de Áudios Disponíveis ({audioTracks.length})</span>
                         </h4>
                         <span className="text-[11px] text-slate-500">
-                          Prontos para usar na sua sequência
+                          {audioTracks.length > 0 ? 'Prontos para usar na sua sequência' : 'Histórico limpo'}
                         </span>
                       </div>
 
-                      <div className="space-y-2.5">
-                        {audioTracks.map((track) => (
-                          <div
-                            key={track.id}
-                            className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 flex items-center justify-between gap-3 transition hover:border-slate-600"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <button
-                                type="button"
-                                onClick={() => togglePlayAudio(track)}
-                                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${
-                                  activePlayingId === track.id
-                                    ? 'bg-emerald-500 text-slate-950'
-                                    : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                                }`}
-                              >
-                                {activePlayingId === track.id ? (
-                                  <Pause className="w-4 h-4" />
-                                ) : (
-                                  <Play className="w-4 h-4" />
-                                )}
-                              </button>
-
-                              <div className="min-w-0">
-                                <div className="text-xs font-bold text-slate-200 truncate flex items-center gap-2">
-                                  <span>{track.name}</span>
-                                  {track.isCustom ? (
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                                      Gravado por você
-                                    </span>
+                      {audioTracks.length === 0 ? (
+                        <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-dashed border-slate-800 text-slate-400 space-y-2">
+                          <FileAudio className="w-8 h-8 mx-auto text-slate-600" />
+                          <p className="text-xs font-semibold text-slate-300">Nenhum áudio salvo no momento</p>
+                          <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                            Grave seu primeiro áudio de abordagem com o microfone acima ou envie um arquivo de áudio. Todos os áudios que você gravar serão salvos aqui no seu histórico.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {audioTracks.map((track) => (
+                            <div
+                              key={track.id}
+                              className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 flex items-center justify-between gap-3 transition hover:border-slate-600"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => togglePlayAudio(track)}
+                                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${
+                                    activePlayingId === track.id
+                                      ? 'bg-emerald-500 text-slate-950'
+                                      : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                                  }`}
+                                  title={activePlayingId === track.id ? 'Pausar' : 'Ouvir'}
+                                >
+                                  {activePlayingId === track.id ? (
+                                    <Pause className="w-4 h-4" />
                                   ) : (
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-semibold">
-                                      Padrão Connect Digital
-                                    </span>
+                                    <Play className="w-4 h-4 ml-0.5" />
                                   )}
-                                </div>
-                                <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                  <span>Duração: 0:{track.duration < 10 ? `0${track.duration}` : track.duration}s</span>
-                                  <span>•</span>
-                                  <span>{track.createdAt}</span>
+                                </button>
+
+                                <div className="min-w-0">
+                                  <div className="text-xs font-bold text-slate-200 truncate flex items-center gap-2">
+                                    <span>{track.name}</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                                      {track.createdAt}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                    <span>Duração: 0:{track.duration < 10 ? `0${track.duration}` : track.duration}s</span>
+                                    <span>•</span>
+                                    <span className="text-slate-500">Pronto para PTT WhatsApp</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleAddAudioStep(track.id);
-                                  setActiveTab('sequence');
-                                }}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60 text-xs font-semibold transition"
-                              >
-                                <Plus className="w-3 h-3" />
-                                <span>Inserir na Sequência</span>
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleAddAudioStep(track.id);
+                                    setActiveTab('sequence');
+                                  }}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60 text-xs font-semibold transition"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>Inserir na Sequência</span>
+                                </button>
 
-                              {track.isCustom && (
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteAudio(track.id)}
                                   className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition"
-                                  title="Excluir áudio"
+                                  title="Excluir áudio da biblioteca"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
-                              )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -2000,8 +2365,31 @@ export function MassOutreachModal({
                       }
 
                       if (step.type === 'audio') {
-                        const track =
-                          audioTracks.find((a) => a.id === step.audioId) || audioTracks[0];
+                        const track = audioTracks.find((a) => a.id === step.audioId);
+
+                        if (!track) {
+                          return (
+                            <div
+                              key={step.id}
+                              className="self-end bg-[#005c4b]/80 border border-emerald-500/40 text-white p-2.5 rounded-2xl rounded-tr-none max-w-[88%] shadow-md space-y-1 animate-in fade-in"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0">
+                                  <Mic className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="text-[11px] leading-tight">
+                                  <div className="font-bold text-white">🎙️ Áudio PTT do Passo {idx + 1}</div>
+                                  <div className="text-[10px] text-emerald-200/80">Pendente de gravação ou seleção</div>
+                                </div>
+                              </div>
+                              <div className="text-[9px] text-emerald-300 text-right flex items-center justify-end gap-1 pt-0.5">
+                                <span>15:4{idx}</span>
+                                <span>✓✓</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
                         return (
                           <div
                             key={step.id}
