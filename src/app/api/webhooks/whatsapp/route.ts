@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { generateWithAI } from '@/lib/ai';
+import { fetchWhatsAppProfilePicture, getDefaultAvatarUrl, isRealAvatar } from '@/lib/whatsapp-avatar';
 
 // GET: Verificação de Webhook para Meta Cloud API Oficial
 export async function GET(request: NextRequest) {
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
     // Buscar contatos da subconta para match flexível de telefone (DDI, DDD, 9º dígito)
     const { data: subContacts } = await supabase
       .from('whatsapp_contacts')
-      .select('id, unread_count, tags, phone, name')
+      .select('id, unread_count, tags, phone, name, avatar')
       .eq('subaccount_id', subaccount.id);
 
     const existingContact = (subContacts || []).find((c: any) => {
@@ -192,6 +193,12 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      let contactAvatar = existingContact.avatar;
+      if (!isRealAvatar(contactAvatar) && cleanSenderDigits) {
+        const fetchedPic = await fetchWhatsAppProfilePicture(cleanSenderDigits, targetInstanceOrPhone);
+        if (fetchedPic) contactAvatar = fetchedPic;
+      }
+
       await supabase
         .from('whatsapp_contacts')
         .update({
@@ -200,6 +207,7 @@ export async function POST(request: NextRequest) {
           last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread_count: (existingContact.unread_count || 0) + 1,
           tags: Array.from(updatedTags),
+          avatar: isRealAvatar(contactAvatar) ? contactAvatar : getDefaultAvatarUrl(senderName || existingContact.name),
         })
         .eq('id', contactId);
     } else {
@@ -210,6 +218,14 @@ export async function POST(request: NextRequest) {
         initialTags.push('#Msg1_Enviada', '#Respondeu_Msg1', '#Pronto_Msg2');
       }
 
+      let contactAvatar: string | null = null;
+      if (cleanSenderDigits) {
+        contactAvatar = await fetchWhatsAppProfilePicture(cleanSenderDigits, targetInstanceOrPhone);
+      }
+      if (!contactAvatar) {
+        contactAvatar = getDefaultAvatarUrl(senderName);
+      }
+
       const { data: newContact } = await supabase
         .from('whatsapp_contacts')
         .insert([
@@ -218,7 +234,7 @@ export async function POST(request: NextRequest) {
             subaccount_id: subaccount.id,
             name: senderName,
             phone: `+${cleanSenderDigits}`,
-            avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80`,
+            avatar: contactAvatar,
             last_message: messageText,
             last_message_time: 'Agora',
             unread_count: 1,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { fetchWhatsAppProfilePicture, getDefaultAvatarUrl, isRealAvatar } from '@/lib/whatsapp-avatar';
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evolution-api-kix9.onrender.com';
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'flowlevel_secret_key_2026';
@@ -102,13 +103,30 @@ export async function GET(req: NextRequest) {
       subaccountId: c.subaccount_id || resolvedSubId,
       name: c.name || 'Contato WhatsApp',
       phone: c.phone || '',
-      avatar: c.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      avatar: isRealAvatar(c.avatar) ? c.avatar : getDefaultAvatarUrl(c.name),
       lastMessage: c.last_message || '',
       lastMessageTime: c.last_message_time || 'Agora',
       unreadCount: c.unread_count || 0,
       tags: c.tags || ['WhatsApp IA'],
       lastActivityTime: lastMsgTimes[c.id] || new Date(c.created_at).getTime(),
     }));
+
+    // Se algum contato estiver com avatar legado ou sem foto real, busca em background
+    validContacts.forEach((c) => {
+      if (!isRealAvatar(c.avatar) && c.phone) {
+        fetchWhatsAppProfilePicture(c.phone)
+          .then((picUrl) => {
+            if (picUrl) {
+              supabase
+                .from('whatsapp_contacts')
+                .update({ avatar: picUrl })
+                .eq('id', c.id)
+                .then(() => {});
+            }
+          })
+          .catch(() => {});
+      }
+    });
 
     // Ordenar contatos: quem teve mensagem mais recente fica no topo!
     formattedContacts.sort((a, b) => b.lastActivityTime - a.lastActivityTime);
@@ -307,6 +325,12 @@ export async function POST(req: NextRequest) {
 
     if (targetContact) {
       resolvedContactId = targetContact.id;
+      let contactAvatar = targetContact.avatar;
+      if (!isRealAvatar(contactAvatar) && cleanPhone) {
+        const fetchedPic = await fetchWhatsAppProfilePicture(cleanPhone, activeInstance);
+        if (fetchedPic) contactAvatar = fetchedPic;
+      }
+
       const { data: updatedContact, error: upErr } = await supabase
         .from('whatsapp_contacts')
         .update({
@@ -315,6 +339,7 @@ export async function POST(req: NextRequest) {
           unread_count: 0,
           tags: finalTags,
           name: targetContact.name && targetContact.name !== 'Contato WhatsApp' ? targetContact.name : (name || targetContact.name || 'Contato WhatsApp'),
+          avatar: isRealAvatar(contactAvatar) ? contactAvatar : getDefaultAvatarUrl(name || targetContact.name),
         })
         .eq('id', targetContact.id)
         .select()
@@ -326,6 +351,14 @@ export async function POST(req: NextRequest) {
       const newId = isUuid(contactId) ? contactId : crypto.randomUUID();
       resolvedContactId = newId;
 
+      let contactAvatar: string | null = null;
+      if (cleanPhone) {
+        contactAvatar = await fetchWhatsAppProfilePicture(cleanPhone, activeInstance);
+      }
+      if (!contactAvatar) {
+        contactAvatar = getDefaultAvatarUrl(name);
+      }
+
       const { data: insertedContact, error: inErr } = await supabase
         .from('whatsapp_contacts')
         .insert({
@@ -333,7 +366,7 @@ export async function POST(req: NextRequest) {
           subaccount_id: resolvedSubId,
           name: name || 'Lead Prospecção',
           phone: `+${cleanPhone}`,
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+          avatar: contactAvatar,
           last_message: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz' : 'Mensagem enviada'),
           last_message_time: 'Agora',
           unread_count: 0,

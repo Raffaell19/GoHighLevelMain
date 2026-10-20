@@ -579,8 +579,15 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                           : 'hover:bg-slate-800/40'
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden shrink-0 relative">
-                        <img src={contact.avatar} alt={contact.name} className="w-full h-full object-cover" />
+                      <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0 relative ring-1 ring-slate-700/60 shadow-sm flex items-center justify-center">
+                        <img
+                          src={contact.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.name || 'Contato')}&background=0284c7&color=ffffff&bold=true`}
+                          alt={contact.name}
+                          onError={(e) => {
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.name || 'Contato')}&background=0284c7&color=ffffff&bold=true`;
+                          }}
+                          className="w-full h-full object-cover"
+                        />
                         {contact.unreadCount > 0 && (
                           <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900" />
                         )}
@@ -625,7 +632,16 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               {/* Chat Header */}
               <div className="p-3.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3 min-w-0">
-                  <img src={activeContact.avatar} alt={activeContact.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                  <div className="w-9 h-9 rounded-full bg-slate-800 overflow-hidden shrink-0 relative ring-1 ring-slate-700/60 shadow-sm flex items-center justify-center">
+                    <img
+                      src={activeContact.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeContact.name || 'Contato')}&background=0284c7&color=ffffff&bold=true`}
+                      alt={activeContact.name}
+                      onError={(e) => {
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeContact.name || 'Contato')}&background=0284c7&color=ffffff&bold=true`;
+                      }}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-xs text-white leading-tight truncate">{activeContact.name}</h3>
                     <p className="text-[11px] text-slate-400 truncate">{activeContact.phone}</p>
