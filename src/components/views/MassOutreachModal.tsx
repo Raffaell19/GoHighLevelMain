@@ -520,9 +520,10 @@ export function MassOutreachModal({
     return initial;
   });
 
-  // Atualiza a seleção caso selectedLeads via prop mude
+  // Atualiza a seleção e fonte caso selectedLeads via prop mude
   useEffect(() => {
     if (selectedLeads && selectedLeads.length > 0) {
+      setContactSourceFilter('maps');
       const validIds = selectedLeads
         .filter((l) => l.phone && l.phone.replace(/[^0-9]/g, '').length >= 8)
         .map((l) => l.id);

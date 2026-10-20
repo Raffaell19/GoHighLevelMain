@@ -523,16 +523,63 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
     downloadCsv(item.results, `leads_${item.searchTerm.toLowerCase().replace(/\s+/g, '_')}_${item.location.toLowerCase().replace(/[^a-z0-9]/g, '_')}.csv`);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === displayedResults.length) {
-      setSelectedIds(new Set());
+  // Contagens dinâmicas de leads com e sem website
+  const withoutWebsiteCount = useMemo(() => {
+    return results.filter((p) => !isRealWebsite(p.website)).length;
+  }, [results]);
+
+  const withWebsiteCount = useMemo(() => {
+    return results.filter((p) => isRealWebsite(p.website)).length;
+  }, [results]);
+
+  // Resultados filtrados segundo a aba ativa (Todos, Sem Site ou Com Site) e filtros adicionais
+  const displayedResults = useMemo(() => {
+    return results.filter((p) => {
+      if (filterOnlyWithPhone && (!p.phone || p.phone.trim().length < 5)) return false;
+      if (filterMinRating > 0 && p.rating < filterMinRating) return false;
+      if (websiteFilter === 'without_website' && isRealWebsite(p.website)) return false;
+      if (websiteFilter === 'with_website' && !isRealWebsite(p.website)) return false;
+      return true;
+    });
+  }, [results, filterOnlyWithPhone, filterMinRating, websiteFilter]);
+
+  // Leads que estão selecionados E pertencem à visualização/filtro ativo atual
+  const activeSelectedLeads = useMemo(() => {
+    return displayedResults.filter((p) => selectedIds.has(p.id));
+  }, [displayedResults, selectedIds]);
+
+  const activeSelectedCount = activeSelectedLeads.length;
+
+  // Alternar filtro de abas e sincronizar a seleção automaticamente
+  const handleWebsiteFilterChange = (filter: 'all' | 'without_website' | 'with_website') => {
+    setWebsiteFilter(filter);
+    if (filter === 'without_website') {
+      const withoutSiteIds = new Set(results.filter((p) => !isRealWebsite(p.website)).map((p) => p.id));
+      setSelectedIds(withoutSiteIds);
+    } else if (filter === 'with_website') {
+      const withSiteIds = new Set(results.filter((p) => isRealWebsite(p.website)).map((p) => p.id));
+      setSelectedIds(withSiteIds);
     } else {
-      setSelectedIds(new Set(displayedResults.map((p) => p.id)));
+      setSelectedIds(new Set(results.map((p) => p.id)));
     }
+  };
+
+  // Selecionar Todos / Desmarcar Todos exclusivamente na visualização atual
+  const toggleSelectAll = () => {
+    if (displayedResults.length === 0) return;
+    const allDisplayedSelected = displayedResults.every((p) => selectedIds.has(p.id));
+    const next = new Set(selectedIds);
+    if (allDisplayedSelected) {
+      displayedResults.forEach((p) => next.delete(p.id));
+    } else {
+      displayedResults.forEach((p) => next.add(p.id));
+    }
+    setSelectedIds(next);
   };
 
   // Selecionar com 1 clique todas as empresas sem site institucional
   const handleSelectOnlyWithoutWebsite = () => {
+    setWebsiteFilter('without_website');
     const noWebsiteLeads = results.filter((p) => !isRealWebsite(p.website));
     setSelectedIds(new Set(noWebsiteLeads.map((p) => p.id)));
   };
@@ -544,11 +591,10 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
     setSelectedIds(next);
   };
 
+  // Importar exclusivamente os leads selecionados na visualização ativa
   const handleImportToCrm = async () => {
-    if (selectedIds.size === 0) return;
+    if (activeSelectedLeads.length === 0) return;
     setIsImporting(true);
-
-    const prospectsToImport = results.filter((r) => selectedIds.has(r.id));
 
     try {
       const res = await fetch('/api/prospects/import', {
@@ -556,7 +602,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subaccountId: currentSubaccount.id,
-          prospects: prospectsToImport,
+          prospects: activeSelectedLeads,
           stageId: stages[0]?.id,
         }),
       });
@@ -600,27 +646,9 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
   };
 
   const exportCurrentSelectionToCsv = () => {
-    const prospectsToExport = results.filter((r) => selectedIds.has(r.id));
-    if (prospectsToExport.length === 0) return;
-    downloadCsv(prospectsToExport, `prospectos_${searchTerm.toLowerCase().replace(/\s+/g, '_')}.csv`);
+    if (activeSelectedLeads.length === 0) return;
+    downloadCsv(activeSelectedLeads, `prospectos_${searchTerm.toLowerCase().replace(/\s+/g, '_')}.csv`);
   };
-
-  // Contagens dinâmicas de leads com e sem website
-  const withoutWebsiteCount = useMemo(() => {
-    return results.filter((p) => !isRealWebsite(p.website)).length;
-  }, [results]);
-
-  const withWebsiteCount = useMemo(() => {
-    return results.filter((p) => isRealWebsite(p.website)).length;
-  }, [results]);
-
-  const displayedResults = results.filter((p) => {
-    if (filterOnlyWithPhone && (!p.phone || p.phone.trim().length < 5)) return false;
-    if (filterMinRating > 0 && p.rating < filterMinRating) return false;
-    if (websiteFilter === 'without_website' && isRealWebsite(p.website)) return false;
-    if (websiteFilter === 'with_website' && !isRealWebsite(p.website)) return false;
-    return true;
-  });
 
   const filteredHistory = history.filter((h) => {
     if (!historySearchQuery.trim()) return true;
@@ -1100,12 +1128,12 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-900 dark:text-white select-none">
                     <input
                       type="checkbox"
-                      checked={selectedIds.size === displayedResults.length && displayedResults.length > 0}
+                      checked={displayedResults.length > 0 && displayedResults.every((p) => selectedIds.has(p.id))}
                       onChange={toggleSelectAll}
                       className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700"
                     />
                     <span>
-                      Selecionar Todos ({selectedIds.size} de {displayedResults.length})
+                      Selecionar Todos ({activeSelectedCount} de {displayedResults.length})
                     </span>
                   </label>
 
@@ -1116,7 +1144,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     type="button"
                     onClick={handleSelectOnlyWithoutWebsite}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition border cursor-pointer ${
-                      selectedIds.size > 0 && selectedIds.size === withoutWebsiteCount
+                      websiteFilter === 'without_website' && activeSelectedCount === withoutWebsiteCount
                         ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm shadow-amber-500/30'
                         : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/30'
                     }`}
@@ -1130,7 +1158,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                   <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
                     <button
                       type="button"
-                      onClick={() => setWebsiteFilter('all')}
+                      onClick={() => handleWebsiteFilterChange('all')}
                       className={`px-2.5 py-1 rounded-lg font-semibold transition ${
                         websiteFilter === 'all'
                           ? 'bg-blue-600 text-white shadow-sm'
@@ -1141,7 +1169,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     </button>
                     <button
                       type="button"
-                      onClick={() => setWebsiteFilter('without_website')}
+                      onClick={() => handleWebsiteFilterChange('without_website')}
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition ${
                         websiteFilter === 'without_website'
                           ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
@@ -1154,7 +1182,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     </button>
                     <button
                       type="button"
-                      onClick={() => setWebsiteFilter('with_website')}
+                      onClick={() => handleWebsiteFilterChange('with_website')}
                       className={`px-2.5 py-1 rounded-lg font-semibold transition ${
                         websiteFilter === 'with_website'
                           ? 'bg-blue-600 text-white shadow-sm'
@@ -1182,25 +1210,25 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                 <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
                   <button
                     onClick={exportCurrentSelectionToCsv}
-                    disabled={selectedIds.size === 0}
+                    disabled={activeSelectedCount === 0}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition disabled:opacity-40"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>Exportar CSV</span>
+                    <span>Exportar CSV ({activeSelectedCount})</span>
                   </button>
 
                   <button
                     onClick={() => setIsOutreachModalOpen(true)}
-                    disabled={selectedIds.size === 0}
+                    disabled={activeSelectedCount === 0}
                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition disabled:opacity-40 cursor-pointer"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
-                    <span>Disparar WhatsApp ({selectedIds.size})</span>
+                    <span>Disparar WhatsApp ({activeSelectedCount})</span>
                   </button>
 
                   <button
                     onClick={handleImportToCrm}
-                    disabled={selectedIds.size === 0 || isImporting}
+                    disabled={activeSelectedCount === 0 || isImporting}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition disabled:opacity-40"
                   >
                     {isImporting ? (
@@ -1211,7 +1239,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     ) : (
                       <>
                         <Download className="w-3.5 h-3.5" />
-                        <span>Importar {selectedIds.size} para o Funil</span>
+                        <span>Importar {activeSelectedCount} para o Funil</span>
                       </>
                     )}
                   </button>
@@ -1421,10 +1449,10 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
         isOpen={isOutreachModalOpen}
         onClose={() => setIsOutreachModalOpen(false)}
         selectedLeads={
-          results.filter((r) => selectedIds.has(r.id)).length > 0
-            ? results.filter((r) => selectedIds.has(r.id))
-            : results.length > 0
-            ? results
+          activeSelectedLeads.length > 0
+            ? activeSelectedLeads
+            : displayedResults.length > 0
+            ? displayedResults
             : full20SeedResults
         }
         onNavigateToWhatsApp={onNavigateToWhatsApp}
