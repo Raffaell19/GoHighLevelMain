@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
         ],
         locationQuery: cleanLocation,
         maxCrawledPlacesPerSearch: targetLimit,
+        maxCrawledPlaces: targetLimit,
+        maxPlacesPerQuery: targetLimit,
         language: language || 'pt-BR',
         includeWebResults: false,
         skipClosedPlaces: false,

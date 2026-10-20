@@ -145,7 +145,8 @@ export async function GET(request: NextRequest) {
 
     if (runStatus === 'SUCCEEDED') {
       const datasetId = defaultDatasetId || runJson.data?.defaultDatasetId;
-      const datasetUrl = `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token.trim()}&format=json&clean=true&limit=200`;
+      const fetchLimit = Math.max(limit, 200);
+      const datasetUrl = `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token.trim()}&format=json&clean=true&limit=${fetchLimit}`;
       const dataRes = await fetch(datasetUrl);
       const items = await dataRes.json();
 
@@ -161,16 +162,36 @@ export async function GET(request: NextRequest) {
         googleUrl: p.googleUrl || p.url || '',
       }));
 
+      // Garante que respeita o teto solicitado pelo usuário se houver mais resultados
+      const finalItems = limit ? normalized.slice(0, limit) : normalized;
+
       return NextResponse.json({
         status: 'SUCCEEDED',
         isMock: false,
-        items: normalized,
+        items: finalItems,
+        totalFound: normalized.length,
       });
+    }
+
+    // Se ainda está em execução, consulta o dataset para obter a contagem parcial de estabelecimentos
+    let currentCount = 0;
+    try {
+      const datasetId = defaultDatasetId || runJson.data?.defaultDatasetId;
+      if (datasetId) {
+        const dsRes = await fetch(`https://api.apify.com/v2/datasets/${datasetId}?token=${token.trim()}`);
+        if (dsRes.ok) {
+          const dsData = await dsRes.json();
+          currentCount = dsData.data?.cleanItemCount ?? dsData.data?.itemCount ?? 0;
+        }
+      }
+    } catch {
+      // Ignora erro de contagem intermediária
     }
 
     return NextResponse.json({
       status: runStatus,
       isMock: false,
+      currentCount,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

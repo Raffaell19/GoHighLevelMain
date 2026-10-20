@@ -369,7 +369,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
     if (!searchTerm.trim() || !location.trim()) return;
 
     setIsRunning(true);
-    setStatusMessage('Iniciando Actor na Apify (compass/crawler-google-places)...');
+    setStatusMessage(`Iniciando Actor na Apify para buscar até ${limit} estabelecimentos...`);
     setResults([]);
     setSelectedIds(new Set());
     setImportSuccessMessage(null);
@@ -395,9 +395,10 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
         throw new Error(runJson.error || 'Falha ao iniciar o crawler na Apify');
       }
 
-      setStatusMessage('Varrendo empresas e estabelecimentos no Google Maps...');
+      setStatusMessage(`Varrendo até ${limit} empresas no Google Maps...`);
 
       // 2. Polling de status / Obtenção dos resultados
+      const MAX_RETRIES = 45; // Permite até ~115 segundos para extração segura de lotes de 50 a 150 locais
       const pollResults = async (retries = 0): Promise<void> => {
         const statusRes = await fetch(
           `/api/prospects/status?runId=${runJson.runId}&defaultDatasetId=${runJson.defaultDatasetId || ''}&searchQuery=${encodeURIComponent(
@@ -439,8 +440,14 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
           const nextHistory = [newHistoryItem, ...filtered].slice(0, 50);
           persistHistory(nextHistory);
           setActiveHistoryItem(newHistoryItem);
-        } else if (retries < 15) {
-          setStatusMessage(`Extraindo contatos e telefones... (${retries + 1}/15)`);
+        } else if (retries < MAX_RETRIES) {
+          const count = statusJson.currentCount;
+          if (typeof count === 'number' && count > 0) {
+            setStatusMessage(`Extraindo contatos e telefones... (${count} de até ${limit} estabelecimentos encontrados)`);
+          } else {
+            const pct = Math.min(95, Math.max(8, Math.round(((retries + 1) / MAX_RETRIES) * 100)));
+            setStatusMessage(`Minerando até ${limit} estabelecimentos no Google Maps... (${pct}%)`);
+          }
           setTimeout(() => pollResults(retries + 1), 2500);
         } else {
           setIsRunning(false);
@@ -956,7 +963,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     ) : (
                       <>
                         <Zap className="w-4 h-4 fill-current text-cyan-300" />
-                        <span>Save & Start Extração</span>
+                        <span>Extrair Estabelecimentos ({limit})</span>
                       </>
                     )}
                   </button>
@@ -999,9 +1006,9 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
               <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-3 animate-pulse text-xs text-blue-600 dark:text-blue-400">
                 <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                 <div className="space-y-0.5">
-                  <p className="font-bold">{statusMessage || 'Processando extração na nuvem da Apify...'}</p>
+                  <p className="font-bold">{statusMessage || `Processando busca de até ${limit} estabelecimentos...`}</p>
                   <p className="text-[11px] text-slate-500">
-                    O Actor está conectando ao Google Places, extraindo contatos comerciais e geolocalização.
+                    Buscando até {limit} estabelecimentos em &quot;{location || 'região selecionada'}&quot;. Extraindo telefones comerciais, endereços e avaliações.
                   </p>
                 </div>
               </div>
