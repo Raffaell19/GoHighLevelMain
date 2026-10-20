@@ -403,13 +403,26 @@ export async function POST(req: NextRequest) {
     }
 
     if (!evoSendSuccess && cleanPhone) {
+      let errorMsg = 'Não foi possível entregar a mensagem no WhatsApp. Verifique a conexão da instância.';
+      const resMsg = evoResponseData?.response?.message;
+      if (typeof resMsg === 'string') {
+        errorMsg = resMsg;
+      } else if (Array.isArray(resMsg) && typeof resMsg[0] === 'string') {
+        errorMsg = resMsg[0];
+      } else if (typeof evoResponseData?.error === 'string') {
+        errorMsg = evoResponseData.error;
+      } else if (typeof evoResponseData?.error?.message === 'string') {
+        errorMsg = evoResponseData.error.message;
+      } else if (typeof evoResponseData?.message === 'string') {
+        errorMsg = evoResponseData.message;
+      } else if (Array.isArray(evoResponseData?.message) && typeof evoResponseData.message[0] === 'string') {
+        errorMsg = evoResponseData.message[0];
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error:
-            evoResponseData?.response?.message?.[0] ||
-            evoResponseData?.error ||
-            'Não foi possível entregar a mensagem no WhatsApp. Verifique a conexão da instância.',
+          error: errorMsg,
           evoResponse: evoResponseData,
           instance: activeInstance,
           contact: savedContact,

@@ -1369,8 +1369,88 @@ export function MassOutreachModal({
   >([]);
   const [lastDispatchedContactId, setLastDispatchedContactId] = useState<string | null>(null);
 
+  // Estados de Controle de Disparo em Andamento (Pausa / Play / Cancelamento)
+  const [isDispatchPaused, setIsDispatchPaused] = useState(false);
+  const isDispatchPausedRef = useRef(false);
+
+  const [isDispatchCancelled, setIsDispatchCancelled] = useState(false);
+  const isDispatchCancelledRef = useRef(false);
+
+  const handlePauseDispatch = () => {
+    setIsDispatchPaused(true);
+    isDispatchPausedRef.current = true;
+  };
+
+  const handleResumeDispatch = () => {
+    setIsDispatchPaused(false);
+    isDispatchPausedRef.current = false;
+  };
+
+  const handleCancelDispatch = () => {
+    const confirmCancel = window.confirm(
+      'Deseja realmente interromper o disparo em massa? Os envios restantes não serão executados.'
+    );
+    if (!confirmCancel) return;
+    setIsDispatchCancelled(true);
+    isDispatchCancelledRef.current = true;
+    setIsDispatchPaused(false);
+    isDispatchPausedRef.current = false;
+  };
+
+  // Helper para espera com verificação em tempo real de Pausa e Cancelamento
+  const waitWithPauseCheck = async (totalSeconds: number): Promise<boolean> => {
+    const stepMs = 200;
+    let elapsedMs = 0;
+    const targetMs = Math.max(totalSeconds, 0.5) * 1000;
+
+    while (elapsedMs < targetMs) {
+      if (isDispatchCancelledRef.current) return false;
+      while (isDispatchPausedRef.current && !isDispatchCancelledRef.current) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      if (isDispatchCancelledRef.current) return false;
+      await new Promise((resolve) => setTimeout(resolve, stepMs));
+      elapsedMs += stepMs;
+    }
+    return !isDispatchCancelledRef.current;
+  };
+
+  // Helper para formatar mensagens de erro sem gerar [object Object]
+  const formatErrorMessage = (err: any, phone?: string): string => {
+    if (phone) {
+      const cleanDigits = phone.replace(/[^0-9]/g, '');
+      const localNumber = cleanDigits.length >= 10 ? cleanDigits.slice(-8) : cleanDigits;
+      if (localNumber.length === 8 && /^[2-5]/.test(localNumber)) {
+        return 'Número fixo (não possui WhatsApp)';
+      }
+    }
+
+    if (!err) return 'Falha no envio via WhatsApp';
+    if (typeof err === 'string') {
+      if (err.includes('[object Object]')) return 'Falha na conexão com WhatsApp (Evolution API)';
+      return err;
+    }
+    if (typeof err === 'object') {
+      if (typeof err.message === 'string') return err.message;
+      if (Array.isArray(err.message) && typeof err.message[0] === 'string') return err.message[0];
+      if (typeof err.error === 'string') return err.error;
+      if (typeof err.response?.message === 'string') return err.response.message;
+      if (Array.isArray(err.response?.message)) return String(err.response.message[0]);
+      try {
+        const json = JSON.stringify(err);
+        if (json && json !== '{}') return json.slice(0, 100);
+      } catch {}
+    }
+    return String(err);
+  };
+
   const handleStartMassDispatch = async () => {
     if (leadsToDispatch.length === 0 || steps.length === 0) return;
+
+    setIsDispatchPaused(false);
+    isDispatchPausedRef.current = false;
+    setIsDispatchCancelled(false);
+    isDispatchCancelledRef.current = false;
 
     setModalStage('sending');
     setCurrentLeadIndex(0);
@@ -1391,6 +1471,20 @@ export function MassOutreachModal({
 
     // Executar para cada lead selecionado
     for (let lIdx = 0; lIdx < leadsToDispatch.length; lIdx++) {
+      // Verificar se o usuário interrompeu o disparo
+      if (isDispatchCancelledRef.current) {
+        break;
+      }
+
+      // Aguardar caso o usuário tenha pausado o disparo
+      while (isDispatchPausedRef.current && !isDispatchCancelledRef.current) {
+        await new Promise((res) => setTimeout(res, 250));
+      }
+
+      if (isDispatchCancelledRef.current) {
+        break;
+      }
+
       setCurrentLeadIndex(lIdx);
       const lead = leadsToDispatch[lIdx];
 
@@ -1449,7 +1543,7 @@ export function MassOutreachModal({
 
           if (!res.success) {
             hasLeadError = true;
-            lastErrorMessage = res.error || 'Falha no envio via Evolution API';
+            lastErrorMessage = formatErrorMessage(res.error, lead.phone);
           }
 
           if (res.contactId) {
@@ -1459,18 +1553,25 @@ export function MassOutreachModal({
         } catch (e: any) {
           console.error('Erro ao enviar passo individual:', e);
           hasLeadError = true;
-          lastErrorMessage = e?.message || 'Erro inesperado no envio';
+          lastErrorMessage = formatErrorMessage(e?.message || e, lead.phone);
         }
       } else {
         // ==========================================
         // MODO 2: DISPARO SEQUENCIAL CONTÍNUO
         // ==========================================
         for (let sIdx = 0; sIdx < steps.length; sIdx++) {
+          if (isDispatchCancelledRef.current) break;
+          while (isDispatchPausedRef.current && !isDispatchCancelledRef.current) {
+            await new Promise((res) => setTimeout(res, 250));
+          }
+          if (isDispatchCancelledRef.current) break;
+
           setCurrentStepIndex(sIdx);
           const step = steps[sIdx];
 
           if (step.type === 'delay') {
-            await new Promise((res) => setTimeout(res, (step.delaySeconds || 2) * 1000));
+            const ok = await waitWithPauseCheck(step.delaySeconds || 2);
+            if (!ok) break;
             continue;
           }
 
@@ -1504,7 +1605,7 @@ export function MassOutreachModal({
 
             if (!res.success) {
               hasLeadError = true;
-              lastErrorMessage = res.error || 'Falha no envio via Evolution API';
+              lastErrorMessage = formatErrorMessage(res.error, lead.phone);
             }
 
             if (res.contactId) {
@@ -1514,7 +1615,7 @@ export function MassOutreachModal({
           } catch (e: any) {
             console.error('Erro ao enviar passo da sequência:', e);
             hasLeadError = true;
-            lastErrorMessage = e?.message || 'Erro inesperado no envio';
+            lastErrorMessage = formatErrorMessage(e?.message || e, lead.phone);
           }
 
           // Se o passo requer resposta do cliente, pausa a sequência para aguardar retorno
@@ -1522,9 +1623,10 @@ export function MassOutreachModal({
             break;
           }
 
-          // Breve intervalo entre passos para humanização do envio
+          // Breve intervalo entre passos para humanização do envio com checagem de pausa
           if (sIdx < steps.length - 1) {
-            await new Promise((res) => setTimeout(res, 1800));
+            const ok = await waitWithPauseCheck(1.8);
+            if (!ok) break;
           }
         }
       }
@@ -1554,10 +1656,22 @@ export function MassOutreachModal({
       // Notificar e forçar atualização reativa imediata dos filtros da cadência
       setCadenceUpdateCounter((prev) => prev + 1);
 
-      // Intervalo de segurança anti-bloqueio entre cada lead
+      // Intervalo de segurança anti-bloqueio entre cada lead com checagem de pausa e cancelamento
       if (lIdx < leadsToDispatch.length - 1) {
-        await new Promise((res) => setTimeout(res, leadDelaySeconds * 1000));
+        const ok = await waitWithPauseCheck(leadDelaySeconds);
+        if (!ok) break;
       }
+    }
+
+    // Se o usuário cancelou o envio, marcar os itens pendentes
+    if (isDispatchCancelledRef.current) {
+      setDispatchLogs((prev) =>
+        prev.map((log) =>
+          log.status === 'pending'
+            ? { ...log, status: 'error', message: 'Interrompido pelo usuário' }
+            : log
+        )
+      );
     }
 
     setModalStage('finished');
@@ -3718,14 +3832,35 @@ export function MassOutreachModal({
           {/* ESTÁGIO: DISPARO EM ANDAMENTO */}
           {/* ==================================================== */}
           {modalStage === 'sending' && (
-            <div className="space-y-6 py-6 max-w-2xl mx-auto text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 animate-pulse mb-1">
-                <Send className="w-7 h-7" />
+            <div className="space-y-5 py-6 max-w-2xl mx-auto text-center">
+              <div
+                className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-1 transition-all shadow-lg ${
+                  isDispatchPaused
+                    ? 'bg-amber-500/20 text-amber-400 ring-2 ring-amber-500/50 shadow-amber-500/20'
+                    : 'bg-emerald-500/20 text-emerald-400 animate-pulse shadow-emerald-500/20'
+                }`}
+              >
+                {isDispatchPaused ? (
+                  <Pause className="w-7 h-7 fill-amber-400 text-amber-400" />
+                ) : (
+                  <Send className="w-7 h-7" />
+                )}
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-white">Disparando Sequência em Massa</h3>
+                <h3 className="text-lg font-bold text-white flex items-center justify-center gap-2">
+                  <span>
+                    {isDispatchPaused ? 'Disparo em Massa Pausado' : 'Disparando Sequência em Massa'}
+                  </span>
+                  {isDispatchPaused && (
+                    <span className="text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      ⏸️ PAUSA ATIVA
+                    </span>
+                  )}
+                </h3>
                 <p className="text-xs text-slate-400">
-                  Enviando empresa {currentLeadIndex + 1} de {leadsToDispatch.length} • Passo {currentStepIndex + 1} de {steps.length} • Cadência Anti-bloqueio ({leadDelaySeconds}s)
+                  {isDispatchPaused
+                    ? `Fila congelada na empresa ${currentLeadIndex + 1} de ${leadsToDispatch.length}. Clique em Continuar (Play) para retomar.`
+                    : `Enviando empresa ${currentLeadIndex + 1} de ${leadsToDispatch.length} • Passo ${currentStepIndex + 1} de ${steps.length} • Cadência Anti-bloqueio (${leadDelaySeconds}s)`}
                 </p>
               </div>
 
@@ -3733,7 +3868,11 @@ export function MassOutreachModal({
               <div className="space-y-2">
                 <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-green-400 transition-all duration-500 rounded-full"
+                    className={`h-full transition-all duration-500 rounded-full ${
+                      isDispatchPaused
+                        ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
+                        : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-green-400'
+                    }`}
                     style={{
                       width: `${Math.round(((currentLeadIndex + 1) / (leadsToDispatch.length || 1)) * 100)}%`,
                     }}
@@ -3746,6 +3885,70 @@ export function MassOutreachModal({
                   <span>
                     {currentLeadIndex + 1} / {leadsToDispatch.length} estabelecimentos
                   </span>
+                </div>
+              </div>
+
+              {/* Barra de Controle de Disparo (Play / Pausa / Interromper) */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl">
+                <div className="flex items-center gap-2.5 text-left">
+                  <div
+                    className={`w-3 h-3 rounded-full shrink-0 ${
+                      isDispatchPaused ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'
+                    }`}
+                  />
+                  <div>
+                    <div className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                      <span>Status do Envio:</span>
+                      {isDispatchPaused ? (
+                        <span className="text-amber-300 font-extrabold uppercase tracking-wider text-[10px] bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/40">
+                          ⏸️ Pausado
+                        </span>
+                      ) : (
+                        <span className="text-emerald-400 font-extrabold uppercase tracking-wider text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/40">
+                          ⚡ Em Execução Automática
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      {isDispatchPaused
+                        ? 'O envio foi congelado. Clique em Continuar (Play) para prosseguir com o próximo lead.'
+                        : `Aguardando cadência de ${leadDelaySeconds}s entre empresas para proteção do chip.`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {isDispatchPaused ? (
+                    <button
+                      type="button"
+                      onClick={handleResumeDispatch}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition cursor-pointer animate-pulse"
+                      title="Retomar envios imediatamente de onde parou"
+                    >
+                      <Play className="w-4 h-4 fill-white" />
+                      <span>Continuar Disparos (Play)</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePauseDispatch}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 transition cursor-pointer"
+                      title="Pausar disparos imediatamente"
+                    >
+                      <Pause className="w-4 h-4 fill-white" />
+                      <span>Pausar Disparos</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleCancelDispatch}
+                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-rose-950/50 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 text-xs font-semibold transition cursor-pointer"
+                    title="Interromper envio do restante da fila e ir para o resumo"
+                  >
+                    <Square className="w-3.5 h-3.5" />
+                    <span>Interromper</span>
+                  </button>
                 </div>
               </div>
 
