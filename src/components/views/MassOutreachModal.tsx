@@ -936,6 +936,8 @@ export function MassOutreachModal({
       );
 
       let leadContactId: string | undefined = undefined;
+      let hasLeadError = false;
+      let lastErrorMessage = '';
 
       // Executar cada passo da sequência configurada
       for (let sIdx = 0; sIdx < steps.length; sIdx++) {
@@ -973,12 +975,19 @@ export function MassOutreachModal({
             mediaType,
           });
 
+          if (!res.success) {
+            hasLeadError = true;
+            lastErrorMessage = res.error || 'Falha no envio via Evolution API';
+          }
+
           if (res.contactId) {
             leadContactId = res.contactId;
             setLastDispatchedContactId(res.contactId);
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error('Erro ao enviar passo da sequência:', e);
+          hasLeadError = true;
+          lastErrorMessage = e?.message || 'Erro inesperado no envio';
         }
 
         // Breve intervalo entre passos para humanização do envio
@@ -987,14 +996,16 @@ export function MassOutreachModal({
         }
       }
 
-      // Marcar lead com sucesso
+      // Marcar lead com sucesso ou erro
       setDispatchLogs((prev) =>
         prev.map((log, idx) =>
           idx === lIdx
             ? {
                 ...log,
-                status: 'success',
-                message: `Sequência completa enviada (${steps.length} passos)`,
+                status: hasLeadError ? 'error' : 'success',
+                message: hasLeadError
+                  ? `Falha: ${lastErrorMessage}`
+                  : `Sequência completa enviada (${steps.length} passos)`,
                 time: new Date().toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -2519,12 +2530,16 @@ export function MassOutreachModal({
                           ? 'bg-emerald-950/30'
                           : log.status === 'success'
                           ? 'bg-slate-900/40'
+                          : log.status === 'error'
+                          ? 'bg-red-950/30 border-l-2 border-red-500'
                           : 'bg-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         {log.status === 'success' ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : log.status === 'error' ? (
+                          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
                         ) : log.status === 'sending' ? (
                           <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin shrink-0" />
                         ) : (
@@ -2539,7 +2554,11 @@ export function MassOutreachModal({
                       <div className="text-right">
                         <div
                           className={`text-[11px] font-semibold ${
-                            log.status === 'success' ? 'text-emerald-400' : 'text-amber-400'
+                            log.status === 'success'
+                              ? 'text-emerald-400'
+                              : log.status === 'error'
+                              ? 'text-red-400'
+                              : 'text-amber-400'
                           }`}
                         >
                           {log.message}
@@ -2558,14 +2577,35 @@ export function MassOutreachModal({
           {/* ==================================================== */}
           {modalStage === 'finished' && (
             <div className="space-y-6 py-8 text-center max-w-xl mx-auto">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/20">
-                <CheckCircle2 className="w-9 h-9" />
+              <div
+                className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-xl ${
+                  dispatchLogs.every((l) => l.status === 'error')
+                    ? 'bg-red-500/20 text-red-400 shadow-red-500/20'
+                    : dispatchLogs.some((l) => l.status === 'error')
+                    ? 'bg-amber-500/20 text-amber-400 shadow-amber-500/20'
+                    : 'bg-emerald-500/20 text-emerald-400 shadow-emerald-500/20'
+                }`}
+              >
+                {dispatchLogs.every((l) => l.status === 'error') ? (
+                  <AlertCircle className="w-9 h-9" />
+                ) : (
+                  <CheckCircle2 className="w-9 h-9" />
+                )}
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-xl font-bold text-white">Disparo em Massa Concluído!</h3>
+                <h3 className="text-xl font-bold text-white">
+                  {dispatchLogs.every((l) => l.status === 'error')
+                    ? 'Atenção: Falha no Disparo'
+                    : 'Disparo em Massa Concluído!'}
+                </h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  {leadsToDispatch.length} estabelecimentos receberam a sequência completa de mensagens e áudios gravados.
+                  {dispatchLogs.filter((l) => l.status === 'success').length} de {leadsToDispatch.length} estabelecimentos receberam a sequência com sucesso.
+                  {dispatchLogs.some((l) => l.status === 'error') && (
+                    <span className="block text-red-400 font-semibold mt-1">
+                      {dispatchLogs.filter((l) => l.status === 'error').length} contato(s) apresentaram erro.
+                    </span>
+                  )}
                 </p>
               </div>
 

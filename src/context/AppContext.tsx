@@ -34,10 +34,10 @@ const initialSubaccounts: Subaccount[] = [
     whatsappConfig: {
       provider: 'evolution',
       status: 'connected',
-      phone: '+55 11 98877-6655',
-      instanceName: 'connect-digital',
-      evolutionApiUrl: 'https://api.evolution.local',
-      evolutionApiKey: 'evo_sec_993817481',
+      phone: '+55 51 9196-2040',
+      instanceName: 'alves-climatiza--o---el-trica',
+      evolutionApiUrl: 'https://evolution-api-kix9.onrender.com',
+      evolutionApiKey: 'flowlevel_secret_key_2026',
     },
     gmbConnected: true,
     socialConnected: true,
@@ -103,7 +103,7 @@ interface AppContextType {
     text: string;
     mediaUrl?: string;
     mediaType?: 'audio' | 'image' | 'video' | 'document';
-  }) => Promise<{ success: boolean; contactId: string }>;
+  }) => Promise<{ success: boolean; contactId: string; error?: string }>;
   handleInboundLeadResponse: (params: {
     contactId: string;
     responseText: string;
@@ -489,7 +489,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           phone: targetContact?.phone || '',
           text,
           subaccountId: currentSubaccount.id,
-          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'connect-digital',
+          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
         }),
       });
     } catch (err) {
@@ -517,7 +517,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     text: string;
     mediaUrl?: string;
     mediaType?: 'audio' | 'image' | 'video' | 'document';
-  }) => {
+  }): Promise<{ success: boolean; contactId: string; error?: string }> => {
     const cleanPhone = leadPhone.replace(/[^0-9]/g, '');
     let existingContact = contacts.find(
       (c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone || c.name === leadName
@@ -573,19 +573,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
 
     try {
-      await fetch('/api/whatsapp/chat', {
+      const res = await fetch('/api/whatsapp/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contactId,
           phone: leadPhone,
           text,
+          mediaUrl,
+          mediaType,
           subaccountId: currentSubaccount.id,
-          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'connect-digital',
+          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
         }),
       });
-    } catch (e) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        console.error('Erro de entrega WhatsApp:', data?.error);
+        return {
+          success: false,
+          contactId,
+          error: data?.error || 'Falha ao entregar mensagem no WhatsApp da Evolution API',
+        };
+      }
+    } catch (e: any) {
       console.error('Erro ao disparar outreach:', e);
+      return { success: false, contactId, error: e?.message || 'Erro de conexão com o servidor' };
     }
 
     return { success: true, contactId };

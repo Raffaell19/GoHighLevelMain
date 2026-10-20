@@ -123,19 +123,68 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// Helper para formatar telefone brasileiro com DDI 55
+function formatWhatsAppPhone(phone: string): string {
+  let clean = (phone || '').replace(/[^0-9]/g, '');
+  if (!clean) return '';
+  if (clean.startsWith('0')) clean = clean.slice(1);
+  if (clean.length === 10 || clean.length === 11) {
+    clean = `55${clean}`;
+  }
+  return clean;
+}
+
+// Helper para descobrir a instância realmente ativa e conectada na Evolution API
+async function resolveActiveInstance(preferred?: string): Promise<string> {
+  const primary = preferred || 'alves-climatiza--o---el-trica';
+  try {
+    // 1. Testa se a instância informada está aberta/conectada
+    const checkRes = await fetch(`${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(primary)}`, {
+      headers: { apikey: EVOLUTION_KEY },
+      cache: 'no-store',
+    });
+    const checkData = await checkRes.json().catch(() => ({}));
+    if (checkRes.ok && checkData?.instance?.state === 'open') {
+      return primary;
+    }
+
+    // 2. Se não estiver aberta, busca na Evolution API qual instância está 'open'
+    const listRes = await fetch(`${EVOLUTION_URL}/instance/fetchInstances`, {
+      headers: { apikey: EVOLUTION_KEY },
+      cache: 'no-store',
+    });
+    const listData = await listRes.json().catch(() => []);
+    if (Array.isArray(listData)) {
+      const openInst = listData.find(
+        (i: any) => i.connectionStatus === 'open' || i.state === 'open'
+      );
+      if (openInst?.name) {
+        console.log(`[Chat API] Roteando envio para instância ativa: ${openInst.name}`);
+        return openInst.name;
+      }
+    }
+  } catch (err) {
+    console.warn('[Chat API] Erro ao resolver instância ativa:', err);
+  }
+  return primary;
+}
+
 // POST: Enviar mensagem para o cliente via Evolution API e salvar no banco
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { contactId, phone, text, subaccountId, instanceName } = body;
+    const { contactId, phone, text, subaccountId, instanceName, mediaUrl, mediaType } = body;
 
-    if (!text || (!contactId && !phone)) {
-      return NextResponse.json({ error: 'Telefone e mensagem são obrigatórios' }, { status: 400 });
+    if (!text && !mediaUrl) {
+      return NextResponse.json({ error: 'Mensagem ou áudio é obrigatório' }, { status: 400 });
+    }
+
+    const cleanPhone = formatWhatsAppPhone(phone);
+    if (!cleanPhone && !contactId) {
+      return NextResponse.json({ error: 'Telefone do contato é obrigatório' }, { status: 400 });
     }
 
     const supabase = getServiceSupabase();
-    const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
-    const instance = instanceName || 'connect-digital';
 
     let resolvedSubId = isUuid(subaccountId) ? subaccountId : null;
     if (!resolvedSubId) {
@@ -145,24 +194,59 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1. Enviar mensagem real via Evolution API
+    // Resolver dinamicamente a instância que está com WhatsApp aberto/conectado
+    const activeInstance = await resolveActiveInstance(instanceName);
+
+    let evoSendSuccess = false;
+    let evoResponseData: any = null;
+
+    // 1. Enviar mensagem real via Evolution API (Texto ou Áudio PTT)
     if (cleanPhone) {
       try {
-        const evoRes = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instance)}`, {
-          method: 'POST',
-          headers: {
-            'apikey': EVOLUTION_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            number: cleanPhone,
-            text: text,
-          }),
-        });
-        const evoData = await evoRes.json();
-        console.log('[Chat API] Envio Evolution API:', evoRes.status, evoData);
-      } catch (evoErr) {
+        if (mediaType === 'audio' && mediaUrl) {
+          // Envio de Áudio PTT Real
+          const evoRes = await fetch(
+            `${EVOLUTION_URL}/message/sendWhatsAppAudio/${encodeURIComponent(activeInstance)}`,
+            {
+              method: 'POST',
+              headers: {
+                apikey: EVOLUTION_KEY,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                number: cleanPhone,
+                audio: mediaUrl,
+                delay: 1200,
+                encoding: true,
+              }),
+            }
+          );
+          evoResponseData = await evoRes.json().catch(() => ({}));
+          evoSendSuccess = evoRes.ok && !evoResponseData?.error;
+          console.log('[Chat API] Envio Áudio Evolution API:', evoRes.status, evoResponseData);
+        } else {
+          // Envio de Mensagem de Texto
+          const evoRes = await fetch(
+            `${EVOLUTION_URL}/message/sendText/${encodeURIComponent(activeInstance)}`,
+            {
+              method: 'POST',
+              headers: {
+                apikey: EVOLUTION_KEY,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                number: cleanPhone,
+                text: text || '',
+              }),
+            }
+          );
+          evoResponseData = await evoRes.json().catch(() => ({}));
+          evoSendSuccess = evoRes.ok && !evoResponseData?.error;
+          console.log('[Chat API] Envio Texto Evolution API:', evoRes.status, evoResponseData);
+        }
+      } catch (evoErr: any) {
         console.error('[Chat API] Erro ao enviar pela Evolution API:', evoErr);
+        evoResponseData = { error: evoErr?.message || 'Erro de conexão com Evolution API' };
       }
     }
 
@@ -173,8 +257,8 @@ export async function POST(req: NextRequest) {
         subaccount_id: resolvedSubId,
         contact_id: contactId,
         sender: 'agent',
-        text: text,
-        status: 'sent',
+        text: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz (Áudio Gravado)' : 'Mensagem enviada'),
+        status: evoSendSuccess ? 'sent' : 'error',
       })
       .select()
       .single();
@@ -188,14 +272,33 @@ export async function POST(req: NextRequest) {
       await supabase
         .from('whatsapp_contacts')
         .update({
-          last_message: text,
+          last_message: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz' : 'Mensagem enviada'),
           last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread_count: 0,
         })
         .eq('id', contactId);
     }
 
-    return NextResponse.json({ success: true, message: savedMsg });
+    if (!evoSendSuccess && cleanPhone) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            evoResponseData?.response?.message?.[0] ||
+            evoResponseData?.error ||
+            'Não foi possível entregar a mensagem no WhatsApp. Verifique a conexão da instância.',
+          evoResponse: evoResponseData,
+          instance: activeInstance,
+        },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: savedMsg,
+      instance: activeInstance,
+    });
   } catch (error: any) {
     console.error('[Chat API POST] Erro:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
