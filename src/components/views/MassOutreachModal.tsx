@@ -223,6 +223,36 @@ const PRESET_SEQUENCES = [
       },
     ],
   },
+  {
+    id: 'seq_sem_site_gmn',
+    name: '🌐 Proposta de Criação de Site + Google Meu Negócio',
+    description: 'Criada especialmente para abordar empresas que não possuem site cadastrado no Google Maps.',
+    steps: [
+      {
+        id: 'step_1',
+        type: 'text' as const,
+        title: 'Passo 1: Notificação de Oportunidade Digital',
+        textContent:
+          'Olá pessoal da {{empresa}}, tudo bem? Encontrei o perfil de vocês aqui no Google Maps em {{cidade}} e percebi que vocês ainda não possuem um site profissional cadastrado para receber clientes.',
+        requireResponse: true,
+      },
+      {
+        id: 'step_2',
+        type: 'audio' as const,
+        title: 'Passo 2: Áudio com Solução Google Meu Negócio (PTT)',
+        audioId: undefined,
+        requireResponse: true,
+      },
+      {
+        id: 'step_3',
+        type: 'text' as const,
+        title: 'Passo 3: Pergunta Direta ao Proprietário',
+        textContent:
+          'Ajudamos empresas da sua região a criarem sites modernos e dominarem o topo das buscas do Google. Poderia me confirmar se este é o WhatsApp direto do proprietário ou diretor?',
+        requireResponse: false,
+      },
+    ],
+  },
 ];
 
 export function MassOutreachModal({

@@ -112,12 +112,15 @@ export async function GET(request: NextRequest) {
         const reviewsCount = 15 + (idx * 17) % 150;
         const slug = `${searchQuery.toLowerCase().replace(/[^a-z0-9]/g, '')}${suffix.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
+        // Aproximadamente 55% das empresas locais no Google Maps não possuem website institucional próprio
+        const hasOwnWebsite = idx % 2 === 0;
+
         return {
           id: `place-mock-${idx + 1}`,
           name: `${cleanQuery} ${suffix}`,
           phone: `(${phoneDDD}) 9${numPart}-${numEnd}`,
           address: `${street}, ${location}`,
-          website: `https://${slug}.com.br`,
+          website: hasOwnWebsite ? `https://${slug}.com.br` : '',
           rating,
           reviewsCount,
           category: cleanQuery,
@@ -150,17 +153,29 @@ export async function GET(request: NextRequest) {
       const dataRes = await fetch(datasetUrl);
       const items = await dataRes.json();
 
-      const normalized: ProspectItem[] = (Array.isArray(items) ? items : []).map((p: any, idx: number) => ({
-        id: p.placeId || p.cid || `apify-${idx}`,
-        name: p.title || p.name || 'Empresa sem nome',
-        phone: p.phone || p.phoneUnformatted || '',
-        address: p.address || p.street || `${p.city || ''}, ${p.state || ''}`,
-        website: p.website || p.url || '',
-        rating: p.totalScore || p.stars || p.rating || 0,
-        reviewsCount: p.reviewsCount || 0,
-        category: p.categoryName || searchQuery,
-        googleUrl: p.googleUrl || p.url || '',
-      }));
+      const isGoogleUrl = (url?: string) => {
+        if (!url) return false;
+        const u = url.toLowerCase();
+        return u.includes('google.com') || u.includes('goo.gl') || u.includes('maps.app.goo.gl');
+      };
+
+      const normalized: ProspectItem[] = (Array.isArray(items) ? items : []).map((p: any, idx: number) => {
+        const rawWebsite = p.website || '';
+        const realWebsite = rawWebsite && !isGoogleUrl(rawWebsite) ? rawWebsite : '';
+        const mapsUrl = p.googleUrl || (isGoogleUrl(p.url) ? p.url : '') || (isGoogleUrl(rawWebsite) ? rawWebsite : '');
+
+        return {
+          id: p.placeId || p.cid || `apify-${idx}`,
+          name: p.title || p.name || 'Empresa sem nome',
+          phone: p.phone || p.phoneUnformatted || '',
+          address: p.address || p.street || `${p.city || ''}, ${p.state || ''}`,
+          website: realWebsite,
+          rating: p.totalScore || p.stars || p.rating || 0,
+          reviewsCount: p.reviewsCount || 0,
+          category: p.categoryName || searchQuery,
+          googleUrl: mapsUrl || `https://maps.google.com/?q=${encodeURIComponent(p.title || p.name || '')}`,
+        };
+      });
 
       // Garante que respeita o teto solicitado pelo usuário se houver mais resultados
       const finalItems = limit ? normalized.slice(0, limit) : normalized;

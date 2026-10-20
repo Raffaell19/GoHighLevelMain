@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Compass,
   Search,
@@ -33,10 +33,27 @@ import {
   Layers,
   ArrowUpRight,
   MessageCircle,
+  Sparkles,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { ProspectItem } from '@/types';
 import { MassOutreachModal } from './MassOutreachModal';
+
+// Valida se o estabelecimento possui um site próprio real (não sendo apenas link do Google Maps)
+export const isRealWebsite = (url?: string): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim().toLowerCase();
+  if (trimmed.length < 5) return false;
+  if (
+    trimmed.includes('google.com') ||
+    trimmed.includes('google.com.br') ||
+    trimmed.includes('goo.gl') ||
+    trimmed.includes('maps.app.goo.gl')
+  ) {
+    return false;
+  }
+  return true;
+};
 
 export interface SearchHistoryItem {
   id: string;
@@ -83,6 +100,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
   // Table filters (padrão false para não esconder nenhum lead gerado)
   const [filterOnlyWithPhone, setFilterOnlyWithPhone] = useState(false);
+  const [websiteFilter, setWebsiteFilter] = useState<'all' | 'without_website' | 'with_website'>('all');
   const [filterMinRating, setFilterMinRating] = useState(0);
 
   // History state
@@ -513,6 +531,12 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
     }
   };
 
+  // Selecionar com 1 clique todas as empresas sem site institucional
+  const handleSelectOnlyWithoutWebsite = () => {
+    const noWebsiteLeads = results.filter((p) => !isRealWebsite(p.website));
+    setSelectedIds(new Set(noWebsiteLeads.map((p) => p.id)));
+  };
+
   const toggleSelectOne = (id: string) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
@@ -581,9 +605,20 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
     downloadCsv(prospectsToExport, `prospectos_${searchTerm.toLowerCase().replace(/\s+/g, '_')}.csv`);
   };
 
+  // Contagens dinâmicas de leads com e sem website
+  const withoutWebsiteCount = useMemo(() => {
+    return results.filter((p) => !isRealWebsite(p.website)).length;
+  }, [results]);
+
+  const withWebsiteCount = useMemo(() => {
+    return results.filter((p) => isRealWebsite(p.website)).length;
+  }, [results]);
+
   const displayedResults = results.filter((p) => {
     if (filterOnlyWithPhone && (!p.phone || p.phone.trim().length < 5)) return false;
     if (filterMinRating > 0 && p.rating < filterMinRating) return false;
+    if (websiteFilter === 'without_website' && isRealWebsite(p.website)) return false;
+    if (websiteFilter === 'with_website' && !isRealWebsite(p.website)) return false;
     return true;
   });
 
@@ -1060,8 +1095,8 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
           {results.length > 0 && (
             <div id="prospects-results-table" className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               {/* Action and Filter Toolbar */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex flex-wrap items-center gap-2.5">
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-900 dark:text-white select-none">
                     <input
                       type="checkbox"
@@ -1076,8 +1111,62 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
                   <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
 
+                  {/* 🎯 Botão Rápido: Selecionar Apenas Sem Site */}
+                  <button
+                    type="button"
+                    onClick={handleSelectOnlyWithoutWebsite}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition border cursor-pointer ${
+                      selectedIds.size > 0 && selectedIds.size === withoutWebsiteCount
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm shadow-amber-500/30'
+                        : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/30'
+                    }`}
+                    title="Selecionar apenas empresas sem website para oferta de criação de site e Google Meu Negócio"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 fill-current" />
+                    <span>Selecionar Sem Site ({withoutWebsiteCount})</span>
+                  </button>
+
+                  {/* Filtro de Abas: Todos / Sem Site / Com Site */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setWebsiteFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition ${
+                        websiteFilter === 'all'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Todos ({results.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWebsiteFilter('without_website')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition ${
+                        websiteFilter === 'without_website'
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                          : 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                      }`}
+                      title="Exibir na tabela somente negócios que não possuem website institucional"
+                    >
+                      <span>Sem Site ({withoutWebsiteCount})</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWebsiteFilter('with_website')}
+                      className={`px-2.5 py-1 rounded-lg font-semibold transition ${
+                        websiteFilter === 'with_website'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Com Site ({withWebsiteCount})
+                    </button>
+                  </div>
+
                   <div className="flex items-center gap-2 text-xs">
-                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white select-none">
                       <input
                         type="checkbox"
                         checked={filterOnlyWithPhone}
@@ -1090,7 +1179,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                 </div>
 
                 {/* Batch Actions */}
-                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+                <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
                   <button
                     onClick={exportCurrentSelectionToCsv}
                     disabled={selectedIds.size === 0}
@@ -1128,6 +1217,25 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                   </button>
                 </div>
               </div>
+
+              {/* Banner Informativo quando o filtro Sem Site estiver ativo */}
+              {websiteFilter === 'without_website' && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-amber-600 dark:text-amber-400 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 shrink-0 text-amber-500 fill-amber-500" />
+                    <span>
+                      Exibindo <strong>{withoutWebsiteCount} empresas sem website institucional</strong>. Leads altamente qualificados para oferta de <strong>Criação de Site</strong> e <strong>Otimização no Google Meu Negócio</strong>!
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSelectOnlyWithoutWebsite}
+                    className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] shrink-0 transition shadow-sm cursor-pointer"
+                  >
+                    Marcar Todas as {withoutWebsiteCount} Sem Site
+                  </button>
+                </div>
+              )}
 
               {/* Prospects Table */}
               <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
@@ -1211,19 +1319,23 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                           </td>
 
                           <td className="p-3">
-                            {prospect.website ? (
+                            {isRealWebsite(prospect.website) ? (
                               <a
                                 href={prospect.website}
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-blue-500 hover:underline flex items-center gap-1 max-w-[140px] truncate"
+                                className="text-cyan-500 hover:underline flex items-center gap-1.5 max-w-[150px] truncate font-medium"
+                                title={prospect.website}
                               >
-                                <Globe className="w-3 h-3 shrink-0" />
-                                <span className="truncate">{prospect.website.replace(/^https?:\/\//, '')}</span>
+                                <Globe className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
+                                <span className="truncate">{prospect.website?.replace(/^https?:\/\//, '')}</span>
                               </a>
                             ) : (
-                              <span className="text-slate-400 italic">Sem site</span>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/25">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                Sem Site (Oportunidade)
+                              </span>
                             )}
                           </td>
 
