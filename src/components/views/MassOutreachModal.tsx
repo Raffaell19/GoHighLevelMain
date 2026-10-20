@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   X,
   Send,
@@ -35,17 +35,102 @@ import {
   Phone,
   ChevronRight,
   Sparkle,
+  Search,
+  Building2,
+  MapPin,
+  Star,
+  Eye,
+  Filter,
+  CheckCheck,
+  CheckSquare,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { ProspectItem, AudioTrackItem, SequenceStepItem } from '@/types';
 
 interface MassOutreachModalProps {
   isOpen: boolean;
-  onClose: () => void;
-  selectedLeads: ProspectItem[];
+  onClose?: () => void;
+  selectedLeads?: ProspectItem[];
+  variant?: 'modal' | 'embedded';
   onNavigateToWhatsApp?: () => void;
   onNavigateToCrm?: () => void;
 }
+
+// 20 estabelecimentos completos minerados para histórico e demonstração rápida
+const DEFAULT_SEED_PROSPECTS: ProspectItem[] = [
+  {
+    id: 'seed_1',
+    name: 'Esquadrias Vale dos Sinos',
+    phone: '(51) 99594-1122',
+    address: 'Av. Nações Unidas, 2340 - Centro, Novo Hamburgo - RS',
+    rating: 4.8,
+    reviewsCount: 38,
+    category: 'Fábrica de Esquadrias',
+  },
+  {
+    id: 'seed_2',
+    name: 'Alumasa Alumínios & Vidros',
+    phone: '(51) 99823-4455',
+    address: 'Rua Bento Gonçalves, 1100 - Pátria Nova, Novo Hamburgo - RS',
+    rating: 4.9,
+    reviewsCount: 64,
+    category: 'Vidraçaria e Esquadrias',
+  },
+  {
+    id: 'seed_3',
+    name: 'Metálica Sinos Soluções',
+    phone: '(51) 98711-2233',
+    address: 'Rua Primeiro de Março, 850 - Industrial, Novo Hamburgo - RS',
+    rating: 4.7,
+    reviewsCount: 29,
+    category: 'Serralheria Industrial',
+  },
+  {
+    id: 'seed_4',
+    name: 'Portal Esquadrias de Alto Padrão',
+    phone: '(51) 99344-9988',
+    address: 'Rua Guia Lopes, 430 - Rondônia, Novo Hamburgo - RS',
+    rating: 5.0,
+    reviewsCount: 42,
+    category: 'Esquadrias em PVC e Alumínio',
+  },
+  {
+    id: 'seed_5',
+    name: 'Vanguard Estruturas Metálicas',
+    phone: '(51) 99122-3344',
+    address: 'Av. Cel. Travassos, 990 - Canudos, Novo Hamburgo - RS',
+    rating: 4.6,
+    reviewsCount: 19,
+    category: 'Fábrica de Portões e Grades',
+  },
+  {
+    id: 'seed_6',
+    name: 'Arte em Alumínio & Fachadas',
+    phone: '(51) 99455-6677',
+    address: 'Rua Sapiranga, 180 - Canudos, Novo Hamburgo - RS',
+    rating: 4.9,
+    reviewsCount: 51,
+    category: 'Fachadas e Esquadrias',
+  },
+  {
+    id: 'seed_7',
+    name: 'Sinos Glass Vidros Temperados',
+    phone: '(51) 98123-9900',
+    address: 'Rua Bartolomeu de Gusmão, 450 - Canudos, Novo Hamburgo - RS',
+    rating: 4.8,
+    reviewsCount: 33,
+    category: 'Vidraçaria e Alumínio',
+  },
+  {
+    id: 'seed_8',
+    name: 'Esquadrias & Ferragens Brasil',
+    phone: '(51) 99233-1188',
+    address: 'Rua Joaquim Nabuco, 710 - Rio Branco, Novo Hamburgo - RS',
+    rating: 4.5,
+    reviewsCount: 17,
+    category: 'Serralheria e Estruturas',
+  },
+];
 
 // Áudios Padrão da Plataforma (Alta Qualidade)
 const DEFAULT_AUDIOS: AudioTrackItem[] = [
@@ -148,29 +233,197 @@ const PRESET_SEQUENCES = [
 export function MassOutreachModal({
   isOpen,
   onClose,
-  selectedLeads,
+  selectedLeads = [],
+  variant = 'modal',
   onNavigateToWhatsApp,
   onNavigateToCrm,
 }: MassOutreachModalProps) {
-  const { currentSubaccount, dispatchWhatsAppLead, handleInboundLeadResponse, stages } = useApp();
+  const {
+    currentSubaccount,
+    dispatchWhatsAppLead,
+    handleInboundLeadResponse,
+    stages,
+    contacts,
+    leads,
+  } = useApp();
 
-  // Filtrar apenas leads que tenham telefone válido
-  const validLeads = selectedLeads.filter(
-    (l) => l.phone && l.phone.replace(/[^0-9]/g, '').length >= 8
-  );
+  const isEmbedded = variant === 'embedded';
 
-  // Estados de Navegação Principal do Modal
-  const [activeTab, setActiveTab] = useState<'sequence' | 'audio_studio' | 'ai_rules'>('sequence');
+  // Estados de Navegação Principal do Modal (Destinatários é a 1ª aba)
+  const [activeTab, setActiveTab] = useState<'recipients' | 'sequence' | 'audio_studio' | 'ai_rules'>('recipients');
   const [modalStage, setModalStage] = useState<'builder' | 'sending' | 'finished'>('builder');
 
-  // Lead de exemplo para preview dinâmico
-  const sampleLead = validLeads[0] || {
-    id: 'sample_lead',
-    name: 'RV Esquadrias Metálicas',
-    phone: '(51) 99876-5432',
-    address: 'Rua Bento Gonçalves, 1420 - Centro, São Leopoldo - RS',
-    rating: 4.9,
-    category: 'Fábrica de Esquadrias',
+  // Estados de Gerenciamento de Destinatários
+  const [contactSourceFilter, setContactSourceFilter] = useState<'all' | 'maps' | 'whatsapp' | 'crm'>('all');
+  const [contactSearchTerm, setContactSearchTerm] = useState('');
+  const [isAddingCustomContact, setIsAddingCustomContact] = useState(false);
+  const [customLeadForm, setCustomLeadForm] = useState({
+    name: '',
+    phone: '',
+    city: '',
+    category: '',
+  });
+  const [customAddedLeads, setCustomAddedLeads] = useState<ProspectItem[]>([]);
+
+  // 1. Leads de Prospecção (Google Maps)
+  const mapsLeads: (ProspectItem & { sourceType: string })[] = useMemo(() => {
+    const list = selectedLeads && selectedLeads.length > 0 ? selectedLeads : DEFAULT_SEED_PROSPECTS;
+    return list.map((l) => ({ ...l, sourceType: 'maps' }));
+  }, [selectedLeads]);
+
+  // 2. Contatos da Central de WhatsApp Omnichannel
+  const whatsappLeads: (ProspectItem & { sourceType: string })[] = useMemo(() => {
+    return (contacts || []).map((c) => ({
+      id: `wa_${c.id}`,
+      name: c.name || 'Contato WhatsApp',
+      phone: c.phone || '',
+      address: c.lastMessage ? `Última msg: ${c.lastMessage.slice(0, 32)}...` : 'WhatsApp Omnichannel',
+      rating: 5.0,
+      reviewsCount: 1,
+      category: c.tags?.[0] || 'Cliente WhatsApp',
+      sourceType: 'whatsapp',
+    }));
+  }, [contacts]);
+
+  // 3. Leads do CRM (Pipeline de Vendas)
+  const crmLeads: (ProspectItem & { sourceType: string })[] = useMemo(() => {
+    return (leads || []).map((l) => ({
+      id: `crm_${l.id}`,
+      name: l.company || l.name || 'Lead CRM',
+      phone: l.phone || '',
+      address: l.company ? `${l.company} • CRM` : 'Lead do Funil CRM',
+      rating: 5.0,
+      reviewsCount: 1,
+      category: l.tags?.[0] || 'Oportunidade Funil',
+      sourceType: 'crm',
+    }));
+  }, [leads]);
+
+  // Unificação de todas as fontes disponíveis
+  const allAvailableLeads = useMemo(() => {
+    const map = new Map<string, ProspectItem & { sourceType: string }>();
+    mapsLeads.forEach((l) => map.set(l.id, l));
+    whatsappLeads.forEach((l) => { if (!map.has(l.id)) map.set(l.id, l); });
+    crmLeads.forEach((l) => { if (!map.has(l.id)) map.set(l.id, l); });
+    customAddedLeads.forEach((l) => map.set(l.id, { ...l, sourceType: 'custom' }));
+    return Array.from(map.values());
+  }, [mapsLeads, whatsappLeads, crmLeads, customAddedLeads]);
+
+  // Filtragem por fonte de origem
+  const sourceFilteredLeads = useMemo(() => {
+    if (contactSourceFilter === 'maps') return allAvailableLeads.filter((l) => l.sourceType === 'maps');
+    if (contactSourceFilter === 'whatsapp') return allAvailableLeads.filter((l) => l.sourceType === 'whatsapp');
+    if (contactSourceFilter === 'crm') return allAvailableLeads.filter((l) => l.sourceType === 'crm');
+    return allAvailableLeads;
+  }, [allAvailableLeads, contactSourceFilter]);
+
+  // Filtragem por busca
+  const displayedLeads = useMemo(() => {
+    if (!contactSearchTerm.trim()) return sourceFilteredLeads;
+    const term = contactSearchTerm.toLowerCase();
+    return sourceFilteredLeads.filter(
+      (l) =>
+        l.name.toLowerCase().includes(term) ||
+        (l.phone && l.phone.includes(term)) ||
+        (l.address && l.address.toLowerCase().includes(term)) ||
+        (l.category && l.category.toLowerCase().includes(term))
+    );
+  }, [sourceFilteredLeads, contactSearchTerm]);
+
+  // Seleção de Leads via Checkbox
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    const defaultList = mapsLeads.length > 0 ? mapsLeads : allAvailableLeads;
+    defaultList.forEach((l) => {
+      if (l.phone && l.phone.replace(/[^0-9]/g, '').length >= 8) {
+        initial.add(l.id);
+      }
+    });
+    return initial;
+  });
+
+  // Atualiza a seleção caso selectedLeads via prop mude
+  useEffect(() => {
+    if (selectedLeads && selectedLeads.length > 0) {
+      const validIds = selectedLeads
+        .filter((l) => l.phone && l.phone.replace(/[^0-9]/g, '').length >= 8)
+        .map((l) => l.id);
+      setSelectedLeadIds(new Set(validIds));
+    }
+  }, [selectedLeads]);
+
+  const toggleLeadSelection = (id: string) => {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllDisplayed = () => {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      displayedLeads.forEach((l) => {
+        if (l.phone && l.phone.replace(/[^0-9]/g, '').length >= 8) {
+          next.add(l.id);
+        }
+      });
+      return next;
+    });
+  };
+
+  const deselectAllDisplayed = () => {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      displayedLeads.forEach((l) => next.delete(l.id));
+      return next;
+    });
+  };
+
+  // Leads finais que participarão do disparo
+  const leadsToDispatch = useMemo(() => {
+    return allAvailableLeads.filter(
+      (l) => selectedLeadIds.has(l.id) && l.phone && l.phone.replace(/[^0-9]/g, '').length >= 8
+    );
+  }, [allAvailableLeads, selectedLeadIds]);
+
+  // Lead ativo na prévia do WhatsApp
+  const [previewLeadId, setPreviewLeadId] = useState<string | null>(null);
+  const sampleLead = useMemo(() => {
+    return (
+      allAvailableLeads.find((l) => l.id === previewLeadId) ||
+      leadsToDispatch[0] ||
+      allAvailableLeads[0] || {
+        id: 'sample_lead',
+        name: 'RV Esquadrias Metálicas',
+        phone: '(51) 99876-5432',
+        address: 'Rua Bento Gonçalves, 1420 - Centro, São Leopoldo - RS',
+        rating: 4.9,
+        category: 'Fábrica de Esquadrias',
+      }
+    );
+  }, [allAvailableLeads, previewLeadId, leadsToDispatch]);
+
+  const handleAddCustomContact = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customLeadForm.phone.trim()) return;
+
+    const newLead: ProspectItem = {
+      id: `custom_${Date.now()}`,
+      name: customLeadForm.name.trim() || 'Contato Adicionado',
+      phone: customLeadForm.phone.trim(),
+      address: customLeadForm.city.trim() || 'Adicionado Manualmente',
+      rating: 5.0,
+      reviewsCount: 1,
+      category: customLeadForm.category.trim() || 'Contato Direto',
+    };
+
+    setCustomAddedLeads((prev) => [newLead, ...prev]);
+    setSelectedLeadIds((prev) => new Set(prev).add(newLead.id));
+    setPreviewLeadId(newLead.id);
+    setCustomLeadForm({ name: '', phone: '', city: '', category: '' });
+    setIsAddingCustomContact(false);
   };
 
   // Helper para substituir tags nas mensagens
@@ -507,14 +760,14 @@ export function MassOutreachModal({
   const [lastDispatchedContactId, setLastDispatchedContactId] = useState<string | null>(null);
 
   const handleStartMassDispatch = async () => {
-    if (validLeads.length === 0 || steps.length === 0) return;
+    if (leadsToDispatch.length === 0 || steps.length === 0) return;
 
     setModalStage('sending');
     setCurrentLeadIndex(0);
     setCurrentStepIndex(0);
 
-    // Inicializar logs
-    const initialLogs = validLeads.map((l) => ({
+    // Inicializar logs apenas dos leads selecionados
+    const initialLogs = leadsToDispatch.map((l) => ({
       leadName: l.name,
       phone: l.phone,
       status: 'pending' as const,
@@ -523,10 +776,10 @@ export function MassOutreachModal({
     }));
     setDispatchLogs(initialLogs);
 
-    // Executar para cada lead
-    for (let lIdx = 0; lIdx < validLeads.length; lIdx++) {
+    // Executar para cada lead selecionado
+    for (let lIdx = 0; lIdx < leadsToDispatch.length; lIdx++) {
       setCurrentLeadIndex(lIdx);
-      const lead = validLeads[lIdx];
+      const lead = leadsToDispatch[lIdx];
 
       setDispatchLogs((prev) =>
         prev.map((log, idx) =>
@@ -607,7 +860,7 @@ export function MassOutreachModal({
       );
 
       // Intervalo de segurança anti-bloqueio entre cada lead
-      if (lIdx < validLeads.length - 1) {
+      if (lIdx < leadsToDispatch.length - 1) {
         await new Promise((res) => setTimeout(res, leadDelaySeconds * 1000));
       }
     }
@@ -662,109 +915,449 @@ export function MassOutreachModal({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
-        {/* Header Principal */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-950/50 via-slate-900 to-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20 font-bold">
-              <MessageCircle className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">
-                  Disparo em Massa WhatsApp & Filtro de Decisor
-                </h3>
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  {validLeads.length} Leads c/ WhatsApp
-                </span>
-                <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-md font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-                  Connect Digital
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Crie fluxos completos intercalando múltiplos áudios gravados e mensagens inteligentes com IA.
-              </p>
-            </div>
+  const modalContent = (
+    <div
+      className={`bg-slate-900 border border-slate-800 w-full ${
+        isEmbedded
+          ? 'h-full flex-1 rounded-xl shadow-lg'
+          : 'max-w-6xl rounded-2xl shadow-2xl max-h-[94vh]'
+      } overflow-hidden flex flex-col`}
+    >
+      {/* Header Principal */}
+      <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-950/50 via-slate-900 to-slate-900 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20 font-bold">
+            <MessageCircle className="w-5 h-5" />
           </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-bold text-white">
+                Disparo em Massa WhatsApp & Filtro de Decisor
+              </h3>
+              {/* Badge Clicável com Acesso Rápido à Seleção */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('recipients')}
+                title="Clique para gerenciar e selecionar os contatos que receberão as mensagens"
+                className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 hover:border-emerald-400 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                <Users className="w-3 h-3" />
+                <span>{leadsToDispatch.length} de {allAvailableLeads.length} Leads Selecionados</span>
+                <span className="text-emerald-300 underline font-normal text-[9px]">Editar</span>
+              </button>
+              <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-md font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                Connect Digital
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Crie fluxos completos intercalando múltiplos áudios gravados e mensagens inteligentes com IA.
+            </p>
+          </div>
+        </div>
 
+        {onClose && !isEmbedded && (
           <button
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Barra de Abas (Builder Mode) */}
-        {modalStage === 'builder' && (
-          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-4 sm:px-6">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('sequence')}
-                className={`py-3 px-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
-                  activeTab === 'sequence'
-                    ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Layers className="w-4 h-4" />
-                <span>1. Sequência de Disparo ({steps.length} passos)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('audio_studio')}
-                className={`py-3 px-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
-                  activeTab === 'audio_studio'
-                    ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Mic className="w-4 h-4" />
-                <span>2. Estúdio & Áudios ({audioTracks.length})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('ai_rules')}
-                className={`py-3 px-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
-                  activeTab === 'ai_rules'
-                    ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Cpu className="w-4 h-4 text-emerald-400" />
-                <span>3. Cérebro IA & Respostas</span>
-              </button>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Proteção Anti-bloqueio Ativa</span>
-            </div>
-          </div>
         )}
+      </div>
 
-        {/* Corpo do Modal */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {/* Audio Player escondido para reprodução */}
-          <audio
-            ref={audioPlayerRef}
-            onEnded={() => setActivePlayingId(null)}
-            className="hidden"
-          />
+      {/* Barra de Abas (Builder Mode) */}
+      {modalStage === 'builder' && (
+        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-4 sm:px-6 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => setActiveTab('recipients')}
+              className={`py-3 px-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition shrink-0 ${
+                activeTab === 'recipients'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>1. Destinatários ({leadsToDispatch.length}/{allAvailableLeads.length})</span>
+            </button>
 
-          {modalStage === 'builder' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Coluna Esquerda: Conteúdo da Aba Ativa */}
-              <div className="lg:col-span-7 space-y-5">
-                {/* ==================================================== */}
-                {/* ABA 1: SEQUÊNCIA LIVRE PERSONALIZADA */}
-                {/* ==================================================== */}
-                {activeTab === 'sequence' && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('sequence')}
+              className={`py-3 px-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition shrink-0 ${
+                activeTab === 'sequence'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>2. Sequência de Disparo ({steps.length} passos)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('audio_studio')}
+              className={`py-3 px-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition shrink-0 ${
+                activeTab === 'audio_studio'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Mic className="w-4 h-4" />
+              <span>3. Estúdio & Áudios ({audioTracks.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('ai_rules')}
+              className={`py-3 px-3.5 text-xs font-bold border-b-2 flex items-center gap-2 transition shrink-0 ${
+                activeTab === 'ai_rules'
+                  ? 'border-emerald-500 text-emerald-400 bg-emerald-950/20'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Cpu className="w-4 h-4 text-emerald-400" />
+              <span>4. Cérebro IA & Respostas</span>
+            </button>
+          </div>
+
+          <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400 shrink-0">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Proteção Anti-bloqueio Ativa</span>
+          </div>
+        </div>
+      )}
+
+      {/* Corpo do Modal */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        {/* Audio Player escondido para reprodução */}
+        <audio
+          ref={audioPlayerRef}
+          onEnded={() => setActivePlayingId(null)}
+          className="hidden"
+        />
+
+        {modalStage === 'builder' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Coluna Esquerda: Conteúdo da Aba Ativa */}
+            <div className="lg:col-span-7 space-y-5">
+              {/* ==================================================== */}
+              {/* ABA 1: SELEÇÃO E GERENCIAMENTO DE DESTINATÁRIOS */}
+              {/* ==================================================== */}
+              {activeTab === 'recipients' && (
+                <div className="space-y-4">
+                  {/* Barra de Filtros por Origem */}
+                  <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <Filter className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Origem dos Contatos para Disparo:</span>
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        {leadsToDispatch.length} prontos para envio
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setContactSourceFilter('all')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                          contactSourceFilter === 'all'
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        Todos ({allAvailableLeads.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContactSourceFilter('maps')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
+                          contactSourceFilter === 'maps'
+                            ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <Building2 className="w-3.5 h-3.5" />
+                        <span>Google Maps ({mapsLeads.length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContactSourceFilter('whatsapp')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
+                          contactSourceFilter === 'whatsapp'
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>WhatsApp Omnichannel ({whatsappLeads.length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContactSourceFilter('crm')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
+                          contactSourceFilter === 'crm'
+                            ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <Kanban className="w-3.5 h-3.5" />
+                        <span>Funil CRM ({crmLeads.length})</span>
+                      </button>
+                    </div>
+
+                    {/* Campo de Busca e Ações Rápidas de Seleção */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                      <div className="relative flex-1">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={contactSearchTerm}
+                          onChange={(e) => setContactSearchTerm(e.target.value)}
+                          placeholder="Buscar por nome, telefone, empresa, cidade ou segmento..."
+                          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-900 text-slate-100 placeholder:text-slate-500 border border-slate-700 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={selectAllDisplayed}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
+                          title="Selecionar todos os contatos filtrados"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Marcar Todos</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={deselectAllDisplayed}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
+                          title="Desmarcar contatos da lista"
+                        >
+                          <X className="w-3.5 h-3.5 text-red-400" />
+                          <span>Desmarcar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingCustomContact(!isAddingCustomContact)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Adicionar Manual</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Formulário de Contato Manual */}
+                    {isAddingCustomContact && (
+                      <form
+                        onSubmit={handleAddCustomContact}
+                        className="p-3 rounded-lg bg-slate-950 border border-emerald-500/40 space-y-2 mt-2 animate-in fade-in"
+                      >
+                        <div className="text-xs font-bold text-emerald-400 flex items-center justify-between">
+                          <span>Adicionar Contato Personalizado para o Disparo</span>
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingCustomContact(false)}
+                            className="text-slate-400 hover:text-white"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          <input
+                            type="text"
+                            value={customLeadForm.name}
+                            onChange={(e) => setCustomLeadForm({ ...customLeadForm, name: e.target.value })}
+                            placeholder="Nome da Empresa ou Contato *"
+                            required
+                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                          />
+                          <input
+                            type="text"
+                            value={customLeadForm.phone}
+                            onChange={(e) => setCustomLeadForm({ ...customLeadForm, phone: e.target.value })}
+                            placeholder="WhatsApp com DDD (Ex: 51998765432) *"
+                            required
+                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                          />
+                          <input
+                            type="text"
+                            value={customLeadForm.city}
+                            onChange={(e) => setCustomLeadForm({ ...customLeadForm, city: e.target.value })}
+                            placeholder="Cidade / Bairro (Ex: Novo Hamburgo - Centro)"
+                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                          />
+                          <input
+                            type="text"
+                            value={customLeadForm.category}
+                            onChange={(e) => setCustomLeadForm({ ...customLeadForm, category: e.target.value })}
+                            placeholder="Categoria / Ramo (Ex: Esquadrias de Alumínio)"
+                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingCustomContact(false)}
+                            className="px-3 py-1 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-700"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-3.5 py-1 rounded bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 shadow"
+                          >
+                            Salvar e Marcar p/ Envio
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+
+                  {/* Lista Interativa de Contatos com Checkboxes */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs px-1">
+                      <span className="text-slate-400">
+                        Exibindo <strong>{displayedLeads.length}</strong> contatos ({leadsToDispatch.length} selecionados para disparo)
+                      </span>
+                      <span className="text-[11px] text-emerald-400 font-medium">
+                        Dica: Clique em &quot;Testar Tags&quot; para pré-visualizar no simulador
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-[440px] overflow-y-auto pr-1">
+                      {displayedLeads.map((lead) => {
+                        const isSelected = selectedLeadIds.has(lead.id);
+                        const isPreviewing = sampleLead.id === lead.id;
+
+                        return (
+                          <div
+                            key={lead.id}
+                            className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 ${
+                              isPreviewing
+                                ? 'bg-emerald-950/25 border-emerald-500/60 ring-1 ring-emerald-500/40'
+                                : isSelected
+                                ? 'bg-slate-800/70 border-slate-700 hover:border-slate-600'
+                                : 'bg-slate-900/40 border-slate-800/80 opacity-60 hover:opacity-90'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Checkbox Customizado */}
+                              <button
+                                type="button"
+                                onClick={() => toggleLeadSelection(lead.id)}
+                                className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition ${
+                                  isSelected
+                                    ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                                    : 'bg-slate-800 border border-slate-700 hover:border-slate-500 text-transparent'
+                                }`}
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              </button>
+
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-bold text-white truncate max-w-[220px]">
+                                    {lead.name}
+                                  </span>
+                                  <span className="font-mono text-[11px] text-emerald-400 font-semibold">
+                                    {lead.phone || 'Sem telefone'}
+                                  </span>
+                                  {/* Badge da Origem */}
+                                  <span
+                                    className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${
+                                      (lead as any).sourceType === 'whatsapp'
+                                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                        : (lead as any).sourceType === 'crm'
+                                        ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                        : (lead as any).sourceType === 'custom'
+                                        ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                        : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                                    }`}
+                                  >
+                                    {(lead as any).sourceType === 'whatsapp'
+                                      ? 'WhatsApp'
+                                      : (lead as any).sourceType === 'crm'
+                                      ? 'CRM'
+                                      : (lead as any).sourceType === 'custom'
+                                      ? 'Manual'
+                                      : 'Maps'}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 truncate">
+                                  <span className="truncate">{lead.address || 'Sem endereço'}</span>
+                                  {lead.category && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-slate-300 truncate">{lead.category}</span>
+                                    </>
+                                  )}
+                                  {lead.rating > 0 && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-amber-300 font-semibold flex items-center gap-0.5">
+                                        ⭐ {lead.rating}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Ação de Pré-visualizar no Simulador */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isPreviewing ? (
+                                <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30">
+                                  <Eye className="w-3 h-3" />
+                                  <span>No Simulador</span>
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewLeadId(lead.id)}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] transition border border-slate-700"
+                                  title="Visualizar como as mensagens e tags ficarão personalizadas para este contato"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  <span>Testar Tags</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {displayedLeads.length === 0 && (
+                        <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 space-y-2">
+                          <AlertCircle className="w-6 h-6 mx-auto text-amber-400" />
+                          <p className="text-xs">Nenhum contato encontrado com este filtro de busca.</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setContactSearchTerm('');
+                              setContactSourceFilter('all');
+                            }}
+                            className="text-xs text-emerald-400 underline"
+                          >
+                            Limpar filtros
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ==================================================== */}
+              {/* ABA 2: SEQUÊNCIA LIVRE PERSONALIZADA */}
+              {/* ==================================================== */}
+              {activeTab === 'sequence' && (
                   <div className="space-y-4">
                     {/* Seletor de Modelo Pré-Configurado */}
                     <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60 space-y-2">
@@ -1347,9 +1940,19 @@ export function MassOutreachModal({
                     <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Prévia em Tempo Real no WhatsApp</span>
                   </label>
-                  <span className="text-[11px] text-emerald-400 font-semibold">
-                    Destinatário: {sampleLead.name}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-emerald-400 font-semibold truncate max-w-[200px]">
+                      Simulando: {sampleLead.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('recipients')}
+                      className="text-[10px] text-slate-400 hover:text-emerald-300 underline"
+                      title="Mudar o contato para simular as variáveis"
+                    >
+                      (Trocar)
+                    </button>
+                  </div>
                 </div>
 
                 {/* Mockup do Celular com WhatsApp Dark */}
@@ -1357,15 +1960,15 @@ export function MassOutreachModal({
                   {/* Top bar do WhatsApp */}
                   <div className="p-3 bg-[#1f2c34] border-b border-slate-700/40 flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                      CD
+                      {sampleLead.name?.slice(0, 2).toUpperCase() || 'CD'}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold text-white truncate">
-                        Connect Digital (Rafael)
+                        {sampleLead.name}
                       </div>
                       <div className="text-[10px] text-emerald-400 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                        Online agora
+                        <span>{sampleLead.phone || 'Online agora'}</span>
                       </div>
                     </div>
                     <Phone className="w-4 h-4 text-emerald-400" />
@@ -1486,7 +2089,7 @@ export function MassOutreachModal({
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-white">Disparando Sequência em Massa</h3>
                 <p className="text-xs text-slate-400">
-                  Enviando empresa {currentLeadIndex + 1} de {validLeads.length} • Passo {currentStepIndex + 1} de {steps.length} • Cadência Anti-bloqueio ({leadDelaySeconds}s)
+                  Enviando empresa {currentLeadIndex + 1} de {leadsToDispatch.length} • Passo {currentStepIndex + 1} de {steps.length} • Cadência Anti-bloqueio ({leadDelaySeconds}s)
                 </p>
               </div>
 
@@ -1496,16 +2099,16 @@ export function MassOutreachModal({
                   <div
                     className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-green-400 transition-all duration-500 rounded-full"
                     style={{
-                      width: `${Math.round(((currentLeadIndex + 1) / validLeads.length) * 100)}%`,
+                      width: `${Math.round(((currentLeadIndex + 1) / (leadsToDispatch.length || 1)) * 100)}%`,
                     }}
                   />
                 </div>
                 <div className="flex justify-between text-xs text-slate-400 font-semibold">
                   <span>
-                    {Math.round(((currentLeadIndex + 1) / validLeads.length) * 100)}% concluído
+                    {Math.round(((currentLeadIndex + 1) / (leadsToDispatch.length || 1)) * 100)}% concluído
                   </span>
                   <span>
-                    {currentLeadIndex + 1} / {validLeads.length} estabelecimentos
+                    {currentLeadIndex + 1} / {leadsToDispatch.length} estabelecimentos
                   </span>
                 </div>
               </div>
@@ -1574,7 +2177,7 @@ export function MassOutreachModal({
               <div className="space-y-1">
                 <h3 className="text-xl font-bold text-white">Disparo em Massa Concluído!</h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  {validLeads.length} estabelecimentos receberam a sequência completa de mensagens e áudios gravados.
+                  {leadsToDispatch.length} estabelecimentos receberam a sequência completa de mensagens e áudios gravados.
                 </p>
               </div>
 
@@ -1628,7 +2231,7 @@ export function MassOutreachModal({
                 <button
                   type="button"
                   onClick={() => {
-                    onClose();
+                    if (onClose) onClose();
                     if (onNavigateToWhatsApp) onNavigateToWhatsApp();
                   }}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition"
@@ -1640,7 +2243,7 @@ export function MassOutreachModal({
                 <button
                   type="button"
                   onClick={() => {
-                    onClose();
+                    if (onClose) onClose();
                     if (onNavigateToCrm) onNavigateToCrm();
                   }}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition"
@@ -1655,7 +2258,7 @@ export function MassOutreachModal({
 
         {/* Rodapé do Modal (Builder Mode) */}
         {modalStage === 'builder' && (
-          <div className="p-4 border-t border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">
+          <div className="p-4 border-t border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
             {/* Intervalo Anti-bloqueio */}
             <div className="flex items-center gap-2 text-xs">
               <span className="text-slate-400">Intervalo entre contatos:</span>
@@ -1672,27 +2275,42 @@ export function MassOutreachModal({
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition"
-              >
-                Cancelar
-              </button>
+              {onClose && !isEmbedded && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition"
+                >
+                  Cancelar
+                </button>
+              )}
 
               <button
                 type="button"
                 onClick={handleStartMassDispatch}
-                disabled={validLeads.length === 0 || steps.length === 0}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition disabled:opacity-40"
+                disabled={leadsToDispatch.length === 0 || steps.length === 0}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
-                <span>Iniciar Disparo em Massa ({validLeads.length} Leads)</span>
+                <span>
+                  {leadsToDispatch.length > 0
+                    ? `Iniciar Disparo em Massa (${leadsToDispatch.length} Leads)`
+                    : 'Nenhum lead selecionado'}
+                </span>
               </button>
             </div>
           </div>
         )}
       </div>
+    );
+
+  if (isEmbedded) {
+    return modalContent;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      {modalContent}
     </div>
   );
 }

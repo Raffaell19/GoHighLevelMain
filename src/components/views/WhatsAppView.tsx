@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { WhatsAppProvider } from '@/types';
+import { MassOutreachModal } from './MassOutreachModal';
 
 export function WhatsAppView() {
   const {
@@ -41,7 +42,8 @@ export function WhatsAppView() {
     refreshChatData,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'chat' | 'training' | 'connection'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'broadcast' | 'training' | 'connection'>('chat');
+  const [isModalBroadcastOpen, setIsModalBroadcastOpen] = useState(false);
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [contactFilter, setContactFilter] = useState<'all' | 'direct' | 'groups'>('all');
@@ -411,6 +413,21 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
             </button>
 
             <button
+              onClick={() => setActiveTab('broadcast')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
+                activeTab === 'broadcast'
+                  ? 'bg-emerald-600 text-white shadow-sm font-bold'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Send className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Disparo em Massa & Sequências</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-400/20 text-emerald-300 font-bold uppercase tracking-wider">
+                Motor Ativo
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('training')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
                 activeTab === 'training'
@@ -467,12 +484,22 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                 </button>
               </div>
 
-              {/* Filter Pills */}
-              <div className="flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold">
-                  <Bot className="w-3.5 h-3.5" />
-                  <span>Conversas com IA Ativada ({filteredContacts.length})</span>
+              {/* Filter Pills & Quick Broadcast Trigger */}
+              <div className="flex items-center justify-between text-[11px] gap-2">
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold truncate">
+                  <Bot className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">IA Ativada ({filteredContacts.length})</span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsModalBroadcastOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-bold text-[11px] transition shadow-sm shrink-0 cursor-pointer"
+                  title="Abrir motor de disparo rápido em massa"
+                >
+                  <Send className="w-3 h-3" />
+                  <span>Novo Disparo</span>
+                </button>
               </div>
             </div>
 
@@ -661,6 +688,18 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               <p>Selecione uma conversa ao lado para visualizar e interagir.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Broadcast & Outreach Engine (Modo Embutido na Central WhatsApp) */}
+      {activeTab === 'broadcast' && (
+        <div className="flex-1 min-h-0 h-full overflow-hidden flex flex-col">
+          <MassOutreachModal
+            isOpen={true}
+            variant="embedded"
+            onNavigateToWhatsApp={() => setActiveTab('chat')}
+            onNavigateToCrm={() => {}}
+          />
         </div>
       )}
 
@@ -1243,6 +1282,20 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
             </button>
           </div>
         </div>
+      )}
+
+      {/* Modal de Disparo Rápido Aberto pelo Botão Lateral */}
+      {isModalBroadcastOpen && (
+        <MassOutreachModal
+          isOpen={isModalBroadcastOpen}
+          onClose={() => setIsModalBroadcastOpen(false)}
+          variant="modal"
+          onNavigateToWhatsApp={() => {
+            setIsModalBroadcastOpen(false);
+            setActiveTab('chat');
+          }}
+          onNavigateToCrm={() => {}}
+        />
       )}
     </div>
   );
