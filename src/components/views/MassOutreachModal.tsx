@@ -318,20 +318,28 @@ export function MassOutreachModal({
   >('all');
   const [dispatchMode, setDispatchMode] = useState<'single_step' | 'full_sequence'>('single_step');
   const [targetStepIndexToDispatch, setTargetStepIndexToDispatch] = useState<number>(0);
+  const [cadenceUpdateCounter, setCadenceUpdateCounter] = useState<number>(0);
 
   // Helper para localizar o contato WhatsApp correspondente a um lead
   const findContactForLead = (lead: ProspectItem) => {
+    if (!lead) return null;
     const clean = lead.phone ? lead.phone.replace(/[^0-9]/g, '') : '';
-    if (!clean) return null;
+    const last8 = clean.length >= 8 ? clean.slice(-8) : clean;
+    const normName = lead.name ? lead.name.trim().toLowerCase() : '';
+
     return (contacts || []).find((c) => {
+      if (!c) return false;
+      if (lead.id && (lead.id === c.id || lead.id === `wa_${c.id}` || c.id === `wa_${lead.id}`)) return true;
       const cClean = c.phone ? c.phone.replace(/[^0-9]/g, '') : '';
-      if (!cClean) return false;
-      return (
-        cClean === clean ||
-        (clean.length >= 8 && cClean.endsWith(clean.slice(-8))) ||
-        (cClean.length >= 8 && clean.endsWith(cClean.slice(-8))) ||
-        c.name === lead.name
-      );
+      if (clean && cClean) {
+        if (cClean === clean) return true;
+        if (last8 && cClean.endsWith(last8)) return true;
+        if (cClean.length >= 8 && clean.endsWith(cClean.slice(-8))) return true;
+      }
+      if (normName && c.name && c.name.trim().toLowerCase() === normName) {
+        return true;
+      }
+      return false;
     });
   };
 
@@ -343,7 +351,20 @@ export function MassOutreachModal({
     stepToDispatch: number;
   } => {
     const c = findContactForLead(lead);
-    if (!c || !c.tags || c.tags.length === 0) {
+    let tags: string[] = Array.isArray(c?.tags) ? c.tags : [];
+
+    // Fallback para cache local imediato
+    if (!tags || tags.length === 0) {
+      try {
+        const clean = lead.phone ? lead.phone.replace(/[^0-9]/g, '') : '';
+        const last8 = clean.slice(-8);
+        const cacheKey = `flowlevel_cadence_tags_${currentSubaccount?.id}`;
+        const cache = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+        tags = cache[clean] || (last8 ? cache[last8] : null) || (lead.phone ? cache[lead.phone] : null) || [];
+      } catch (e) {}
+    }
+
+    if (!tags || tags.length === 0) {
       return {
         stage: 'waiting_1',
         label: 'Aguardando Msg 1',
@@ -351,7 +372,7 @@ export function MassOutreachModal({
         stepToDispatch: 0,
       };
     }
-    const tags = c.tags;
+
     if (tags.includes('#SemInteresse')) {
       return {
         stage: 'objection',
@@ -360,7 +381,7 @@ export function MassOutreachModal({
         stepToDispatch: 0,
       };
     }
-    if (tags.includes('#Msg3_Enviada') || tags.includes('#Passo3_Enviado')) {
+    if (tags.includes('#Msg3_Enviada') || tags.includes('#Passo3_Enviado') || tags.includes('#Concluido')) {
       return {
         stage: 'completed',
         label: 'Sequência Concluída (Passo 3)',
@@ -368,10 +389,7 @@ export function MassOutreachModal({
         stepToDispatch: 2,
       };
     }
-    if (
-      tags.includes('#Respondeu_Msg2') ||
-      (tags.includes('#Msg2_Enviada') && tags.includes('#RespondeuWhatsApp'))
-    ) {
+    if (tags.includes('#Respondeu_Msg2') || tags.includes('#Pronto_Msg3')) {
       return {
         stage: 'ready_for_3',
         label: 'Respondeu Msg 2 (Pronto p/ Msg 3)',
@@ -390,8 +408,7 @@ export function MassOutreachModal({
     if (
       tags.includes('#Respondeu_Msg1') ||
       tags.includes('#DecisorIdentificado') ||
-      tags.includes('#Pronto_Msg2') ||
-      (tags.includes('#Msg1_Enviada') && tags.includes('#RespondeuWhatsApp'))
+      tags.includes('#Pronto_Msg2')
     ) {
       return {
         stage: 'ready_for_2',
@@ -403,7 +420,8 @@ export function MassOutreachModal({
     if (
       tags.includes('#Msg1_Enviada') ||
       tags.includes('#Passo1_Enviado') ||
-      tags.includes('#AguardandoDecisor')
+      tags.includes('#AguardandoDecisor') ||
+      tags.includes('#Aguardando_Resposta_Msg1')
     ) {
       return {
         stage: 'waiting_reply_1',
@@ -439,13 +457,13 @@ export function MassOutreachModal({
       }
     });
     return counts;
-  }, [sourceFilteredLeads, contacts]);
+  }, [sourceFilteredLeads, contacts, cadenceUpdateCounter]);
 
   // Filtragem combinada: Fonte + Cadência
   const cadenceFilteredLeads = useMemo(() => {
     if (cadenceFilter === 'all') return sourceFilteredLeads;
     return sourceFilteredLeads.filter((l) => getLeadCadenceStage(l).stage === cadenceFilter);
-  }, [sourceFilteredLeads, cadenceFilter, contacts]);
+  }, [sourceFilteredLeads, cadenceFilter, contacts, cadenceUpdateCounter]);
 
   // Filtragem por busca
   const displayedLeads = useMemo(() => {
@@ -1237,6 +1255,9 @@ export function MassOutreachModal({
             : log
         )
       );
+
+      // Notificar e forçar atualização reativa imediata dos filtros da cadência
+      setCadenceUpdateCounter((prev) => prev + 1);
 
       // Intervalo de segurança anti-bloqueio entre cada lead
       if (lIdx < leadsToDispatch.length - 1) {

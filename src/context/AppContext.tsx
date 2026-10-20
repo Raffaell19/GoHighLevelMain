@@ -525,11 +525,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     requireResponse?: boolean;
   }): Promise<{ success: boolean; contactId: string; error?: string }> => {
     const cleanPhone = leadPhone.replace(/[^0-9]/g, '');
-    let existingContact = contacts.find(
-      (c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone || c.name === leadName
-    );
+    const last8 = cleanPhone.slice(-8);
 
-    let contactId = existingContact?.id;
+    let existingContact = contacts.find((c) => {
+      const cClean = c.phone ? c.phone.replace(/[^0-9]/g, '') : '';
+      return (
+        cClean === cleanPhone ||
+        (last8.length === 8 && cClean.endsWith(last8)) ||
+        (cClean.length >= 8 && cleanPhone.endsWith(cClean.slice(-8))) ||
+        (leadName && c.name && c.name.toLowerCase() === leadName.toLowerCase())
+      );
+    });
+
+    let contactId: string = existingContact?.id || '';
 
     const stepNum = stepNumber || 1;
     const stepSentTag = `#Msg${stepNum}_Enviada`;
@@ -541,6 +549,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         (t) =>
           t !== `#Aguardando_Resposta_Msg${stepNum}` &&
           t !== `#Pronto_Msg${stepNum}` &&
+          t !== `#Respondeu_Msg${stepNum}` &&
+          t !== `#RespondeuWhatsApp` &&
           t !== `#AguardandoDecisor`
       );
       const s = new Set([
@@ -553,6 +563,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return Array.from(s);
     };
 
+    const targetTags = buildTags(existingContact?.tags);
+
+    // Salvar no cache local para resposta visual imediata no modal e tabelas
+    try {
+      const cacheKey = `flowlevel_cadence_tags_${currentSubaccount.id}`;
+      const existingCache = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+      existingCache[cleanPhone] = targetTags;
+      if (last8) existingCache[last8] = targetTags;
+      if (leadPhone) existingCache[leadPhone] = targetTags;
+      localStorage.setItem(cacheKey, JSON.stringify(existingCache));
+    } catch (e) {}
+
     if (!contactId) {
       contactId = `contact_outreach_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const newContact: WhatsAppContact = {
@@ -564,7 +586,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         lastMessage: text,
         lastMessageTime: 'Agora',
         unreadCount: 0,
-        tags: buildTags(),
+        tags: targetTags,
         needsHumanAttention: false,
         source: 'Google Maps Prospector',
       };
@@ -577,7 +599,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ...c,
                 lastMessage: text,
                 lastMessageTime: 'Agora',
-                tags: buildTags(c.tags),
+                tags: targetTags,
               }
             : c
         )
@@ -607,11 +629,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           contactId,
           phone: leadPhone,
+          name: leadName || companyName,
           text,
           mediaUrl,
           mediaType,
           subaccountId: currentSubaccount.id,
           instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
+          tags: targetTags,
+          stepNumber: stepNum,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -622,6 +647,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           contactId,
           error: data?.error || 'Falha ao entregar mensagem no WhatsApp da Evolution API',
         };
+      }
+
+      // Se o backend retornou o contato sincronizado com Supabase, atualiza o estado
+      if (data?.contact) {
+        const savedContact = data.contact;
+        contactId = savedContact.id;
+        setContacts((prev) => {
+          const exists = prev.some(
+            (c) =>
+              c.id === savedContact.id ||
+              (savedContact.phone && c.phone === savedContact.phone)
+          );
+          if (exists) {
+            return prev.map((c) =>
+              c.id === savedContact.id ||
+              (savedContact.phone && c.phone === savedContact.phone)
+                ? { ...c, ...savedContact }
+                : c
+            );
+          }
+          return [savedContact, ...prev];
+        });
       }
     } catch (e: any) {
       console.error('Erro ao disparar outreach:', e);

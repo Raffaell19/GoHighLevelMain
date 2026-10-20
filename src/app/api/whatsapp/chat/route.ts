@@ -173,7 +173,18 @@ async function resolveActiveInstance(preferred?: string): Promise<string> {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { contactId, phone, text, subaccountId, instanceName, mediaUrl, mediaType } = body;
+    const {
+      contactId,
+      phone,
+      text,
+      subaccountId,
+      instanceName,
+      mediaUrl,
+      mediaType,
+      tags,
+      name,
+      stepNumber,
+    } = body;
 
     if (!text && !mediaUrl) {
       return NextResponse.json({ error: 'Mensagem ou áudio é obrigatório' }, { status: 400 });
@@ -250,33 +261,112 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Salvar mensagem no Supabase
-    const { data: savedMsg, error: saveErr } = await supabase
-      .from('whatsapp_messages')
-      .insert({
-        subaccount_id: resolvedSubId,
-        contact_id: contactId,
-        sender: 'agent',
-        text: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz (Áudio Gravado)' : 'Mensagem enviada'),
-        status: evoSendSuccess ? 'sent' : 'error',
-      })
-      .select()
-      .single();
+    // 2. Localizar ou Criar Contato em whatsapp_contacts com as Tags de Cadência Atualizadas
+    const cleanDigits = cleanPhone.replace(/[^0-9]/g, '');
+    const last8 = cleanDigits.slice(-8);
 
-    if (saveErr) {
-      console.error('[Chat API] Erro ao salvar mensagem enviada:', saveErr);
-    }
+    const { data: existingContacts } = await supabase
+      .from('whatsapp_contacts')
+      .select('*')
+      .eq('subaccount_id', resolvedSubId);
 
-    // 3. Atualizar último texto do contato
-    if (contactId) {
-      await supabase
+    const targetContact = (existingContacts || []).find((c: any) => {
+      if (contactId && isUuid(contactId) && c.id === contactId) return true;
+      const cDigits = (c.phone || '').replace(/[^0-9]/g, '');
+      return (
+        cDigits === cleanDigits ||
+        (last8.length === 8 && cDigits.endsWith(last8)) ||
+        (cDigits.length >= 8 && cleanDigits.endsWith(cDigits.slice(-8)))
+      );
+    });
+
+    // Calcular tags consolidadas da cadência
+    const stepNum = Number(stepNumber) || 1;
+    const existingTags: string[] = Array.isArray(targetContact?.tags) ? targetContact.tags : [];
+    const passedTags: string[] = Array.isArray(tags) ? tags : [];
+
+    const baseTags = [...existingTags, ...passedTags].filter(
+      (t) =>
+        t !== `#Aguardando_Resposta_Msg${stepNum}` &&
+        t !== `#Pronto_Msg${stepNum}` &&
+        t !== `#Respondeu_Msg${stepNum}` &&
+        t !== `#AguardandoDecisor`
+    );
+
+    const newTagsSet = new Set([
+      ...baseTags,
+      `#Msg${stepNum}_Enviada`,
+      `#Passo${stepNum}_Enviado`,
+      `#Aguardando_Resposta_Msg${stepNum}`,
+    ]);
+    if (passedTags.includes('#ProspeccaoMaps')) newTagsSet.add('#ProspeccaoMaps');
+    const finalTags = Array.from(newTagsSet);
+
+    let savedContact: any = null;
+    let resolvedContactId = '';
+
+    if (targetContact) {
+      resolvedContactId = targetContact.id;
+      const { data: updatedContact, error: upErr } = await supabase
         .from('whatsapp_contacts')
         .update({
           last_message: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz' : 'Mensagem enviada'),
           last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread_count: 0,
+          tags: finalTags,
+          name: targetContact.name && targetContact.name !== 'Contato WhatsApp' ? targetContact.name : (name || targetContact.name || 'Contato WhatsApp'),
         })
-        .eq('id', contactId);
+        .eq('id', targetContact.id)
+        .select()
+        .maybeSingle();
+
+      if (upErr) console.error('[Chat API] Erro ao atualizar contato:', upErr);
+      savedContact = updatedContact || { ...targetContact, tags: finalTags };
+    } else {
+      const newId = isUuid(contactId) ? contactId : crypto.randomUUID();
+      resolvedContactId = newId;
+
+      const { data: insertedContact, error: inErr } = await supabase
+        .from('whatsapp_contacts')
+        .insert({
+          id: newId,
+          subaccount_id: resolvedSubId,
+          name: name || 'Lead Prospecção',
+          phone: `+${cleanPhone}`,
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+          last_message: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz' : 'Mensagem enviada'),
+          last_message_time: 'Agora',
+          unread_count: 0,
+          tags: finalTags,
+        })
+        .select()
+        .maybeSingle();
+
+      if (inErr) console.error('[Chat API] Erro ao inserir novo contato:', inErr);
+      savedContact = insertedContact || {
+        id: newId,
+        subaccount_id: resolvedSubId,
+        name: name || 'Lead Prospecção',
+        phone: `+${cleanPhone}`,
+        tags: finalTags,
+      };
+    }
+
+    // 3. Salvar histórico de mensagem no Supabase
+    const { data: savedMsg, error: saveErr } = await supabase
+      .from('whatsapp_messages')
+      .insert({
+        subaccount_id: resolvedSubId,
+        contact_id: resolvedContactId,
+        sender: 'agent',
+        text: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz (Áudio Gravado)' : 'Mensagem enviada'),
+        status: evoSendSuccess ? 'sent' : 'error',
+      })
+      .select()
+      .maybeSingle();
+
+    if (saveErr) {
+      console.error('[Chat API] Erro ao salvar mensagem enviada:', saveErr);
     }
 
     if (!evoSendSuccess && cleanPhone) {
@@ -289,6 +379,8 @@ export async function POST(req: NextRequest) {
             'Não foi possível entregar a mensagem no WhatsApp. Verifique a conexão da instância.',
           evoResponse: evoResponseData,
           instance: activeInstance,
+          contact: savedContact,
+          contactId: resolvedContactId,
         },
         { status: 502 }
       );
@@ -298,9 +390,12 @@ export async function POST(req: NextRequest) {
       success: true,
       message: savedMsg,
       instance: activeInstance,
+      contact: savedContact,
+      contactId: resolvedContactId,
     });
   } catch (error: any) {
     console.error('[Chat API POST] Erro:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

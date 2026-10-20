@@ -119,44 +119,83 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nenhuma subconta encontrada para associar a mensagem' }, { status: 404 });
     }
 
-    // 4. Upsert Contato em whatsapp_contacts
+    // 4. Upsert Contato em whatsapp_contacts com Resolução Flexível de Telefone
     let contactId = '';
-    const formattedPhone = senderPhone.length <= 11 ? `+55 ${senderPhone}` : `+${senderPhone}`;
+    const cleanSenderDigits = senderPhone.replace(/[^0-9]/g, '');
+    const cleanLast8 = cleanSenderDigits.slice(-8);
+    const formattedPhone = cleanSenderDigits.length <= 11 ? `+55 ${cleanSenderDigits}` : `+${cleanSenderDigits}`;
 
-    const { data: existingContact } = await supabase
+    // Buscar contatos da subconta para match flexível de telefone (DDI, DDD, 9º dígito)
+    const { data: subContacts } = await supabase
       .from('whatsapp_contacts')
-      .select('id, unread_count, tags')
-      .eq('subaccount_id', subaccount.id)
-      .eq('phone', formattedPhone)
-      .maybeSingle();
+      .select('id, unread_count, tags, phone, name')
+      .eq('subaccount_id', subaccount.id);
+
+    const existingContact = (subContacts || []).find((c: any) => {
+      const cDigits = (c.phone || '').replace(/[^0-9]/g, '');
+      return (
+        cDigits === cleanSenderDigits ||
+        (cleanLast8.length === 8 && cDigits.endsWith(cleanLast8)) ||
+        (cDigits.length >= 8 && cleanSenderDigits.endsWith(cDigits.slice(-8)))
+      );
+    });
+
+    // Detectar objeção explícita na mensagem do lead
+    const lowerInboundMsg = messageText.toLowerCase();
+    const isObjection =
+      lowerInboundMsg.includes('não tenho interesse') ||
+      lowerInboundMsg.includes('nao tenho interesse') ||
+      lowerInboundMsg.includes('sem interesse') ||
+      lowerInboundMsg.includes('retire meu') ||
+      lowerInboundMsg.includes('tirar meu') ||
+      lowerInboundMsg.includes('pare de enviar') ||
+      lowerInboundMsg.includes('não quero') ||
+      lowerInboundMsg.includes('nao quero');
 
     if (existingContact) {
       contactId = existingContact.id;
-      const curTags = Array.isArray(existingContact.tags) ? existingContact.tags : [];
+      const curTags: string[] = Array.isArray(existingContact.tags) ? existingContact.tags : [];
       const updatedTags = new Set(
         curTags.filter(
           (t: string) =>
             t !== '#AguardandoDecisor' &&
-            t !== '#Aguardando_Resposta_Msg1' &&
-            t !== '#Aguardando_Resposta_Msg2' &&
-            t !== '#Aguardando_Resposta_Msg3'
+            !t.startsWith('#Aguardando_Resposta_Msg')
         )
       );
-      updatedTags.add('#RespondeuWhatsApp');
-      if (curTags.includes('#Msg1_Enviada') && !curTags.includes('#Msg2_Enviada')) {
-        updatedTags.add('#Respondeu_Msg1');
-        updatedTags.add('#Pronto_Msg2');
-      } else if (curTags.includes('#Msg2_Enviada') && !curTags.includes('#Msg3_Enviada')) {
-        updatedTags.add('#Respondeu_Msg2');
-        updatedTags.add('#Pronto_Msg3');
-      } else if (curTags.includes('#Msg3_Enviada')) {
-        updatedTags.add('#Respondeu_Msg3');
+
+      if (isObjection) {
+        updatedTags.add('#SemInteresse');
+        updatedTags.add('#RespondeuWhatsApp');
+      } else {
+        updatedTags.add('#RespondeuWhatsApp');
+
+        // Se recebeu o Passo 1 e ainda não avançou para o Passo 2 -> Pronto p/ Msg 2!
+        if (curTags.includes('#Msg1_Enviada') && !curTags.includes('#Msg2_Enviada')) {
+          updatedTags.add('#Respondeu_Msg1');
+          updatedTags.add('#Pronto_Msg2');
+        }
+        // Se recebeu o Passo 2 e ainda não avançou para o Passo 3 -> Pronto p/ Msg 3!
+        else if (curTags.includes('#Msg2_Enviada') && !curTags.includes('#Msg3_Enviada')) {
+          updatedTags.add('#Respondeu_Msg2');
+          updatedTags.add('#Pronto_Msg3');
+        }
+        // Se recebeu o Passo 3 -> Concluído!
+        else if (curTags.includes('#Msg3_Enviada')) {
+          updatedTags.add('#Respondeu_Msg3');
+          updatedTags.add('#Concluido');
+        }
+        // Se não tinha tag de envio explícito (ex: disparo feito antes ou lead respondeu de início)
+        else {
+          updatedTags.add('#Msg1_Enviada');
+          updatedTags.add('#Respondeu_Msg1');
+          updatedTags.add('#Pronto_Msg2');
+        }
       }
 
       await supabase
         .from('whatsapp_contacts')
         .update({
-          name: senderName,
+          name: senderName || existingContact.name,
           last_message: messageText,
           last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread_count: (existingContact.unread_count || 0) + 1,
@@ -164,23 +203,32 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', contactId);
     } else {
+      const initialTags = ['WhatsApp Inbound', '#RespondeuWhatsApp'];
+      if (isObjection) {
+        initialTags.push('#SemInteresse');
+      } else {
+        initialTags.push('#Msg1_Enviada', '#Respondeu_Msg1', '#Pronto_Msg2');
+      }
+
       const { data: newContact } = await supabase
         .from('whatsapp_contacts')
         .insert([
           {
+            id: crypto.randomUUID(),
             subaccount_id: subaccount.id,
             name: senderName,
-            phone: formattedPhone,
+            phone: `+${cleanSenderDigits}`,
             avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80`,
             last_message: messageText,
             last_message_time: 'Agora',
             unread_count: 1,
-            tags: ['WhatsApp Inbound'],
+            tags: initialTags,
           },
         ])
         .select()
-        .single();
-      contactId = newContact?.id;
+        .maybeSingle();
+
+      contactId = newContact?.id || '';
     }
 
     // 5. Salvar Mensagem em whatsapp_messages
