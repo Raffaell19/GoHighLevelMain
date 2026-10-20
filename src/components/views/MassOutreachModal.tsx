@@ -44,6 +44,9 @@ import {
   CheckCheck,
   CheckSquare,
   Upload,
+  Maximize2,
+  Minimize2,
+  Table,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { ProspectItem, AudioTrackItem, SequenceStepItem } from '@/types';
@@ -517,6 +520,9 @@ export function MassOutreachModal({
 
   // Lead ativo na prévia do WhatsApp
   const [previewLeadId, setPreviewLeadId] = useState<string | null>(null);
+
+  // Modo de amplitude: 'wide' (tabela ampla tela cheia, máxima amplitude) ou 'split' (com simulador WhatsApp)
+  const [recipientsViewMode, setRecipientsViewMode] = useState<'wide' | 'split'>('wide');
   const sampleLead = useMemo(() => {
     return (
       allAvailableLeads.find((l) => l.id === previewLeadId) ||
@@ -1318,9 +1324,6 @@ export function MassOutreachModal({
                 <span>{leadsToDispatch.length} de {allAvailableLeads.length} Leads Selecionados</span>
                 <span className="text-emerald-300 underline font-normal text-[9px]">Editar</span>
               </button>
-              <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-md font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-                Connect Digital
-              </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
               Crie fluxos completos intercalando múltiplos áudios gravados e mensagens inteligentes com IA.
@@ -1423,9 +1426,15 @@ export function MassOutreachModal({
         />
 
         {modalStage === 'builder' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* Coluna Esquerda: Conteúdo da Aba Ativa */}
-            <div className="lg:col-span-7 space-y-5">
+            <div
+              className={`${
+                activeTab === 'recipients' && recipientsViewMode === 'wide'
+                  ? 'lg:col-span-12'
+                  : 'lg:col-span-7'
+              } space-y-4`}
+            >
               {/* ==================================================== */}
               {/* ABA 1: SELEÇÃO E GERENCIAMENTO DE DESTINATÁRIOS */}
               {/* ==================================================== */}
@@ -1700,7 +1709,7 @@ export function MassOutreachModal({
                         </button>
                       </div>
                     )}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
                       <div className="relative flex-1">
                         <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -1712,11 +1721,11 @@ export function MassOutreachModal({
                         />
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1.5 flex-wrap shrink-0">
                         <button
                           type="button"
                           onClick={selectAllDisplayed}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition cursor-pointer"
                           title="Selecionar todos os contatos filtrados"
                         >
                           <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -1725,7 +1734,7 @@ export function MassOutreachModal({
                         <button
                           type="button"
                           onClick={deselectAllDisplayed}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition cursor-pointer"
                           title="Desmarcar contatos da lista"
                         >
                           <X className="w-3.5 h-3.5 text-red-400" />
@@ -1734,11 +1743,41 @@ export function MassOutreachModal({
                         <button
                           type="button"
                           onClick={() => setIsAddingCustomContact(!isAddingCustomContact)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Adicionar Manual</span>
                         </button>
+
+                        {/* Alternador de Amplitude de Visualização */}
+                        <div className="flex items-center bg-slate-900 border border-slate-700 p-0.5 rounded-lg ml-1">
+                          <button
+                            type="button"
+                            onClick={() => setRecipientsViewMode('wide')}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
+                              recipientsViewMode === 'wide'
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                            title="Visualização ampla em tela cheia com máxima amplitude e mais contatos"
+                          >
+                            <Maximize2 className="w-3 h-3" />
+                            <span>Visão Ampla</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRecipientsViewMode('split')}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
+                              recipientsViewMode === 'split'
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                            title="Dividir tela com o simulador de WhatsApp"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>Com Simulador</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1816,138 +1855,309 @@ export function MassOutreachModal({
                         Exibindo <strong>{displayedLeads.length}</strong> contatos ({leadsToDispatch.length} selecionados para disparo)
                       </span>
                       <span className="text-[11px] text-emerald-400 font-medium">
-                        Dica: Clique em &quot;Testar Tags&quot; para pré-visualizar no simulador
+                        {recipientsViewMode === 'wide'
+                          ? 'Modo Amplo ativado: máxima nitidez e visualização de todos os contatos'
+                          : 'Dica: Clique em "Testar Tags" para pré-visualizar no simulador'}
                       </span>
                     </div>
 
-                    <div className="space-y-2 max-h-[440px] overflow-y-auto pr-1">
-                      {displayedLeads.map((lead) => {
-                        const isSelected = selectedLeadIds.has(lead.id);
-                        const isPreviewing = sampleLead.id === lead.id;
-                        const cadenceInfo = getLeadCadenceStage(lead);
-
-                        return (
-                          <div
-                            key={lead.id}
-                            className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 ${
-                              isPreviewing
-                                ? 'bg-emerald-950/25 border-emerald-500/60 ring-1 ring-emerald-500/40'
-                                : isSelected
-                                ? 'bg-slate-800/70 border-slate-700 hover:border-slate-600'
-                                : 'bg-slate-900/40 border-slate-800/80 opacity-60 hover:opacity-90'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              {/* Checkbox Customizado */}
-                              <button
-                                type="button"
-                                onClick={() => toggleLeadSelection(lead.id)}
-                                className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition ${
-                                  isSelected
-                                    ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                                    : 'bg-slate-800 border border-slate-700 hover:border-slate-500 text-transparent'
-                                }`}
-                              >
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                              </button>
-
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs font-bold text-white truncate max-w-[220px]">
-                                    {lead.name}
-                                  </span>
-                                  <span className="font-mono text-[11px] text-emerald-400 font-semibold">
-                                    {lead.phone || 'Sem telefone'}
-                                  </span>
-                                  {/* Badge da Origem */}
-                                  <span
-                                    className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${
-                                      (lead as any).sourceType === 'whatsapp'
-                                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                                        : (lead as any).sourceType === 'crm'
-                                        ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
-                                        : (lead as any).sourceType === 'custom'
-                                        ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-                                        : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                    {recipientsViewMode === 'wide' ? (
+                      /* ==================================================== */
+                      /* VISTA AMPLA: TABELA CRM PROFISSIONAL EXPANDIDA */
+                      /* ==================================================== */
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/70 overflow-hidden shadow-inner">
+                        <div className="overflow-x-auto max-h-[560px] custom-scrollbar">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead className="bg-slate-900/90 text-slate-400 font-bold uppercase tracking-wider text-[10px] sticky top-0 z-10 border-b border-slate-800 backdrop-blur-sm">
+                              <tr>
+                                <th className="py-2.5 px-3 w-10 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={selectedLeadIds.size === displayedLeads.length ? deselectAllDisplayed : selectAllDisplayed}
+                                    className={`w-4 h-4 rounded flex items-center justify-center transition mx-auto cursor-pointer ${
+                                      selectedLeadIds.size > 0 && selectedLeadIds.size === displayedLeads.length
+                                        ? 'bg-emerald-500 text-slate-950'
+                                        : selectedLeadIds.size > 0
+                                        ? 'bg-emerald-500/40 text-emerald-300'
+                                        : 'border border-slate-700 bg-slate-800'
                                     }`}
+                                    title="Marcar / Desmarcar Todos"
                                   >
-                                    {(lead as any).sourceType === 'whatsapp'
-                                      ? 'WhatsApp'
-                                      : (lead as any).sourceType === 'crm'
-                                      ? 'CRM'
-                                      : (lead as any).sourceType === 'custom'
-                                      ? 'Manual'
-                                      : 'Maps'}
-                                  </span>
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                  </button>
+                                </th>
+                                <th className="py-2.5 px-3 min-w-[220px]">Empresa / Estabelecimento</th>
+                                <th className="py-2.5 px-3 min-w-[140px]">Telefone (WhatsApp)</th>
+                                <th className="py-2.5 px-3 min-w-[200px]">Cidade / Endereço</th>
+                                <th className="py-2.5 px-3 min-w-[140px]">Segmento / Categoria</th>
+                                <th className="py-2.5 px-3 text-center min-w-[80px]">Origem</th>
+                                <th className="py-2.5 px-3 min-w-[190px]">Status da Cadência</th>
+                                <th className="py-2.5 px-3 text-center min-w-[90px]">Prévia</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                              {displayedLeads.map((lead, idx) => {
+                                const isSelected = selectedLeadIds.has(lead.id);
+                                const isPreviewing = sampleLead.id === lead.id;
+                                const cadenceInfo = getLeadCadenceStage(lead);
 
-                                  {/* Badge do Status da Cadência */}
-                                  <span
-                                    className={`text-[9px] px-2 py-0.5 rounded-full font-semibold border ${cadenceInfo.badgeColor}`}
+                                return (
+                                  <tr
+                                    key={lead.id}
+                                    onClick={() => toggleLeadSelection(lead.id)}
+                                    className={`transition cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-slate-850/90 hover:bg-slate-800'
+                                        : 'bg-slate-900/30 hover:bg-slate-850/50 opacity-70 hover:opacity-100'
+                                    } ${isPreviewing ? 'ring-1 ring-inset ring-emerald-500/50 bg-emerald-950/20' : ''}`}
                                   >
-                                    {cadenceInfo.label}
-                                  </span>
-                                </div>
+                                    {/* Checkbox */}
+                                    <td className="py-2 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleLeadSelection(lead.id)}
+                                        className={`w-4 h-4 rounded flex items-center justify-center transition mx-auto cursor-pointer ${
+                                          isSelected
+                                            ? 'bg-emerald-500 text-slate-950 font-bold shadow'
+                                            : 'bg-slate-800 border border-slate-700 text-transparent'
+                                        }`}
+                                      >
+                                        <Check className="w-3 h-3 stroke-[3]" />
+                                      </button>
+                                    </td>
 
-                                <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 truncate">
-                                  <span className="truncate">{lead.address || 'Sem endereço'}</span>
-                                  {lead.category && (
-                                    <>
-                                      <span>•</span>
-                                      <span className="text-slate-300 truncate">{lead.category}</span>
-                                    </>
-                                  )}
-                                  {lead.rating > 0 && (
-                                    <>
-                                      <span>•</span>
-                                      <span className="text-amber-300 font-semibold flex items-center gap-0.5">
-                                        ⭐ {lead.rating}
+                                    {/* Empresa & Rating */}
+                                    <td className="py-2 px-3">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-md bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                          {idx + 1}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <div className="font-bold text-white truncate max-w-[240px]" title={lead.name}>
+                                            {lead.name}
+                                          </div>
+                                          {lead.rating > 0 && (
+                                            <div className="text-[10px] text-amber-300 flex items-center gap-1 font-semibold">
+                                              <span>⭐ {lead.rating}</span>
+                                              {lead.reviewsCount ? <span className="text-slate-400">({lead.reviewsCount})</span> : null}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+
+                                    {/* WhatsApp */}
+                                    <td className="py-2 px-3">
+                                      <div className="font-mono text-emerald-400 font-semibold flex items-center gap-1.5">
+                                        <MessageCircle className="w-3 h-3 text-emerald-500 shrink-0" />
+                                        <span>{lead.phone || 'Sem telefone'}</span>
+                                      </div>
+                                    </td>
+
+                                    {/* Endereço / Cidade */}
+                                    <td className="py-2 px-3">
+                                      <div className="text-slate-300 text-[11px] truncate max-w-[220px] flex items-center gap-1" title={lead.address}>
+                                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                        <span className="truncate">{lead.address || 'Não informado'}</span>
+                                      </div>
+                                    </td>
+
+                                    {/* Segmento */}
+                                    <td className="py-2 px-3">
+                                      <span className="text-[11px] text-slate-300 truncate max-w-[150px] block" title={lead.category}>
+                                        {lead.category || 'Geral'}
                                       </span>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                                    </td>
 
-                            {/* Ação de Pré-visualizar no Simulador */}
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isPreviewing ? (
-                                <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30">
-                                  <Eye className="w-3 h-3" />
-                                  <span>No Simulador</span>
-                                </span>
-                              ) : (
+                                    {/* Origem */}
+                                    <td className="py-2 px-3 text-center">
+                                      <span
+                                        className={`text-[9px] px-2 py-0.5 rounded font-semibold uppercase tracking-wider inline-block ${
+                                          (lead as any).sourceType === 'whatsapp'
+                                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                            : (lead as any).sourceType === 'crm'
+                                            ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                            : (lead as any).sourceType === 'custom'
+                                            ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                            : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                                        }`}
+                                      >
+                                        {(lead as any).sourceType === 'whatsapp'
+                                          ? 'WhatsApp'
+                                          : (lead as any).sourceType === 'crm'
+                                          ? 'CRM'
+                                          : (lead as any).sourceType === 'custom'
+                                          ? 'Manual'
+                                          : 'Maps'}
+                                      </span>
+                                    </td>
+
+                                    {/* Status da Cadência */}
+                                    <td className="py-2 px-3">
+                                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border inline-flex items-center gap-1 ${cadenceInfo.badgeColor}`}>
+                                        {cadenceInfo.label}
+                                      </span>
+                                    </td>
+
+                                    {/* Ação Testar Prévia */}
+                                    <td className="py-2 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setPreviewLeadId(lead.id);
+                                          setRecipientsViewMode('split');
+                                        }}
+                                        className={`px-2 py-1 rounded text-[10px] font-semibold transition border flex items-center justify-center gap-1 mx-auto cursor-pointer ${
+                                          isPreviewing
+                                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 font-bold'
+                                            : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-white'
+                                        }`}
+                                        title="Ver personalização no simulador WhatsApp"
+                                      >
+                                        <Eye className="w-3 h-3" />
+                                        <span>{isPreviewing ? 'Ativo' : 'Ver'}</span>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ==================================================== */
+                      /* VISTA COM SIMULADOR: CARDS COMPACTOS OTIMIZADOS */
+                      /* ==================================================== */
+                      <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+                        {displayedLeads.map((lead) => {
+                          const isSelected = selectedLeadIds.has(lead.id);
+                          const isPreviewing = sampleLead.id === lead.id;
+                          const cadenceInfo = getLeadCadenceStage(lead);
+
+                          return (
+                            <div
+                              key={lead.id}
+                              className={`p-2.5 rounded-xl border transition flex items-center justify-between gap-3 ${
+                                isPreviewing
+                                  ? 'bg-emerald-950/25 border-emerald-500/60 ring-1 ring-emerald-500/40'
+                                  : isSelected
+                                  ? 'bg-slate-800/70 border-slate-700 hover:border-slate-600'
+                                  : 'bg-slate-900/40 border-slate-800/80 opacity-60 hover:opacity-90'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                {/* Checkbox Customizado */}
                                 <button
                                   type="button"
-                                  onClick={() => setPreviewLeadId(lead.id)}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] transition border border-slate-700"
-                                  title="Visualizar como as mensagens e tags ficarão personalizadas para este contato"
+                                  onClick={() => toggleLeadSelection(lead.id)}
+                                  className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                                      : 'bg-slate-800 border border-slate-700 hover:border-slate-500 text-transparent'
+                                  }`}
                                 >
-                                  <Eye className="w-3 h-3" />
-                                  <span>Testar Tags</span>
+                                  <Check className="w-3 h-3 stroke-[3]" />
                                 </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
 
-                      {displayedLeads.length === 0 && (
-                        <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 space-y-2">
-                          <AlertCircle className="w-6 h-6 mx-auto text-amber-400" />
-                          <p className="text-xs">Nenhum contato encontrado com este filtro de busca.</p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setContactSearchTerm('');
-                              setContactSourceFilter('all');
-                            }}
-                            className="text-xs text-emerald-400 underline"
-                          >
-                            Limpar filtros
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-bold text-white truncate max-w-[180px]">
+                                      {lead.name}
+                                    </span>
+                                    <span className="font-mono text-[11px] text-emerald-400 font-semibold">
+                                      {lead.phone || 'Sem telefone'}
+                                    </span>
+                                    {/* Badge da Origem */}
+                                    <span
+                                      className={`text-[9px] px-1.5 py-0.2 rounded font-semibold uppercase tracking-wider ${
+                                        (lead as any).sourceType === 'whatsapp'
+                                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                          : (lead as any).sourceType === 'crm'
+                                          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                          : (lead as any).sourceType === 'custom'
+                                          ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                          : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                                      }`}
+                                    >
+                                      {(lead as any).sourceType === 'whatsapp'
+                                        ? 'WhatsApp'
+                                        : (lead as any).sourceType === 'crm'
+                                        ? 'CRM'
+                                        : (lead as any).sourceType === 'custom'
+                                        ? 'Manual'
+                                        : 'Maps'}
+                                    </span>
+
+                                    {/* Badge do Status da Cadência */}
+                                    <span
+                                      className={`text-[9px] px-2 py-0.2 rounded-full font-semibold border ${cadenceInfo.badgeColor}`}
+                                    >
+                                      {cadenceInfo.label}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5 truncate">
+                                    <span className="truncate">{lead.address || 'Sem endereço'}</span>
+                                    {lead.category && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-slate-300 truncate">{lead.category}</span>
+                                      </>
+                                    )}
+                                    {lead.rating > 0 && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-amber-300 font-semibold flex items-center gap-0.5">
+                                          ⭐ {lead.rating}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Ação de Pré-visualizar no Simulador */}
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isPreviewing ? (
+                                  <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                                    <Eye className="w-3 h-3" />
+                                    <span>No Simulador</span>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewLeadId(lead.id)}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition border border-slate-700 cursor-pointer"
+                                    title="Visualizar como as mensagens e tags ficarão personalizadas para este contato"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>Testar Tags</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {displayedLeads.length === 0 && (
+                      <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 space-y-2">
+                        <AlertCircle className="w-6 h-6 mx-auto text-amber-400" />
+                        <p className="text-xs">Nenhum contato encontrado com este filtro de busca.</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setContactSearchTerm('');
+                            setContactSourceFilter('all');
+                          }}
+                          className="text-xs text-emerald-400 underline cursor-pointer"
+                        >
+                          Limpar filtros
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -2821,7 +3031,8 @@ export function MassOutreachModal({
               </div>
 
               {/* Coluna Direita: Live Preview Realista do WhatsApp */}
-              <div className="lg:col-span-5 space-y-3">
+              {!(activeTab === 'recipients' && recipientsViewMode === 'wide') && (
+                <div className="lg:col-span-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
@@ -2985,8 +3196,9 @@ export function MassOutreachModal({
                   </ul>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
           {/* ==================================================== */}
           {/* ESTÁGIO: DISPARO EM ANDAMENTO */}

@@ -364,31 +364,17 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
   });
 
   return (
-    <div className="h-[calc(100vh-8.5rem)] flex flex-col space-y-3">
+    <div className="h-[calc(100vh-5.5rem)] flex flex-col space-y-2">
       {/* Top Bar with Mode Switcher */}
       <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
             <MessageSquare className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Central WhatsApp Omnichannel</span>
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  config.status === 'connected' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
-                }`}
-              >
-                {config.status === 'connected' ? 'Conectado (Evolution API)' : 'Desconectado'}
-              </span>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Central
             </h2>
-            <p className="text-xs text-slate-500">
-              Instância:{' '}
-              <strong className="text-slate-700 dark:text-slate-300">
-                {instanceName}
-              </strong>{' '}
-              • Subconta: <strong className="text-cyan-400">{currentSubaccount.name}</strong>
-            </p>
           </div>
         </div>
 
@@ -404,7 +390,7 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               }`}
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              <span>Live Chat & Conversas</span>
+              <span>Conversas</span>
               {contacts.length > 0 && (
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400">
                   {contacts.length}
@@ -421,10 +407,7 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               }`}
             >
               <Send className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Disparo em Massa & Sequências</span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-400/20 text-emerald-300 font-bold uppercase tracking-wider">
-                Motor Ativo
-              </span>
+              <span>Disparos</span>
             </button>
 
             <button
@@ -435,11 +418,8 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span>Treinamento do Atendente IA</span>
-              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 font-bold uppercase tracking-wider">
-                Cérebro IA
-              </span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Atendente IA</span>
             </button>
 
             <button
