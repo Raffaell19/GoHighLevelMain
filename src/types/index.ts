@@ -90,6 +90,16 @@ export interface SequenceStepItem {
   requireResponse?: boolean;
 }
 
+export interface SequenceTemplate {
+  id: string;
+  name: string;
+  description: string;
+  steps: SequenceStepItem[];
+  isCustom?: boolean;
+  isPreset?: boolean;
+  updatedAt?: string;
+}
+
 export interface WhatsAppContact {
   id: string;
   subaccountId: string;

@@ -47,9 +47,12 @@ import {
   Maximize2,
   Minimize2,
   Table,
+  Copy,
+  RotateCcw,
+  Edit2,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { ProspectItem, AudioTrackItem, SequenceStepItem } from '@/types';
+import { ProspectItem, AudioTrackItem, SequenceStepItem, SequenceTemplate } from '@/types';
 
 interface MassOutreachModalProps {
   isOpen: boolean;
@@ -140,11 +143,12 @@ const DEFAULT_SEED_PROSPECTS: ProspectItem[] = [
 const DEFAULT_AUDIOS: AudioTrackItem[] = [];
 
 // Modelos de Sequência Pré-configurados
-const PRESET_SEQUENCES = [
+const PRESET_SEQUENCES: SequenceTemplate[] = [
   {
     id: 'seq_audio_texto',
     name: '🔥 Sequência Campeã: Texto de Abordagem + Áudio PTT Humanizado',
     description: 'Envia primeiro o texto cumprimentando e, em seguida, o áudio filtrando o proprietário.',
+    isPreset: true,
     steps: [
       {
         id: 'step_1',
@@ -913,19 +917,279 @@ export function MassOutreachModal({
   };
 
   // ==========================================
-  // 2. ESTADO DA SEQUÊNCIA DE DISPARO (PASSOS)
+  // 2. ESTADO DA SEQUÊNCIA DE DISPARO (PASSOS E MODELOS)
   // ==========================================
+  const [sequenceTemplates, setSequenceTemplates] = useState<SequenceTemplate[]>(PRESET_SEQUENCES);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>(PRESET_SEQUENCES[0].id);
   const [steps, setSteps] = useState<SequenceStepItem[]>(PRESET_SEQUENCES[0].steps);
-  const [selectedPresetId, setSelectedPresetId] = useState<string>('seq_audio_texto');
   const [leadDelaySeconds, setLeadDelaySeconds] = useState<number>(8);
 
-  // Aplicar Preset de Sequência
-  const handleApplyPreset = (presetId: string) => {
-    setSelectedPresetId(presetId);
-    const found = PRESET_SEQUENCES.find((p) => p.id === presetId);
-    if (found) {
-      setSteps(JSON.parse(JSON.stringify(found.steps)));
+  const [templateSaveFeedback, setTemplateSaveFeedback] = useState<string | null>(null);
+  const feedbackTimerRef = useRef<any>(null);
+
+  const showSaveFeedback = (msg: string) => {
+    setTemplateSaveFeedback(msg);
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = setTimeout(() => {
+      setTemplateSaveFeedback(null);
+    }, 4000);
+  };
+
+  // Carregar Modelos de Sequência (Pré-configurados e Personalizados) do localStorage
+  useEffect(() => {
+    try {
+      const storageKey = `flowlevel_sequences_${currentSubaccount?.id || 'default'}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Garante que novos presets da plataforma sejam mesclados caso não estejam no storage
+          const existingIds = new Set(parsed.map((p: any) => p.id));
+          const missingPresets = PRESET_SEQUENCES.filter((p) => !existingIds.has(p.id));
+          const merged: SequenceTemplate[] = [...parsed, ...missingPresets];
+          setSequenceTemplates(merged);
+
+          const current = merged.find((p) => p.id === selectedPresetId) || merged[0];
+          setSelectedPresetId(current.id);
+          setSteps(JSON.parse(JSON.stringify(current.steps)));
+          return;
+        }
+      }
+      setSequenceTemplates(PRESET_SEQUENCES);
+      setSelectedPresetId(PRESET_SEQUENCES[0].id);
+      setSteps(JSON.parse(JSON.stringify(PRESET_SEQUENCES[0].steps)));
+    } catch (e) {
+      console.warn('Erro ao carregar modelos de sequência do localStorage:', e);
+      setSequenceTemplates(PRESET_SEQUENCES);
     }
+  }, [currentSubaccount?.id]);
+
+  // Salvar lista de modelos no storage
+  const saveTemplatesToStorage = (updatedTemplates: SequenceTemplate[]) => {
+    setSequenceTemplates(updatedTemplates);
+    try {
+      const storageKey = `flowlevel_sequences_${currentSubaccount?.id || 'default'}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedTemplates));
+    } catch (e) {
+      console.warn('Erro ao salvar modelos de sequência:', e);
+    }
+  };
+
+  // Modelo ativo atual
+  const activeTemplate = useMemo(() => {
+    return sequenceTemplates.find((t) => t.id === selectedPresetId) || sequenceTemplates[0];
+  }, [sequenceTemplates, selectedPresetId]);
+
+  // Verifica se o usuário modificou os passos na tela em relação ao modelo salvo
+  const hasUnsavedChanges = useMemo(() => {
+    if (!activeTemplate) return false;
+    return JSON.stringify(activeTemplate.steps) !== JSON.stringify(steps);
+  }, [activeTemplate, steps]);
+
+  // Modal / Dialog para Criar, Renomear ou Salvar como Novo Modelo
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [templateModalMode, setTemplateModalMode] = useState<'create' | 'edit_meta' | 'save_as_new'>('create');
+  const [templateForm, setTemplateForm] = useState({
+    id: '',
+    name: '',
+    description: '',
+  });
+
+  // Alternar entre modelos salvos (intercalando)
+  const handleApplyPreset = (presetId: string) => {
+    if (presetId === selectedPresetId) return;
+
+    // Se havia alterações não salvas no modelo anterior, salva automaticamente para preservar edições ao intercalar
+    let currentList = sequenceTemplates;
+    const currentActive = sequenceTemplates.find((t) => t.id === selectedPresetId);
+    if (currentActive && JSON.stringify(currentActive.steps) !== JSON.stringify(steps)) {
+      currentList = sequenceTemplates.map((t) =>
+        t.id === selectedPresetId
+          ? { ...t, steps: JSON.parse(JSON.stringify(steps)), updatedAt: new Date().toISOString() }
+          : t
+      );
+      saveTemplatesToStorage(currentList);
+      showSaveFeedback(`Alterações salvas no modelo anterior!`);
+    }
+
+    setSelectedPresetId(presetId);
+    const target = currentList.find((p) => p.id === presetId);
+    if (target) {
+      setSteps(JSON.parse(JSON.stringify(target.steps)));
+    }
+  };
+
+  // Salvar alterações de passos no modelo ativo
+  const handleSaveCurrentTemplate = () => {
+    const currentActive = sequenceTemplates.find((t) => t.id === selectedPresetId);
+    if (!currentActive) return;
+
+    const updated = sequenceTemplates.map((t) =>
+      t.id === selectedPresetId
+        ? {
+            ...t,
+            steps: JSON.parse(JSON.stringify(steps)),
+            updatedAt: new Date().toISOString(),
+          }
+        : t
+    );
+    saveTemplatesToStorage(updated);
+    showSaveFeedback(`Modelo "${currentActive.name.replace(/^🔥 |^⭐ |^⚡ |^🌐 /i, '').split(':')[0]}" salvo com sucesso!`);
+  };
+
+  // Reverter alterações na tela para o que está salvo no modelo ativo
+  const handleDiscardChanges = () => {
+    if (activeTemplate) {
+      setSteps(JSON.parse(JSON.stringify(activeTemplate.steps)));
+      showSaveFeedback(`Alterações descartadas. Retornado aos passos salvos.`);
+    }
+  };
+
+  // Abrir modal para Criar Novo Modelo do zero
+  const handleOpenCreateNew = () => {
+    setTemplateModalMode('create');
+    setTemplateForm({
+      id: '',
+      name: `Nova Sequência ${sequenceTemplates.length + 1}`,
+      description: 'Sequência personalizada para prospecção no WhatsApp.',
+    });
+    setIsTemplateModalOpen(true);
+  };
+
+  // Abrir modal para Salvar passos atuais como Novo Modelo
+  const handleOpenSaveAsNew = () => {
+    setTemplateModalMode('save_as_new');
+    setTemplateForm({
+      id: '',
+      name: `${activeTemplate?.name ? activeTemplate.name.replace(/^🔥 |^⭐ |^⚡ |^🌐 /i, '') : 'Sequência'} (Personalizada)`,
+      description: activeTemplate?.description || 'Sequência personalizada com passos customizados.',
+    });
+    setIsTemplateModalOpen(true);
+  };
+
+  // Abrir modal para Renomear ou Editar Descrição
+  const handleOpenEditMeta = (template: SequenceTemplate) => {
+    setTemplateModalMode('edit_meta');
+    setTemplateForm({
+      id: template.id,
+      name: template.name,
+      description: template.description || '',
+    });
+    setIsTemplateModalOpen(true);
+  };
+
+  // Duplicar modelo
+  const handleDuplicateTemplate = (template: SequenceTemplate) => {
+    const newId = `seq_custom_${Date.now()}`;
+    const duplicated: SequenceTemplate = {
+      ...template,
+      id: newId,
+      name: `${template.name} (Cópia)`,
+      isCustom: true,
+      updatedAt: new Date().toISOString(),
+      steps: JSON.parse(JSON.stringify(template.steps)),
+    };
+    const updated = [...sequenceTemplates, duplicated];
+    saveTemplatesToStorage(updated);
+    setSelectedPresetId(newId);
+    setSteps(JSON.parse(JSON.stringify(duplicated.steps)));
+    showSaveFeedback(`Modelo duplicado com sucesso!`);
+  };
+
+  // Excluir modelo
+  const handleDeleteTemplate = (templateId: string, templateName: string) => {
+    if (sequenceTemplates.length <= 1) {
+      alert('É necessário manter pelo menos um modelo de sequência cadastrado.');
+      return;
+    }
+    const confirmDelete = window.confirm(`Deseja realmente excluir o modelo "${templateName}"?`);
+    if (!confirmDelete) return;
+
+    const filtered = sequenceTemplates.filter((t) => t.id !== templateId);
+    saveTemplatesToStorage(filtered);
+
+    if (selectedPresetId === templateId) {
+      const fallback = filtered[0];
+      setSelectedPresetId(fallback.id);
+      setSteps(JSON.parse(JSON.stringify(fallback.steps)));
+    }
+    showSaveFeedback(`Modelo excluído.`);
+  };
+
+  // Restaurar modelos padrão
+  const handleResetToDefaults = () => {
+    const confirmReset = window.confirm(
+      'Deseja restaurar os 4 modelos padrão originais da plataforma? Seus modelos personalizados serão mantidos.'
+    );
+    if (!confirmReset) return;
+
+    const userCustoms = sequenceTemplates.filter(
+      (t) => t.isCustom && !PRESET_SEQUENCES.some((p) => p.id === t.id)
+    );
+    const restored = [...PRESET_SEQUENCES, ...userCustoms];
+    saveTemplatesToStorage(restored);
+    setSelectedPresetId(PRESET_SEQUENCES[0].id);
+    setSteps(JSON.parse(JSON.stringify(PRESET_SEQUENCES[0].steps)));
+    showSaveFeedback('Modelos restaurados com sucesso!');
+  };
+
+  // Confirmar criação, renomeação ou cópia
+  const handleConfirmTemplateModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!templateForm.name.trim()) return;
+
+    if (templateModalMode === 'edit_meta') {
+      const updated = sequenceTemplates.map((t) =>
+        t.id === templateForm.id
+          ? {
+              ...t,
+              name: templateForm.name.trim(),
+              description: templateForm.description.trim(),
+              updatedAt: new Date().toISOString(),
+            }
+          : t
+      );
+      saveTemplatesToStorage(updated);
+      showSaveFeedback(`Informações do modelo atualizadas!`);
+    } else {
+      const newId = `seq_custom_${Date.now()}`;
+      const newSteps: SequenceStepItem[] =
+        templateModalMode === 'save_as_new'
+          ? JSON.parse(JSON.stringify(steps))
+          : [
+              {
+                id: `step_${Date.now()}_1`,
+                type: 'text',
+                title: 'Passo 1: Mensagem Inicial',
+                textContent: 'Olá time da {{empresa}}, tudo bem? Sou o Rafael da Connect Digital aqui em {{cidade}}.',
+                requireResponse: true,
+              },
+              {
+                id: `step_${Date.now()}_2`,
+                type: 'audio',
+                title: 'Passo 2: Áudio de Apresentação (PTT)',
+                audioId: undefined,
+                requireResponse: true,
+              },
+            ];
+
+      const newTemplate: SequenceTemplate = {
+        id: newId,
+        name: templateForm.name.trim(),
+        description: templateForm.description.trim() || 'Modelo personalizado de prospecção.',
+        steps: newSteps,
+        isCustom: true,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const updated = [...sequenceTemplates, newTemplate];
+      saveTemplatesToStorage(updated);
+      setSelectedPresetId(newId);
+      setSteps(newSteps);
+      showSaveFeedback(`Novo modelo "${templateForm.name.trim()}" criado com sucesso!`);
+    }
+
+    setIsTemplateModalOpen(false);
   };
 
   // Adicionar Passo de Texto
@@ -1373,7 +1637,15 @@ export function MassOutreachModal({
                 className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 hover:border-emerald-400 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
                 <Users className="w-3 h-3" />
-                <span>{leadsToDispatch.length} de {allAvailableLeads.length} Leads Selecionados</span>
+                <span>
+                  {contactSourceFilter === 'maps'
+                    ? `${leadsToDispatch.length} de ${mapsLeads.length} Leads (Google Maps)`
+                    : contactSourceFilter === 'whatsapp'
+                    ? `${leadsToDispatch.length} de ${whatsappLeads.length} Contatos (WhatsApp)`
+                    : contactSourceFilter === 'crm'
+                    ? `${leadsToDispatch.length} de ${crmLeads.length} Leads (CRM)`
+                    : `${leadsToDispatch.length} de ${allAvailableLeads.length} Leads Selecionados`}
+                </span>
                 <span className="text-emerald-300 underline font-normal text-[9px]">Editar</span>
               </button>
             </div>
@@ -1407,7 +1679,9 @@ export function MassOutreachModal({
               }`}
             >
               <Users className="w-4 h-4" />
-              <span>1. Destinatários ({leadsToDispatch.length}/{allAvailableLeads.length})</span>
+              <span>
+                1. Destinatários ({leadsToDispatch.length}/{contactSourceFilter === 'maps' ? mapsLeads.length : contactSourceFilter === 'whatsapp' ? whatsappLeads.length : contactSourceFilter === 'crm' ? crmLeads.length : allAvailableLeads.length})
+              </span>
             </button>
 
             <button
@@ -2219,34 +2493,222 @@ export function MassOutreachModal({
               {/* ==================================================== */}
               {activeTab === 'sequence' && (
                   <div className="space-y-4">
-                    {/* Seletor de Modelo Pré-Configurado */}
-                    <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Modelos de Sequência Recomendados</span>
-                        </label>
-                        <span className="text-[11px] text-slate-400">Clique para carregar</span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {PRESET_SEQUENCES.map((preset) => (
+                    {/* Seletor e Gerenciador de Modelos de Sequência */}
+                    <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-emerald-400" />
+                            <span className="text-xs font-bold text-white uppercase tracking-wider">
+                              Modelos de Sequência de Disparo
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              {sequenceTemplates.length} modelos
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Selecione um modelo para carregar, personalize os passos e salve ou crie novos modelos para alternar livremente.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
-                            key={preset.id}
                             type="button"
-                            onClick={() => handleApplyPreset(preset.id)}
-                            className={`p-2.5 rounded-lg text-left text-xs border transition ${
-                              selectedPresetId === preset.id
-                                ? 'bg-emerald-950/30 border-emerald-500/60 text-white ring-1 ring-emerald-500/40'
-                                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                            onClick={handleOpenCreateNew}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Novo Modelo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleResetToDefaults}
+                            title="Restaurar os 4 modelos padrão originais da plataforma"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 text-xs transition cursor-pointer"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span className="hidden sm:inline">Restaurar Padrões</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Grade de Modelos de Sequência */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                        {sequenceTemplates.map((template) => {
+                          const isActive = selectedPresetId === template.id;
+                          const isEdited = isActive && hasUnsavedChanges;
+                          const textCount = template.steps.filter((s) => s.type === 'text').length;
+                          const audioCount = template.steps.filter((s) => s.type === 'audio').length;
+
+                          return (
+                            <div
+                              key={template.id}
+                              onClick={() => handleApplyPreset(template.id)}
+                              className={`p-3 rounded-xl text-left border transition relative flex flex-col justify-between cursor-pointer group ${
+                                isActive
+                                  ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-md shadow-emerald-950/50 ring-1 ring-emerald-500/40'
+                                  : 'bg-slate-900/70 border-slate-800/80 text-slate-300 hover:text-white hover:border-slate-700 hover:bg-slate-800/70'
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-start justify-between gap-1.5 mb-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {isActive ? (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase bg-emerald-500 text-slate-950 flex items-center gap-1">
+                                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                        ATIVO
+                                      </span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800 text-slate-400 border border-slate-700/60">
+                                        MODELO
+                                      </span>
+                                    )}
+                                    {isEdited && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                        ● Editado
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Ações Rápidas do Card */}
+                                  <div
+                                    className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditMeta(template)}
+                                      className="p-1 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition"
+                                      title="Renomear ou editar descrição deste modelo"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDuplicateTemplate(template)}
+                                      className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition"
+                                      title="Duplicar este modelo"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                    {sequenceTemplates.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteTemplate(template.id, template.name)}
+                                        className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition"
+                                        title="Excluir este modelo"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <h5 className="text-xs font-bold leading-snug line-clamp-2">
+                                  {template.name}
+                                </h5>
+                                {template.description && (
+                                  <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                                    {template.description}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2.5 pt-2 border-t border-slate-800/80">
+                                <span className="font-semibold text-slate-300">
+                                  {template.steps.length} {template.steps.length === 1 ? 'passo' : 'passos'}
+                                </span>
+                                <span className="text-slate-400">
+                                  {textCount} txt{audioCount > 0 ? ` • ${audioCount} áudio` : ''}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Barra de Ação e Feedback do Modelo Ativo */}
+                      <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-700/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Layers className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-slate-200">
+                                Modelo Ativo:
+                              </span>
+                              <span className="text-xs font-extrabold text-emerald-300 truncate">
+                                {activeTemplate?.name}
+                              </span>
+                              {hasUnsavedChanges ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                  Alterações não salvas
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                  Salvo no navegador
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 truncate">
+                              {hasUnsavedChanges
+                                ? 'Você alterou os passos abaixo. Clique em "Salvar Alterações" para fixar neste modelo ou salve como um novo.'
+                                : 'Os passos abaixo estão sincronizados com este modelo.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                          {hasUnsavedChanges && (
+                            <button
+                              type="button"
+                              onClick={handleDiscardChanges}
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                              title="Reverter alterações e voltar aos passos originais deste modelo"
+                            >
+                              Descartar
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleOpenSaveAsNew}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer"
+                            title="Salvar esta configuração como um novo modelo de sequência"
+                          >
+                            <Copy className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Salvar como Novo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveCurrentTemplate}
+                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow cursor-pointer ${
+                              hasUnsavedChanges
+                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/40 animate-pulse'
+                                : 'bg-emerald-700/60 hover:bg-emerald-600 text-emerald-100'
                             }`}
                           >
-                            <div className="font-semibold truncate">{preset.name.split(':')[0]}</div>
-                            <div className="text-[10px] text-slate-400 mt-1 line-clamp-1">
-                              {preset.steps.length} passos
-                            </div>
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Salvar Alterações</span>
                           </button>
-                        ))}
+                        </div>
                       </div>
+
+                      {/* Toast de Feedback */}
+                      {templateSaveFeedback && (
+                        <div className="p-2.5 rounded-lg bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs flex items-center justify-between animate-in fade-in">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>{templateSaveFeedback}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setTemplateSaveFeedback(null)}
+                            className="text-emerald-400 hover:text-white text-xs font-bold ml-2 cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Lista dos Passos da Sequência */}
@@ -3521,17 +3983,26 @@ export function MassOutreachModal({
               {/* Seletor de Passo Específico quando no modo single_step */}
               {dispatchMode === 'single_step' && (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 font-semibold">Passo:</span>
+                  <span className="text-slate-400 font-semibold text-xs">Disparar:</span>
                   <select
                     value={targetStepIndexToDispatch}
                     onChange={(e) => setTargetStepIndexToDispatch(Number(e.target.value))}
                     className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
                   >
-                    {steps.map((s, idx) => (
-                      <option key={s.id} value={idx}>
-                        Passo {idx + 1}: {s.title || (s.type === 'audio' ? 'Áudio PTT' : 'Texto')}
-                      </option>
-                    ))}
+                    {steps.map((s, idx) => {
+                      const cleanTitle = s.title
+                        ? s.title.replace(/^Passo\s*\d+\s*:\s*/i, '').trim()
+                        : s.type === 'audio'
+                        ? 'Áudio Gravado PTT'
+                        : s.type === 'delay'
+                        ? 'Pausa / Intervalo'
+                        : 'Mensagem de Texto';
+                      return (
+                        <option key={s.id} value={idx}>
+                          Passo {idx + 1}: {cleanTitle}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
@@ -3578,6 +4049,87 @@ export function MassOutreachModal({
                     : `Disparar Sequência Completa (${leadsToDispatch.length} Leads)`}
                 </span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal / Dialog de Criar / Renomear / Salvar como Novo Modelo */}
+        {isTemplateModalOpen && (
+          <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+              <div className="p-4 bg-slate-800/80 border-b border-slate-700 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-sm font-bold text-white">
+                    {templateModalMode === 'edit_meta'
+                      ? 'Editar Nome e Descrição do Modelo'
+                      : templateModalMode === 'save_as_new'
+                      ? 'Salvar Sequência como Novo Modelo'
+                      : 'Criar Novo Modelo de Sequência'}
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTemplateModalOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmTemplateModal} className="p-4 space-y-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Nome do Modelo *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={templateForm.name}
+                    onChange={(e) => setTemplateForm((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="Ex: 🔥 Abordagem Especial para Clínicas"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 text-white border border-slate-700 text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Descrição ou Objetivo da Sequência (opcional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={templateForm.description}
+                    onChange={(e) => setTemplateForm((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Ex: 2 mensagens rápidas + áudio PTT direto ao decisor."
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 text-white border border-slate-700 text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {templateModalMode === 'save_as_new' && (
+                  <div className="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[11px] text-emerald-300">
+                    ℹ️ Este novo modelo será salvo exatamente com os <strong>{steps.length} passos</strong> que estão configurados na tela.
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsTemplateModalOpen(false)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>
+                      {templateModalMode === 'edit_meta' ? 'Salvar Alterações' : 'Criar e Salvar Modelo'}
+                    </span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
