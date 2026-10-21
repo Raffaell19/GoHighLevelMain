@@ -2626,8 +2626,8 @@ export function MassOutreachModal({
                                 <span className="text-slate-400 text-[11px] uppercase tracking-wider font-bold shrink-0">
                                   Modelo:
                                 </span>
-                                <span className="truncate max-w-[200px] sm:max-w-[280px] text-emerald-200">
-                                  {sequenceTemplates.findIndex((t) => t.id === selectedPresetId) + 1}. {activeTemplate?.name || 'Selecionar'}
+                                <span className="truncate max-w-[200px] sm:max-w-[320px] text-emerald-200">
+                                  {sequenceTemplates.findIndex((t) => t.id === selectedPresetId) + 1}. {activeTemplate?.name.replace(/^[^\w\sÀ-ÿ]+\s*/, '') || 'Selecionar'}
                                 </span>
                               </div>
                               <ChevronDown
@@ -2644,9 +2644,10 @@ export function MassOutreachModal({
                                   className="fixed inset-0 z-40"
                                   onClick={() => setIsTemplateMenuOpen(false)}
                                 />
-                                <div className="absolute top-full left-0 mt-1.5 w-full sm:w-80 max-h-72 overflow-y-auto bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-2xl z-50 p-1.5 space-y-1 custom-scrollbar">
+                                <div className="absolute top-full left-0 mt-1.5 w-full sm:w-96 max-h-72 overflow-y-auto bg-slate-900/98 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-2xl z-50 p-1.5 space-y-1 custom-scrollbar">
                                   {sequenceTemplates.map((template, idx) => {
                                     const isSelected = template.id === selectedPresetId;
+                                    const cleanName = template.name.replace(/^[^\w\sÀ-ÿ]+\s*/, '');
                                     return (
                                       <button
                                         key={template.id}
@@ -2662,7 +2663,7 @@ export function MassOutreachModal({
                                         }`}
                                       >
                                         <span className="truncate">
-                                          {idx + 1}. {template.name}
+                                          {idx + 1}. {cleanName}
                                         </span>
                                         {isSelected && (
                                           <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
