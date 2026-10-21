@@ -34,6 +34,8 @@ import {
   Save,
   Phone,
   ChevronRight,
+  ChevronDown,
+  Menu,
   Sparkle,
   Search,
   Building2,
@@ -923,6 +925,7 @@ export function MassOutreachModal({
   const [selectedPresetId, setSelectedPresetId] = useState<string>(PRESET_SEQUENCES[0].id);
   const [steps, setSteps] = useState<SequenceStepItem[]>(PRESET_SEQUENCES[0].steps);
   const [leadDelaySeconds, setLeadDelaySeconds] = useState<number>(8);
+  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
 
   const [templateSaveFeedback, setTemplateSaveFeedback] = useState<string | null>(null);
   const feedbackTimerRef = useRef<any>(null);
@@ -2604,93 +2607,111 @@ export function MassOutreachModal({
               {/* ==================================================== */}
               {activeTab === 'sequence' && (
                   <div className="space-y-4">
-                    {/* Seletor Compacto e Objetivo de Modelos de Sequência */}
+                    {/* Seletor Compacto e Objetivo de Modelos de Sequência (Menu Sanduíche) */}
                     <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
-                      {/* Linha 1: Pills dos Modelos e Ações Principais */}
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                        {/* Seletor de Modelos em Pills */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 custom-scrollbar flex-1 min-w-0">
-                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Modelo:</span>
-                          </span>
-
-                          {sequenceTemplates.map((template) => {
-                            const isActive = selectedPresetId === template.id;
-                            const isEdited = isActive && hasUnsavedChanges;
-
-                            return (
-                              <div
-                                key={template.id}
-                                onClick={() => handleApplyPreset(template.id)}
-                                className={`group shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border select-none ${
-                                  isActive
-                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-200 shadow-sm ring-1 ring-emerald-500/40'
-                                    : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700/60 text-slate-300 hover:text-white'
-                                }`}
-                              >
-                                <span className="truncate max-w-[170px]">
-                                  {template.name}
+                      {/* Linha 1: Menu Sanduíche do Modelo e Ações Principais */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        {/* Seletor Sanduíche e Ações do Modelo Ativo */}
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {/* Container relativo do Dropdown Sanduíche */}
+                          <div className="relative flex-1 sm:flex-none">
+                            <button
+                              type="button"
+                              onClick={() => setIsTemplateMenuOpen((prev) => !prev)}
+                              className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 text-xs font-semibold text-white transition shadow-sm hover:border-emerald-500/50 cursor-pointer"
+                              title="Clique para escolher um modelo de sequência"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Menu className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <span className="text-slate-400 text-[11px] uppercase tracking-wider font-bold shrink-0">
+                                  Modelo:
                                 </span>
-
-                                <span
-                                  className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
-                                    isActive
-                                      ? 'bg-emerald-500/30 text-emerald-200 font-bold'
-                                      : 'bg-slate-700/70 text-slate-400'
-                                  }`}
-                                >
-                                  {template.steps.length}p
+                                <span className="truncate max-w-[200px] sm:max-w-[280px] text-emerald-200">
+                                  {sequenceTemplates.findIndex((t) => t.id === selectedPresetId) + 1}. {activeTemplate?.name || 'Selecionar'}
                                 </span>
-
-                                {isEdited && (
-                                  <span
-                                    className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"
-                                    title="Alterações não salvas"
-                                  />
-                                )}
-
-                                {/* Ações do Modelo */}
-                                <div
-                                  className={`flex items-center gap-0.5 ml-1 transition ${
-                                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                  }`}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenEditMeta(template)}
-                                    className="p-1 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-700/70 transition"
-                                    title="Renomear este modelo"
-                                  >
-                                    <Edit3 className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDuplicateTemplate(template)}
-                                    className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-700/70 transition"
-                                    title="Duplicar este modelo"
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                  </button>
-                                  {sequenceTemplates.length > 1 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteTemplate(template.id, template.name)}
-                                      className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition"
-                                      title="Excluir este modelo"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
                               </div>
-                            );
-                          })}
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 text-slate-400 transition-transform shrink-0 ml-1.5 ${
+                                  isTemplateMenuOpen ? 'rotate-180 text-emerald-400' : ''
+                                }`}
+                              />
+                            </button>
+
+                            {/* Dropdown Menu com Opções Enxutas: somente número e nome */}
+                            {isTemplateMenuOpen && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={() => setIsTemplateMenuOpen(false)}
+                                />
+                                <div className="absolute top-full left-0 mt-1.5 w-full sm:w-80 max-h-72 overflow-y-auto bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-2xl z-50 p-1.5 space-y-1 custom-scrollbar">
+                                  {sequenceTemplates.map((template, idx) => {
+                                    const isSelected = template.id === selectedPresetId;
+                                    return (
+                                      <button
+                                        key={template.id}
+                                        type="button"
+                                        onClick={() => {
+                                          handleApplyPreset(template.id);
+                                          setIsTemplateMenuOpen(false);
+                                        }}
+                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between gap-2 cursor-pointer ${
+                                          isSelected
+                                            ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/40'
+                                            : 'text-slate-200 hover:bg-slate-800 hover:text-white border border-transparent'
+                                        }`}
+                                      >
+                                        <span className="truncate">
+                                          {idx + 1}. {template.name}
+                                        </span>
+                                        {isSelected && (
+                                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Ações Rápidas do Modelo Ativo */}
+                          {activeTemplate && (
+                            <div className="flex items-center gap-1 shrink-0 bg-slate-800/60 p-1 rounded-lg border border-slate-700/50">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditMeta(activeTemplate)}
+                                className="p-1 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-700 transition"
+                                title="Renomear este modelo"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDuplicateTemplate(activeTemplate)}
+                                className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition"
+                                title="Duplicar este modelo"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                              {sequenceTemplates.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDeleteTemplate(activeTemplate.id, activeTemplate.name)
+                                  }
+                                  className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition"
+                                  title="Excluir este modelo"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Botões: Novo Modelo e Restaurar Padrões */}
-                        <div className="flex items-center gap-1.5 shrink-0 self-end md:self-auto">
+                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
                           <button
                             type="button"
                             onClick={handleOpenCreateNew}
