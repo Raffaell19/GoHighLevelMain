@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     // Caso 1: Run Mock / Demonstração
     if (runId.startsWith('mock-run-') || !token || token.trim().length < 5) {
-      const targetCount = Math.max(Number(limit) || 20, 20);
+      const targetCount = Math.max(Number(limit) || 1, 1);
       const streetNames = [
         'Rua Bento Gonçalves, 1420 - Centro',
         'Av. Nações Unidas, 2800 - Ideal',

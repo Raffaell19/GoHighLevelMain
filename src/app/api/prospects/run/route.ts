@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
       const cleanQuery = searchQuery.trim();
       const cleanLocation = location.trim();
-      const targetLimit = Math.max(Number(limit) || 20, 20);
+      const targetLimit = Math.max(Number(limit) || 1, 1);
 
       const payload = {
         searchStringsArray: [

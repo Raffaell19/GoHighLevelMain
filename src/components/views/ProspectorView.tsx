@@ -66,6 +66,8 @@ export interface SearchHistoryItem {
   results: ProspectItem[];
 }
 
+const PRESET_LIMITS = [20, 50, 70, 100, 150, 200];
+
 interface ProspectorViewProps {
   onNavigateToCrm?: () => void;
   onNavigateToWhatsApp?: () => void;
@@ -84,6 +86,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
   const [searchTerm, setSearchTerm] = useState('esquadrias');
   const [location, setLocation] = useState('Novo Hamburgo, RS, Brasil');
   const [limit, setLimit] = useState(70);
+  const [isCustomLimit, setIsCustomLimit] = useState(false);
   const [language, setLanguage] = useState('pt-BR');
 
   // Token management
@@ -386,8 +389,13 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
     e.preventDefault();
     if (!searchTerm.trim() || !location.trim()) return;
 
+    const effectiveLimit = Math.max(1, limit || 20);
+    if (effectiveLimit !== limit) {
+      setLimit(effectiveLimit);
+    }
+
     setIsRunning(true);
-    setStatusMessage(`Iniciando Actor na Apify para buscar até ${limit} estabelecimentos...`);
+    setStatusMessage(`Iniciando Actor na Apify para buscar até ${effectiveLimit} estabelecimentos...`);
     setResults([]);
     setSelectedIds(new Set());
     setImportSuccessMessage(null);
@@ -401,7 +409,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
         body: JSON.stringify({
           searchQuery: searchTerm,
           location,
-          limit,
+          limit: effectiveLimit,
           language,
           customToken: apiToken || undefined,
           subaccountId: currentSubaccount.id,
@@ -413,7 +421,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
         throw new Error(runJson.error || 'Falha ao iniciar o crawler na Apify');
       }
 
-      setStatusMessage(`Varrendo até ${limit} empresas no Google Maps...`);
+      setStatusMessage(`Varrendo até ${effectiveLimit} empresas no Google Maps...`);
 
       // 2. Polling de status / Obtenção dos resultados
       const MAX_RETRIES = 45; // Permite até ~115 segundos para extração segura de lotes de 50 a 150 locais
@@ -421,7 +429,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
         const statusRes = await fetch(
           `/api/prospects/status?runId=${runJson.runId}&defaultDatasetId=${runJson.defaultDatasetId || ''}&searchQuery=${encodeURIComponent(
             searchTerm
-          )}&location=${encodeURIComponent(location)}&limit=${limit}&customToken=${encodeURIComponent(apiToken)}&subaccountId=${currentSubaccount.id}`
+          )}&location=${encodeURIComponent(location)}&limit=${effectiveLimit}&customToken=${encodeURIComponent(apiToken)}&subaccountId=${currentSubaccount.id}`
         );
         const statusJson = await statusRes.json();
 
@@ -488,6 +496,11 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
     setSearchTerm(item.searchTerm);
     setLocation(item.location);
     setLimit(item.limit);
+    if (!PRESET_LIMITS.includes(item.limit)) {
+      setIsCustomLimit(true);
+    } else {
+      setIsCustomLimit(false);
+    }
     setActiveHistoryItem(item);
     setActiveTab('search');
     setImportSuccessMessage(null);
@@ -976,21 +989,73 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
                 {/* Limit */}
                 <div className="md:col-span-3 space-y-1.5">
-                  <label className="block text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-cyan-500" />
-                    <span>Qtd. de Lugares (Places)</span>
-                  </label>
-                  <select
-                    value={limit}
-                    onChange={(e) => setLimit(Number(e.target.value))}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
-                  >
-                    <option value={20}>20 estabelecimentos</option>
-                    <option value={50}>50 estabelecimentos</option>
-                    <option value={70}>70 estabelecimentos (Recomendado)</option>
-                    <option value={100}>100 estabelecimentos</option>
-                    <option value={150}>150 estabelecimentos</option>
-                  </select>
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5 text-xs sm:text-sm">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-500" />
+                      <span>Qtd. de Lugares (Places)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomLimit((prev) => !prev)}
+                      className="text-[11px] text-cyan-500 hover:text-cyan-400 font-medium hover:underline cursor-pointer transition"
+                    >
+                      {isCustomLimit ? 'Ver lista padrão' : 'Personalizar'}
+                    </button>
+                  </div>
+
+                  {isCustomLimit ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          min={1}
+                          max={1000}
+                          value={limit > 0 ? limit : ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                            setLimit(isNaN(val) ? 1 : val);
+                          }}
+                          placeholder="Ex: 35"
+                          className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-semibold"
+                          autoFocus
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-medium pointer-events-none">
+                          lugares
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomLimit(false);
+                          if (!PRESET_LIMITS.includes(limit)) setLimit(70);
+                        }}
+                        className="px-2.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition border border-slate-300 dark:border-slate-700 cursor-pointer shrink-0"
+                        title="Voltar para opções pré-definidas"
+                      >
+                        Presets
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={PRESET_LIMITS.includes(limit) ? limit : 'custom'}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setIsCustomLimit(true);
+                        } else {
+                          setLimit(Number(e.target.value));
+                        }
+                      }}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500 text-sm"
+                    >
+                      <option value={20}>20 estabelecimentos</option>
+                      <option value={50}>50 estabelecimentos</option>
+                      <option value={70}>70 estabelecimentos (Recomendado)</option>
+                      <option value={100}>100 estabelecimentos</option>
+                      <option value={150}>150 estabelecimentos</option>
+                      <option value={200}>200 estabelecimentos</option>
+                      <option value="custom">✏️ Personalizado (Digitar quantidade)...</option>
+                    </select>
+                  )}
                 </div>
               </div>
 
