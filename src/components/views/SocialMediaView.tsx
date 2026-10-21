@@ -388,9 +388,17 @@ export function SocialMediaView() {
                   {/* Insta Header */}
                   <div className="p-2.5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-pink-500 p-0.5">
-                        <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center text-[10px] font-bold">
-                          {currentSubaccount.logo}
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-pink-500 p-0.5 shrink-0">
+                        <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center text-[10px] font-bold overflow-hidden">
+                          {currentSubaccount.name === 'Connect Digital' || (currentSubaccount.logo && (currentSubaccount.logo.startsWith('/') || currentSubaccount.logo.includes('.png'))) ? (
+                            <img
+                              src={currentSubaccount.name === 'Connect Digital' ? '/logo-connect-digital.png' : currentSubaccount.logo}
+                              alt={currentSubaccount.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            currentSubaccount.logo
+                          )}
                         </div>
                       </div>
                       <span className="font-bold text-slate-900 dark:text-white text-[11px]">

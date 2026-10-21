@@ -42,6 +42,24 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     { id: 'settings', label: 'Configurações SaaS', icon: Settings },
   ];
 
+  const renderSubaccountLogo = (sub: typeof currentSubaccount, size: 'sm' | 'md' = 'md') => {
+    const isImage = sub.name === 'Connect Digital' || (sub.logo && (sub.logo.startsWith('/') || sub.logo.includes('.png')));
+    if (isImage) {
+      const src = sub.name === 'Connect Digital' ? '/logo-connect-digital.png' : sub.logo;
+      const dim = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
+      return (
+        <div className={`${dim} rounded-lg overflow-hidden bg-slate-950 border border-blue-500/30 flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/10`}>
+          <img
+            src={src}
+            alt={sub.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      );
+    }
+    return <span className={size === 'sm' ? 'text-sm shrink-0' : 'text-base shrink-0'}>{sub.logo}</span>;
+  };
+
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-screen select-none shrink-0">
       {/* Brand & Subaccount Selector */}
@@ -61,10 +79,10 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 transition-all text-left text-xs"
+              className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 transition-all text-left text-xs group cursor-pointer shadow-sm"
             >
-              <div className="flex items-center gap-2 truncate">
-                <span className="text-base shrink-0">{currentSubaccount.logo}</span>
+              <div className="flex items-center gap-2.5 truncate">
+                {renderSubaccountLogo(currentSubaccount, 'md')}
                 <div className="truncate">
                   <div className="flex items-center gap-1.5">
                     <p className="font-semibold text-white truncate leading-tight">{currentSubaccount.name}</p>
@@ -95,7 +113,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                         : 'text-slate-300 hover:bg-slate-700/60'
                     }`}
                   >
-                    <span className="text-base">{sub.logo}</span>
+                    {renderSubaccountLogo(sub, 'sm')}
                     <div className="truncate">
                       <p className="truncate">{sub.name}</p>
                       <span className="text-[10px] text-slate-400">{sub.segment}</span>
@@ -108,7 +126,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                       setActiveTab('settings');
                       setDropdownOpen(false);
                     }}
-                    className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-cyan-400 hover:bg-cyan-500/10 rounded transition"
+                    className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-cyan-400 hover:bg-cyan-500/10 rounded transition cursor-pointer"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
                     <span>Cadastrar Nova Subconta</span>
@@ -120,8 +138,8 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         ) : (
           /* Modo Cliente / Empresa: Isolado 100%, sem opção de alternar */
           <div className="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-left text-xs">
-            <div className="flex items-center gap-2 truncate">
-              <span className="text-base shrink-0">{currentSubaccount.logo}</span>
+            <div className="flex items-center gap-2.5 truncate">
+              {renderSubaccountLogo(currentSubaccount, 'md')}
               <div className="truncate">
                 <div className="flex items-center gap-1.5">
                   <p className="font-semibold text-white truncate leading-tight">{currentSubaccount.name}</p>

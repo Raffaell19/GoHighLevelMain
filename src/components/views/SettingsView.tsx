@@ -58,7 +58,17 @@ export function SettingsView() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-2xl">{sub.logo}</span>
+                    {sub.name === 'Connect Digital' || (sub.logo && (sub.logo.startsWith('/') || sub.logo.includes('.png'))) ? (
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-blue-500/30 flex items-center justify-center shrink-0">
+                        <img
+                          src={sub.name === 'Connect Digital' ? '/logo-connect-digital.png' : sub.logo}
+                          alt={sub.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-2xl">{sub.logo}</span>
+                    )}
                     <div>
                       <h4 className="font-bold text-xs text-slate-900 dark:text-white">{sub.name}</h4>
                       <p className="text-[10px] text-slate-400">{sub.segment}</p>

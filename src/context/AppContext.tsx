@@ -28,7 +28,7 @@ const initialSubaccounts: Subaccount[] = [
     id: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
     name: 'Connect Digital',
     segment: 'Marketing & Automações',
-    logo: '🚀',
+    logo: '/logo-connect-digital.png',
     phone: '+55 11 98877-6655',
     email: 'contato@connectdigital.com.br',
     whatsappConfig: {
