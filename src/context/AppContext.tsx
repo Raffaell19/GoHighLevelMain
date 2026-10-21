@@ -447,11 +447,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteLead = async (leadId: string) => {
+    // Remoção otimista imediata na interface
     setLeads((prev) => prev.filter((l) => l.id !== leadId));
     try {
-      await fetch(`/api/leads?id=${leadId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/leads?id=${encodeURIComponent(leadId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: leadId }),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Erro HTTP ${res.status}`);
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Erro ao excluir oportunidade no banco:', e);
+      throw e;
     }
   };
 

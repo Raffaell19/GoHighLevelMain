@@ -15,6 +15,8 @@ import {
   XCircle,
   FileText,
   MessageSquare,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Lead } from '@/types';
@@ -30,11 +32,28 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [tempNotes, setTempNotes] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleOpenLeadModal = (lead: Lead) => {
     setSelectedLead(lead);
     setTempNotes(lead.notes);
     setEditingNotes(false);
+  };
+
+  const handleDeleteOpportunity = async () => {
+    if (!selectedLead) return;
+    if (!confirm(`Tem certeza que deseja excluir a oportunidade "${selectedLead.name}"?`)) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await deleteLead(selectedLead.id);
+      setSelectedLead(null);
+    } catch (err: any) {
+      alert(`Erro ao excluir oportunidade: ${err.message || 'Falha de comunicação'}`);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSaveNotes = () => {
@@ -184,6 +203,22 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
                                 <ChevronRight className="w-3 h-3" />
                               </button>
                             )}
+
+                            <button
+                              title="Excluir Oportunidade"
+                              onClick={async () => {
+                                if (confirm(`Deseja excluir a oportunidade "${lead.name}"?`)) {
+                                  try {
+                                    await deleteLead(lead.id);
+                                  } catch (err: any) {
+                                    alert(`Erro ao excluir oportunidade: ${err.message || 'Falha de conexão'}`);
+                                  }
+                                }
+                              }}
+                              className="p-1 rounded hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -313,17 +348,28 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
             {/* Modal Footer */}
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
               <button
-                onClick={() => {
-                  deleteLead(selectedLead.id);
-                  setSelectedLead(null);
-                }}
-                className="text-red-500 hover:text-red-600 text-xs font-semibold"
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteOpportunity}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-semibold shadow-md shadow-red-600/20 transition disabled:opacity-50 cursor-pointer"
               >
-                Excluir Oportunidade
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Excluir Oportunidade</span>
+                  </>
+                )}
               </button>
               <button
+                type="button"
+                disabled={isDeleting}
                 onClick={() => setSelectedLead(null)}
-                className="px-4 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+                className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition cursor-pointer"
               >
                 Fechar
               </button>

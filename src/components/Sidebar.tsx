@@ -46,16 +46,11 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-screen select-none shrink-0">
       {/* Brand & Subaccount Selector */}
       <div className="p-4 border-b border-slate-800">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2.5 mb-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
             <Zap className="w-5 h-5" />
           </div>
-          <div>
-            <h1 className="font-bold text-white text-base tracking-tight leading-none">FlowLevel</h1>
-            <span className="text-[10px] text-cyan-400 font-medium uppercase tracking-wider">
-              {isSuperAdmin ? 'Agência Master' : 'SaaS All-in-One'}
-            </span>
-          </div>
+          <h1 className="font-bold text-white text-base tracking-tight leading-none">FlowLevel</h1>
         </div>
 
         {/* Subaccount Switcher ou Empresa Fixa (baseado no Perfil do Usuário) */}
@@ -172,46 +167,6 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           );
         })}
       </nav>
-
-      {/* Integration Status Footer */}
-      <div className="p-3 bg-slate-950/60 border-t border-slate-800/80">
-        <p className="text-[11px] font-semibold text-slate-400 mb-2">Conexões Ativas</p>
-        <div className="space-y-1.5 text-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  currentSubaccount.whatsappConfig.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500'
-                }`}
-              />
-              WhatsApp
-            </span>
-            <span className="text-[10px] text-slate-500 capitalize">{currentSubaccount.whatsappConfig.provider}</span>
-          </div>
-
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`w-2 h-2 rounded-full ${currentSubaccount.gmbConnected ? 'bg-emerald-500' : 'bg-slate-600'}`}
-              />
-              Google Meu Negócio
-            </span>
-            <span className="text-[10px] text-slate-500">{currentSubaccount.gmbConnected ? 'Sincronizado' : 'Pendente'}</span>
-          </div>
-
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  currentSubaccount.socialConnected ? 'bg-cyan-500' : 'bg-slate-600'
-                }`}
-              />
-              Redes Sociais
-            </span>
-            <span className="text-[10px] text-slate-500">{currentSubaccount.socialConnected ? 'Conectado' : 'Off'}</span>
-          </div>
-        </div>
-      </div>
 
       {/* User Session & Logout Footer */}
       <div className="p-3 bg-slate-900 border-t border-slate-800 flex items-center justify-between">

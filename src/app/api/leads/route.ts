@@ -91,8 +91,17 @@ export async function DELETE(request: NextRequest) {
   try {
     const supabase = getServiceSupabase();
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    let id = searchParams.get('id')?.trim();
     const all = searchParams.get('all') === 'true';
+
+    if (!id && !all) {
+      try {
+        const body = await request.json();
+        if (body?.id) id = String(body.id).trim();
+      } catch {
+        // body vazio ou não JSON
+      }
+    }
 
     if (all) {
       const { error } = await supabase.from('leads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
