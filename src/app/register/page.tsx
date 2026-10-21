@@ -80,9 +80,11 @@ export default function RegisterPage() {
       {/* Brand Header */}
       <div className="mb-6 text-center z-10">
         <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-            <Zap className="w-4 h-4" />
-          </div>
+          <img
+            src="/logo-flow-level.png"
+            alt="FlowLevel Logo"
+            className="h-8 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.25)]"
+          />
           <span className="font-bold text-lg text-white tracking-tight">FlowLevel</span>
           <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
             Cadastro de Empresa

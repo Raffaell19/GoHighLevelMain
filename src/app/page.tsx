@@ -25,9 +25,11 @@ export default function Home() {
   if (isAuthLoading) {
     return (
       <div className="h-screen w-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-xl shadow-blue-500/20 mb-4 animate-pulse">
-          <Zap className="w-6 h-6" />
-        </div>
+        <img
+          src="/logo-flow-level.png"
+          alt="FlowLevel Logo"
+          className="h-14 w-auto object-contain mb-4 animate-pulse filter drop-shadow-[0_4px_16px_rgba(234,179,8,0.3)]"
+        />
         <p className="text-sm font-semibold text-white tracking-tight">Carregando Workspace da Empresa...</p>
         <p className="text-xs text-slate-500 mt-1">Sincronizando credenciais e dados isolados</p>
       </div>
