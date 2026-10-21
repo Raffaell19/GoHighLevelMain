@@ -3,7 +3,7 @@ import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 
 export const metadata: Metadata = {
-  title: 'FlowLevel | Plataforma SaaS All-in-One (CRM, WhatsApp, Google & Redes Sociais)',
+  title: 'FlowLevel | CRM, WhatsApp, Google & Redes Sociais',
   description:
     'Plataforma completa inspirada no GoHighLevel para gestão de CRM Kanban, automação de WhatsApp com Chatbot híbrido, gerenciamento de perfil do Google Meu Negócio e agendamento de redes sociais.',
 };
