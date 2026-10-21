@@ -1763,9 +1763,6 @@ export function MassOutreachModal({
                 <span className="text-emerald-300 underline font-normal text-[9px]">Editar</span>
               </button>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Crie fluxos completos intercalando múltiplos áudios gravados e mensagens inteligentes com IA.
-            </p>
           </div>
         </div>
 
@@ -2607,28 +2604,97 @@ export function MassOutreachModal({
               {/* ==================================================== */}
               {activeTab === 'sequence' && (
                   <div className="space-y-4">
-                    {/* Seletor e Gerenciador de Modelos de Sequência */}
-                    <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60 space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-emerald-400" />
-                            <span className="text-xs font-bold text-white uppercase tracking-wider">
-                              Modelos de Sequência de Disparo
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              {sequenceTemplates.length} modelos
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            Selecione um modelo para carregar, personalize os passos e salve ou crie novos modelos para alternar livremente.
-                          </p>
+                    {/* Seletor Compacto e Objetivo de Modelos de Sequência */}
+                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+                      {/* Linha 1: Pills dos Modelos e Ações Principais */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                        {/* Seletor de Modelos em Pills */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 custom-scrollbar flex-1 min-w-0">
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Modelo:</span>
+                          </span>
+
+                          {sequenceTemplates.map((template) => {
+                            const isActive = selectedPresetId === template.id;
+                            const isEdited = isActive && hasUnsavedChanges;
+
+                            return (
+                              <div
+                                key={template.id}
+                                onClick={() => handleApplyPreset(template.id)}
+                                className={`group shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border select-none ${
+                                  isActive
+                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-200 shadow-sm ring-1 ring-emerald-500/40'
+                                    : 'bg-slate-800/70 hover:bg-slate-800 border-slate-700/60 text-slate-300 hover:text-white'
+                                }`}
+                              >
+                                <span className="truncate max-w-[170px]">
+                                  {template.name}
+                                </span>
+
+                                <span
+                                  className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                                    isActive
+                                      ? 'bg-emerald-500/30 text-emerald-200 font-bold'
+                                      : 'bg-slate-700/70 text-slate-400'
+                                  }`}
+                                >
+                                  {template.steps.length}p
+                                </span>
+
+                                {isEdited && (
+                                  <span
+                                    className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"
+                                    title="Alterações não salvas"
+                                  />
+                                )}
+
+                                {/* Ações do Modelo */}
+                                <div
+                                  className={`flex items-center gap-0.5 ml-1 transition ${
+                                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                  }`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditMeta(template)}
+                                    className="p-1 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-700/70 transition"
+                                    title="Renomear este modelo"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDuplicateTemplate(template)}
+                                    className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-700/70 transition"
+                                    title="Duplicar este modelo"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                  {sequenceTemplates.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteTemplate(template.id, template.name)}
+                                      className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition"
+                                      title="Excluir este modelo"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+
+                        {/* Botões: Novo Modelo e Restaurar Padrões */}
+                        <div className="flex items-center gap-1.5 shrink-0 self-end md:self-auto">
                           <button
                             type="button"
                             onClick={handleOpenCreateNew}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Novo Modelo</span>
@@ -2636,182 +2702,59 @@ export function MassOutreachModal({
                           <button
                             type="button"
                             onClick={handleResetToDefaults}
-                            title="Restaurar os 4 modelos padrão originais da plataforma"
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 text-xs transition cursor-pointer"
+                            title="Restaurar os modelos padrão originais"
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition cursor-pointer"
                           >
-                            <RotateCcw className="w-3 h-3" />
-                            <span className="hidden sm:inline">Restaurar Padrões</span>
+                            <RotateCcw className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
 
-                      {/* Grade de Modelos de Sequência */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                        {sequenceTemplates.map((template) => {
-                          const isActive = selectedPresetId === template.id;
-                          const isEdited = isActive && hasUnsavedChanges;
-                          const textCount = template.steps.filter((s) => s.type === 'text').length;
-                          const audioCount = template.steps.filter((s) => s.type === 'audio').length;
-
-                          return (
-                            <div
-                              key={template.id}
-                              onClick={() => handleApplyPreset(template.id)}
-                              className={`p-3 rounded-xl text-left border transition relative flex flex-col justify-between cursor-pointer group ${
-                                isActive
-                                  ? 'bg-emerald-950/40 border-emerald-500 text-white shadow-md shadow-emerald-950/50 ring-1 ring-emerald-500/40'
-                                  : 'bg-slate-900/70 border-slate-800/80 text-slate-300 hover:text-white hover:border-slate-700 hover:bg-slate-800/70'
-                              }`}
-                            >
-                              <div>
-                                <div className="flex items-start justify-between gap-1.5 mb-1.5">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    {isActive ? (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase bg-emerald-500 text-slate-950 flex items-center gap-1">
-                                        <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                        ATIVO
-                                      </span>
-                                    ) : (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800 text-slate-400 border border-slate-700/60">
-                                        MODELO
-                                      </span>
-                                    )}
-                                    {isEdited && (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                        ● Editado
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {/* Ações Rápidas do Card */}
-                                  <div
-                                    className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenEditMeta(template)}
-                                      className="p-1 rounded text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition"
-                                      title="Renomear ou editar descrição deste modelo"
-                                    >
-                                      <Edit3 className="w-3 h-3" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDuplicateTemplate(template)}
-                                      className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition"
-                                      title="Duplicar este modelo"
-                                    >
-                                      <Copy className="w-3 h-3" />
-                                    </button>
-                                    {sequenceTemplates.length > 1 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteTemplate(template.id, template.name)}
-                                        className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition"
-                                        title="Excluir este modelo"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <h5 className="text-xs font-bold leading-snug line-clamp-2">
-                                  {template.name}
-                                </h5>
-                                {template.description && (
-                                  <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                                    {template.description}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2.5 pt-2 border-t border-slate-800/80">
-                                <span className="font-semibold text-slate-300">
-                                  {template.steps.length} {template.steps.length === 1 ? 'passo' : 'passos'}
-                                </span>
-                                <span className="text-slate-400">
-                                  {textCount} txt{audioCount > 0 ? ` • ${audioCount} áudio` : ''}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Barra de Ação e Feedback do Modelo Ativo */}
-                      <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-700/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Layers className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-bold text-slate-200">
-                                Modelo Ativo:
-                              </span>
-                              <span className="text-xs font-extrabold text-emerald-300 truncate">
-                                {activeTemplate?.name}
-                              </span>
-                              {hasUnsavedChanges ? (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                                  Alterações não salvas
-                                </span>
-                              ) : (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                                  Salvo no navegador
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-slate-400 truncate">
-                              {hasUnsavedChanges
-                                ? 'Você alterou os passos abaixo. Clique em "Salvar Alterações" para fixar neste modelo ou salve como um novo.'
-                                : 'Os passos abaixo estão sincronizados com este modelo.'}
-                            </p>
+                      {/* Linha 2: Ações do Modelo Ativo (Somente quando há alterações não salvas) */}
+                      {hasUnsavedChanges && (
+                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2 text-xs text-amber-300">
+                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                            <span className="font-medium">
+                              Alterações pendentes em <strong className="text-white">{activeTemplate?.name}</strong>
+                            </span>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
-                          {hasUnsavedChanges && (
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <button
                               type="button"
                               onClick={handleDiscardChanges}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition cursor-pointer"
                               title="Reverter alterações e voltar aos passos originais deste modelo"
                             >
                               Descartar
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={handleOpenSaveAsNew}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer"
-                            title="Salvar esta configuração como um novo modelo de sequência"
-                          >
-                            <Copy className="w-3.5 h-3.5 text-blue-400" />
-                            <span>Salvar como Novo</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleSaveCurrentTemplate}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow cursor-pointer ${
-                              hasUnsavedChanges
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/40 animate-pulse'
-                                : 'bg-emerald-700/60 hover:bg-emerald-600 text-emerald-100'
-                            }`}
-                          >
-                            <Save className="w-3.5 h-3.5" />
-                            <span>Salvar Alterações</span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={handleOpenSaveAsNew}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer"
+                              title="Salvar esta configuração como um novo modelo de sequência"
+                            >
+                              <Copy className="w-3 h-3 text-blue-400" />
+                              <span>Salvar como Novo</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveCurrentTemplate}
+                              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                            >
+                              <Save className="w-3.5 h-3.5" />
+                              <span>Salvar Alterações</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Toast de Feedback */}
                       {templateSaveFeedback && (
-                        <div className="p-2.5 rounded-lg bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs flex items-center justify-between animate-in fade-in">
+                        <div className="p-2 rounded-lg bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                             <span>{templateSaveFeedback}</span>
                           </div>
                           <button
@@ -3805,23 +3748,15 @@ export function MassOutreachModal({
                   </div>
                 </div>
 
-                {/* Resumo da Automação */}
-                <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-800 space-y-2 text-xs">
-                  <div className="font-bold text-slate-200 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Garantias da Prospecção FlowLevel:</span>
-                  </div>
-                  <ul className="text-slate-400 space-y-1 text-[11px] list-disc list-inside">
-                    <li>
-                      Sequência respeita cadência anti-bloqueio entre cada empresa contatada.
-                    </li>
-                    <li>
-                      Respostas são avaliadas pelo Cérebro IA com intenção semântica.
-                    </li>
-                    <li>
-                      Decisores confirmados entram automaticamente no CRM e recebem a proposta.
-                    </li>
-                  </ul>
+                {/* Proteção Anti-bloqueio */}
+                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1.5 text-slate-300 font-medium">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Proteção Anti-bloqueio Ativa</span>
+                  </span>
+                  <span className="text-emerald-400 font-semibold text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    IA Conectada
+                  </span>
                 </div>
               </div>
             )}
