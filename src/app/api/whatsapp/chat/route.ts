@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { fetchWhatsAppProfilePicture, getDefaultAvatarUrl, isRealAvatar } from '@/lib/whatsapp-avatar';
+import { getContactDisplayName, isUnidentifiedContactName } from '@/lib/phone';
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'https://evolution-api-kix9.onrender.com';
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || 'flowlevel_secret_key_2026';
@@ -101,9 +102,9 @@ export async function GET(req: NextRequest) {
     const formattedContacts = validContacts.map((c) => ({
       id: c.id,
       subaccountId: c.subaccount_id || resolvedSubId,
-      name: c.name || 'Contato WhatsApp',
+      name: getContactDisplayName(c.name, c.phone),
       phone: c.phone || '',
-      avatar: isRealAvatar(c.avatar) ? c.avatar : getDefaultAvatarUrl(c.name),
+      avatar: isRealAvatar(c.avatar) ? c.avatar : getDefaultAvatarUrl(getContactDisplayName(c.name, c.phone)),
       lastMessage: c.last_message || '',
       lastMessageTime: c.last_message_time || 'Agora',
       unreadCount: c.unread_count || 0,
@@ -338,7 +339,9 @@ export async function POST(req: NextRequest) {
           last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread_count: 0,
           tags: finalTags,
-          name: targetContact.name && targetContact.name !== 'Contato WhatsApp' ? targetContact.name : (name || targetContact.name || 'Contato WhatsApp'),
+          name: targetContact.name && !isUnidentifiedContactName(targetContact.name)
+            ? targetContact.name
+            : (name && !isUnidentifiedContactName(name) ? name : getContactDisplayName(name, cleanPhone)),
           avatar: isRealAvatar(contactAvatar) ? contactAvatar : getDefaultAvatarUrl(name || targetContact.name),
         })
         .eq('id', targetContact.id)
@@ -364,7 +367,7 @@ export async function POST(req: NextRequest) {
         .insert({
           id: newId,
           subaccount_id: resolvedSubId,
-          name: name || 'Lead Prospecção',
+          name: name && !isUnidentifiedContactName(name) ? name : getContactDisplayName(name, cleanPhone),
           phone: `+${cleanPhone}`,
           avatar: contactAvatar,
           last_message: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz' : 'Mensagem enviada'),

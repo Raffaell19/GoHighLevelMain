@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { ActiveTab } from '@/components/Sidebar';
+import { getContactDisplayName, formatFullPhoneNumber } from '@/lib/phone';
 
 interface DashboardViewProps {
   setActiveTab: (tab: ActiveTab) => void;
@@ -166,8 +167,8 @@ export function DashboardView({ setActiveTab, onOpenNewLeadModal }: DashboardVie
                 className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between"
               >
                 <div>
-                  <p className="font-semibold text-xs text-slate-800 dark:text-slate-200">{lead.name}</p>
-                  <p className="text-[11px] text-slate-500">{lead.company || lead.phone}</p>
+                  <p className="font-semibold text-xs text-slate-800 dark:text-slate-200">{getContactDisplayName(lead.name, lead.phone)}</p>
+                  <p className="text-[11px] text-slate-500">{lead.company || formatFullPhoneNumber(lead.phone)}</p>
                   <div className="flex gap-1.5 mt-1">
                     {lead.tags.map((t) => (
                       <span key={t} className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-400">

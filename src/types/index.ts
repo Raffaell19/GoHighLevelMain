@@ -86,6 +86,7 @@ export interface SequenceStepItem {
   title?: string;
   textContent?: string;
   audioId?: string;
+  audioTrack?: AudioTrackItem;
   delaySeconds?: number;
   requireResponse?: boolean;
 }
@@ -140,6 +141,32 @@ export interface GMBStats {
 
 export type SocialPlatform = 'instagram' | 'facebook' | 'linkedin';
 
+export interface SocialPlatformConfig {
+  enabled: boolean;
+  accountId?: string;
+  username?: string;
+  accessToken?: string;
+  pageId?: string;
+  pageName?: string;
+  organizationUrn?: string;
+  companyName?: string;
+  clientId?: string;
+  clientSecret?: string;
+  status: 'connected' | 'disconnected' | 'testing';
+  lastTested?: string;
+}
+
+export interface SocialCredentials {
+  instagram: SocialPlatformConfig;
+  facebook: SocialPlatformConfig;
+  linkedin: SocialPlatformConfig;
+  webhook?: {
+    enabled: boolean;
+    url?: string;
+    secretToken?: string;
+  };
+}
+
 export interface SocialPost {
   id: string;
   subaccountId: string;
@@ -150,6 +177,9 @@ export interface SocialPost {
   status: 'draft' | 'scheduled' | 'published';
   likes?: number;
   comments?: number;
+  shares?: number;
+  publishedAt?: string;
+  platformResults?: Record<string, { status: string; id?: string; error?: string }>;
 }
 
 export type WorkflowStepType = 'action' | 'condition' | 'delay' | 'webhook';

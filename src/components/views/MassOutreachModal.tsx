@@ -644,6 +644,7 @@ export function MassOutreachModal({
   } | null>(null);
 
   const [uploadTargetStepIndex, setUploadTargetStepIndex] = useState<number | null>(null);
+  const [galleryPickerStepIndex, setGalleryPickerStepIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -741,7 +742,11 @@ export function MassOutreachModal({
       setRecordingTargetStepIndex(targetStepIndex);
       setRecordingSeconds(0);
       secondsRecordedRef.current = 0;
-      setNewAudioTitle(`Áudio ${audioTracks.length + 1} - Gravação`);
+      setNewAudioTitle(
+        targetStepIndex !== null
+          ? `Áudio do Passo ${targetStepIndex + 1}`
+          : `Áudio ${audioTracks.length + 1} - Gravação`
+      );
 
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = setInterval(() => {
@@ -764,13 +769,14 @@ export function MassOutreachModal({
     }
   };
 
-  // Salvar Áudio Gravado na Galeria e opcionalmente vincular ao Passo ativo
+  // Salvar Áudio Gravado na Galeria e opcionalmente vincular EXCLUSIVAMENTE ao Passo ativo
   const handleSaveRecordedAudio = () => {
     if (!recordedAudioPayload) return;
 
+    const targetIdx = recordedAudioPayload.targetStepIndex;
     const newTrack: AudioTrackItem = {
       id: `audio_custom_${Date.now()}`,
-      name: newAudioTitle.trim() || `Áudio ${audioTracks.length + 1}`,
+      name: newAudioTitle.trim() || `Áudio ${(targetIdx !== null ? targetIdx + 1 : audioTracks.length + 1)} - Gravação`,
       duration: Math.max(recordedAudioPayload.duration, 1),
       url: recordedAudioPayload.url,
       createdAt: 'Gravado por você',
@@ -781,15 +787,14 @@ export function MassOutreachModal({
     setAudioTracks(updated);
     saveCustomAudios(updated);
 
-    // Se o áudio foi gravado diretamente para um passo da sequência, vincula de imediato
+    // Se o áudio foi gravado diretamente para um passo da sequência, vincula EXCLUSIVAMENTE a esse passo
     if (
-      recordedAudioPayload.targetStepIndex !== null &&
-      recordedAudioPayload.targetStepIndex >= 0 &&
-      recordedAudioPayload.targetStepIndex < steps.length
+      targetIdx !== null &&
+      targetIdx >= 0 &&
+      targetIdx < steps.length
     ) {
-      const targetIdx = recordedAudioPayload.targetStepIndex;
       setSteps((prev) =>
-        prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id } : s))
+        prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id, audioTrack: newTrack } : s))
       );
     }
 
@@ -821,19 +826,17 @@ export function MassOutreachModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const targetIdx = uploadTargetStepIndex;
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onloadend = () => {
       const base64Url = reader.result as string;
       const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
 
-      // Tentar calcular duração real via elemento temporário Audio
-      const tempAudio = new Audio(base64Url);
-      tempAudio.onloadedmetadata = () => {
-        const durationSec = Math.round(tempAudio.duration) || 5;
+      const applyUploadedTrack = (durationSec: number) => {
         const newTrack: AudioTrackItem = {
           id: `audio_custom_${Date.now()}`,
-          name: cleanFileName || `Áudio ${audioTracks.length + 1}`,
+          name: cleanFileName || `Áudio ${(targetIdx !== null ? targetIdx + 1 : audioTracks.length + 1)}`,
           duration: durationSec,
           url: base64Url,
           createdAt: 'Arquivo importado',
@@ -845,45 +848,31 @@ export function MassOutreachModal({
         saveCustomAudios(updated);
 
         if (
-          uploadTargetStepIndex !== null &&
-          uploadTargetStepIndex >= 0 &&
-          uploadTargetStepIndex < steps.length
+          targetIdx !== null &&
+          targetIdx >= 0 &&
+          targetIdx < steps.length
         ) {
-          const targetIdx = uploadTargetStepIndex;
           setSteps((prev) =>
-            prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id } : s))
+            prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id, audioTrack: newTrack } : s))
           );
         }
+        setUploadTargetStepIndex(null);
+      };
+
+      // Tentar calcular duração real via elemento temporário Audio
+      const tempAudio = new Audio(base64Url);
+      tempAudio.onloadedmetadata = () => {
+        const durationSec = Math.round(tempAudio.duration) || 5;
+        applyUploadedTrack(durationSec);
       };
 
       tempAudio.onerror = () => {
-        const newTrack: AudioTrackItem = {
-          id: `audio_custom_${Date.now()}`,
-          name: cleanFileName || `Áudio ${audioTracks.length + 1}`,
-          duration: 10,
-          url: base64Url,
-          createdAt: 'Arquivo importado',
-          isCustom: true,
-        };
-        const updated = [...audioTracks, newTrack];
-        setAudioTracks(updated);
-        saveCustomAudios(updated);
-
-        if (
-          uploadTargetStepIndex !== null &&
-          uploadTargetStepIndex >= 0 &&
-          uploadTargetStepIndex < steps.length
-        ) {
-          const targetIdx = uploadTargetStepIndex;
-          setSteps((prev) =>
-            prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id } : s))
-          );
-        }
+        applyUploadedTrack(10);
       };
     };
   };
 
-  // Excluir Áudio
+  // Excluir Áudio da biblioteca geral
   const handleDeleteAudio = (id: string) => {
     if (activePlayingId === id) {
       if (audioPlayerRef.current) audioPlayerRef.current.pause();
@@ -894,8 +883,30 @@ export function MassOutreachModal({
     saveCustomAudios(updated);
     // Remove vínculo de qualquer passo que estava usando este áudio
     setSteps((prev) =>
-      prev.map((s) => (s.audioId === id ? { ...s, audioId: undefined } : s))
+      prev.map((s) => (s.audioId === id || s.audioTrack?.id === id ? { ...s, audioId: undefined, audioTrack: undefined } : s))
     );
+  };
+
+  // Desvincular áudio exclusivamente deste passo (sem apagar da biblioteca)
+  const handleRemoveStepAudio = (stepIndex: number) => {
+    setSteps((prev) =>
+      prev.map((s, idx) =>
+        idx === stepIndex ? { ...s, audioId: undefined, audioTrack: undefined } : s
+      )
+    );
+    if (galleryPickerStepIndex === stepIndex) {
+      setGalleryPickerStepIndex(null);
+    }
+  };
+
+  // Vincular áudio da biblioteca a este passo específico
+  const handleSelectLibraryAudioForStep = (stepIndex: number, track: AudioTrackItem) => {
+    setSteps((prev) =>
+      prev.map((s, idx) =>
+        idx === stepIndex ? { ...s, audioId: track.id, audioTrack: track } : s
+      )
+    );
+    setGalleryPickerStepIndex(null);
   };
 
   // Reproduzir / Pausar Áudio
@@ -1215,6 +1226,7 @@ export function MassOutreachModal({
       type: 'audio',
       title: `Passo ${steps.length + 1}: Áudio Gravado PTT`,
       audioId: selectedAudio?.id,
+      audioTrack: selectedAudio,
       requireResponse: true,
     };
     setSteps([...steps, newStep]);
@@ -1523,10 +1535,15 @@ export function MassOutreachModal({
         if (targetStep.type === 'text') {
           textToSend = renderPersonalizedText(targetStep.textContent || '', lead);
         } else if (targetStep.type === 'audio') {
-          const track = audioTracks.find((a) => a.id === targetStep.audioId) || audioTracks[0];
-          mediaUrl = track?.url;
-          mediaType = 'audio';
-          textToSend = '🎙️ Mensagem de voz (Áudio gravado)';
+          const track = targetStep.audioTrack || (targetStep.audioId ? audioTracks.find((a) => a.id === targetStep.audioId) : undefined);
+          if (!track?.url) {
+            hasLeadError = true;
+            lastErrorMessage = `O Passo ${targetStepNum} (Áudio) não possui arquivo de áudio vinculado.`;
+          } else {
+            mediaUrl = track.url;
+            mediaType = 'audio';
+            textToSend = '🎙️ Mensagem de voz (Áudio gravado)';
+          }
         }
 
         try {
@@ -1585,10 +1602,16 @@ export function MassOutreachModal({
           if (step.type === 'text') {
             textToSend = renderPersonalizedText(step.textContent || '', lead);
           } else if (step.type === 'audio') {
-            const track = audioTracks.find((a) => a.id === step.audioId) || audioTracks[0];
-            mediaUrl = track?.url;
-            mediaType = 'audio';
-            textToSend = '🎙️ Mensagem de voz (Áudio gravado)';
+            const track = step.audioTrack || (step.audioId ? audioTracks.find((a) => a.id === step.audioId) : undefined);
+            if (!track?.url) {
+              hasLeadError = true;
+              lastErrorMessage = `O Passo ${sIdx + 1} (Áudio) não possui arquivo de áudio vinculado.`;
+              continue;
+            } else {
+              mediaUrl = track.url;
+              mediaType = 'audio';
+              textToSend = '🎙️ Mensagem de voz (Áudio gravado)';
+            }
           }
 
           try {
@@ -2827,7 +2850,9 @@ export function MassOutreachModal({
 
                       {/* Itens da Sequência */}
                       <div className="space-y-3">
-                        {steps.map((step, index) => (
+                        {steps.map((step, index) => {
+                          const stepAudio = step.audioTrack || (step.audioId ? audioTracks.find((a) => a.id === step.audioId) : undefined);
+                          return (
                           <div
                             key={step.id}
                             className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-2.5 relative group transition hover:border-slate-600"
@@ -2843,17 +2868,6 @@ export function MassOutreachModal({
                                   {step.type === 'audio' && '🎙️ Áudio Gravado PTT'}
                                   {step.type === 'delay' && '⏳ Intervalo / Pausa'}
                                 </span>
-                                {step.type !== 'delay' && (
-                                  <span
-                                    className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
-                                      step.requireResponse !== false
-                                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                                        : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                                    }`}
-                                  >
-                                    {step.requireResponse !== false ? '⏳ Exige Resposta' : '⚡ Sem Resposta'}
-                                  </span>
-                                )}
                               </div>
 
                               {/* Ações: Subir, Descer, Excluir */}
@@ -3008,16 +3022,164 @@ export function MassOutreachModal({
                                       </div>
                                     </div>
                                   </div>
-                                ) : audioTracks.length === 0 ? (
-                                  /* Estado 3: Nenhum áudio gravado ainda no sistema */
-                                  <div className="p-4 rounded-xl bg-slate-900/60 border border-dashed border-slate-700 text-center space-y-3">
+                                ) : galleryPickerStepIndex === index ? (
+                                  /* Seletor da Biblioteca aberto para vincular a este passo */
+                                  <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/40 space-y-3 animate-in fade-in">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="font-semibold text-white flex items-center gap-1.5">
+                                        <FileAudio className="w-4 h-4 text-emerald-400" />
+                                        <span>Selecione um áudio da sua biblioteca para este passo:</span>
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setGalleryPickerStepIndex(null)}
+                                        className="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-slate-800 transition"
+                                      >
+                                        Cancelar
+                                      </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                                      {audioTracks.map((track) => (
+                                        <div
+                                          key={track.id}
+                                          className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 hover:border-emerald-500/50 flex items-center justify-between gap-2 transition"
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <button
+                                              type="button"
+                                              onClick={() => togglePlayAudio(track)}
+                                              className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition ${
+                                                activePlayingId === track.id
+                                                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                                  : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                                              }`}
+                                            >
+                                              {activePlayingId === track.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                            </button>
+                                            <div className="min-w-0">
+                                              <div className="font-medium text-xs text-white truncate max-w-[140px]">{track.name}</div>
+                                              <div className="text-[10px] text-slate-400">0:{track.duration < 10 ? `0${track.duration}` : track.duration}s</div>
+                                            </div>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSelectLibraryAudioForStep(index, track)}
+                                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shrink-0 transition shadow"
+                                          >
+                                            Vincular
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : stepAudio ? (
+                                  /* Áudio configurado exclusivamente para este passo */
+                                  <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/50 space-y-2.5 animate-in fade-in shadow-sm">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                                        <span className="text-slate-300 font-medium">Áudio Vinculado a Este Passo:</span>
+                                      </div>
+                                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+                                        <Check className="w-3 h-3 stroke-[3]" />
+                                        <span>Instância Independente</span>
+                                      </span>
+                                    </div>
+
+                                    {/* Card do Áudio do Passo */}
+                                    <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-xs flex items-center justify-between gap-3">
+                                      <div className="flex items-center gap-3 min-w-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => togglePlayAudio(stepAudio)}
+                                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-md transition ${
+                                            activePlayingId === stepAudio.id
+                                              ? 'bg-emerald-500 text-slate-950'
+                                              : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                                          }`}
+                                          title={activePlayingId === stepAudio.id ? 'Pausar áudio' : 'Ouvir áudio deste passo'}
+                                        >
+                                          {activePlayingId === stepAudio.id ? (
+                                            <Pause className="w-4 h-4" />
+                                          ) : (
+                                            <Play className="w-4 h-4 ml-0.5" />
+                                          )}
+                                        </button>
+                                        <div className="min-w-0">
+                                          <div className="font-bold text-xs text-white truncate max-w-[200px] sm:max-w-[320px]">
+                                            {stepAudio.name}
+                                          </div>
+                                          <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                            <span className="text-emerald-400 font-semibold">
+                                              0:{stepAudio.duration < 10 ? `0${stepAudio.duration}` : stepAudio.duration}s
+                                            </span>
+                                            <span>•</span>
+                                            <span>{stepAudio.createdAt || 'Arquivo deste passo'}</span>
+                                            <span>•</span>
+                                            <span className="text-slate-500">PTT WhatsApp</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveStepAudio(index)}
+                                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition"
+                                          title="Desvincular áudio deste passo"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Ações para trocar ou regravar áudio para este passo */}
+                                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80 text-[11px]">
+                                      <span className="text-slate-500">Alterar áudio deste passo:</span>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => startRecording(index)}
+                                          className="text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
+                                        >
+                                          <Mic className="w-3 h-3" />
+                                          <span>Regravar</span>
+                                        </button>
+                                        <span className="text-slate-700">•</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleTriggerUpload(index)}
+                                          className="text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
+                                        >
+                                          <Upload className="w-3 h-3" />
+                                          <span>Trocar Arquivo</span>
+                                        </button>
+                                        {audioTracks.length > 1 && (
+                                          <>
+                                            <span className="text-slate-700">•</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setGalleryPickerStepIndex(index)}
+                                              className="text-slate-400 hover:text-slate-200 flex items-center gap-1"
+                                            >
+                                              <FileAudio className="w-3 h-3 text-slate-400" />
+                                              <span>Da Galeria</span>
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* Nenhum áudio vinculado a este passo ainda */
+                                  <div className="p-4 rounded-xl bg-slate-900/60 border border-dashed border-slate-700 text-center space-y-3 animate-in fade-in">
                                     <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center">
                                       <Mic className="w-5 h-5" />
                                     </div>
                                     <div className="space-y-0.5">
-                                      <div className="text-xs font-bold text-white">Nenhum áudio cadastrado ainda</div>
+                                      <div className="text-xs font-bold text-white">Nenhum áudio anexado a este passo</div>
                                       <p className="text-[11px] text-slate-400 max-w-md mx-auto">
-                                        Grave seu áudio agora usando seu microfone ou envie um arquivo (.mp3, .ogg, .wav). Ele ficará salvo no histórico para você reutilizar.
+                                        Cada mensagem de áudio é 100% independente. Grave um áudio com o microfone ou envie um arquivo (.mp3, .ogg, .wav) exclusivo para este passo.
                                       </p>
                                     </div>
                                     <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
@@ -3027,7 +3189,7 @@ export function MassOutreachModal({
                                         className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-lg shadow-red-600/20"
                                       >
                                         <Mic className="w-4 h-4" />
-                                        <span>Gravar com Microfone</span>
+                                        <span>Gravar para Este Passo</span>
                                       </button>
                                       <button
                                         type="button"
@@ -3037,111 +3199,16 @@ export function MassOutreachModal({
                                         <Upload className="w-4 h-4 text-emerald-400" />
                                         <span>Subir Arquivo de Áudio</span>
                                       </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  /* Estado 4: Biblioteca possui áudios reais gravados pelo usuário */
-                                  <div className="space-y-2.5">
-                                    <div className="flex items-center justify-between text-xs">
-                                      <span className="text-slate-300 font-medium">
-                                        Selecione o áudio deste passo ou grave um novo:
-                                      </span>
-                                      <div className="flex items-center gap-2">
+                                      {audioTracks.length > 0 && (
                                         <button
                                           type="button"
-                                          onClick={() => startRecording(index)}
-                                          className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
+                                          onClick={() => setGalleryPickerStepIndex(index)}
+                                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-300 text-xs transition"
                                         >
-                                          <Mic className="w-3 h-3" />
-                                          <span>+ Gravar para Este Passo</span>
+                                          <FileAudio className="w-4 h-4 text-emerald-400" />
+                                          <span>Escolher da Galeria ({audioTracks.length})</span>
                                         </button>
-                                        <span className="text-slate-600">•</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleTriggerUpload(index)}
-                                          className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
-                                        >
-                                          <Upload className="w-3 h-3" />
-                                          <span>Subir Arquivo</span>
-                                        </button>
-                                      </div>
-                                    </div>
-
-                                    {/* Grid de Áudios Salvos */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                      {audioTracks.map((track) => {
-                                        const isSelected = step.audioId === track.id;
-                                        return (
-                                          <div
-                                            key={track.id}
-                                            onClick={() => {
-                                              setSteps((prev) =>
-                                                prev.map((s, idx) =>
-                                                  idx === index ? { ...s, audioId: track.id } : s
-                                                )
-                                              );
-                                            }}
-                                            className={`p-2.5 rounded-xl border cursor-pointer text-xs flex items-center justify-between transition ${
-                                              isSelected
-                                                ? 'bg-emerald-950/40 border-emerald-500 text-white ring-1 ring-emerald-500/50 shadow-sm'
-                                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                                            }`}
-                                          >
-                                            <div className="flex items-center gap-2.5 min-w-0">
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  togglePlayAudio(track);
-                                                }}
-                                                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition ${
-                                                  activePlayingId === track.id
-                                                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                                                    : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                                                }`}
-                                                title={activePlayingId === track.id ? 'Pausar áudio' : 'Ouvir áudio'}
-                                              >
-                                                {activePlayingId === track.id ? (
-                                                  <Pause className="w-3.5 h-3.5" />
-                                                ) : (
-                                                  <Play className="w-3.5 h-3.5 ml-0.5" />
-                                                )}
-                                              </button>
-                                              <div className="min-w-0">
-                                                <div className="font-semibold text-xs text-white truncate max-w-[160px]">
-                                                  {track.name}
-                                                </div>
-                                                <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                                                  <span>
-                                                    0:{track.duration < 10 ? `0${track.duration}` : track.duration}s
-                                                  </span>
-                                                  <span>•</span>
-                                                  <span>{track.createdAt}</span>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-1 shrink-0 ml-1">
-                                              {isSelected && (
-                                                <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow">
-                                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                                </span>
-                                              )}
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleDeleteAudio(track.id);
-                                                }}
-                                                className="p-1 text-slate-600 hover:text-rose-400 hover:bg-rose-950/20 rounded transition"
-                                                title="Excluir este áudio do histórico"
-                                              >
-                                                <Trash2 className="w-3 h-3" />
-                                              </button>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
+                                      )}
                                     </div>
                                   </div>
                                 )}
@@ -3169,78 +3236,9 @@ export function MassOutreachModal({
                                 <span>segundos antes de prosseguir para o próximo passo</span>
                               </div>
                             )}
-
-                            {/* Configuração de Dependência de Resposta & Gatilho Individual */}
-                            {step.type !== 'delay' && (
-                              <div className="pt-2.5 mt-2.5 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-2.5">
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`w-2.5 h-2.5 rounded-full ${
-                                      step.requireResponse !== false
-                                        ? 'bg-amber-400 animate-pulse'
-                                        : 'bg-blue-400'
-                                    }`}
-                                  />
-                                  <div>
-                                    <div className="text-xs font-semibold text-slate-200 flex items-center gap-2">
-                                      <span>Requer resposta do lead antes do próximo passo?</span>
-                                      <span
-                                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                                          step.requireResponse !== false
-                                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-                                        }`}
-                                      >
-                                        {step.requireResponse !== false ? 'Sim (Aguardar Retorno)' : 'Não (Direto / Follow-up)'}
-                                      </span>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400">
-                                      {step.requireResponse !== false
-                                        ? 'O próximo passo é pausado até o contato responder no WhatsApp (ou simular resposta).'
-                                        : 'Este passo pode ser disparado em massa diretamente, sem depender de retorno do cliente.'}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSteps((prev) =>
-                                        prev.map((s, idx) =>
-                                          idx === index
-                                            ? { ...s, requireResponse: s.requireResponse === false ? true : false }
-                                            : s
-                                        )
-                                      );
-                                    }}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                                      step.requireResponse !== false
-                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
-                                        : 'bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30'
-                                    }`}
-                                  >
-                                    <span>Mudar para: {step.requireResponse !== false ? 'Não Exigir' : 'Exigir Resposta'}</span>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setDispatchMode('single_step');
-                                      setTargetStepIndexToDispatch(index);
-                                      setActiveTab('recipients');
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-emerald-500 flex items-center gap-1.5 transition cursor-pointer"
-                                    title="Focar este passo para envio individual aos contatos selecionados"
-                                  >
-                                    <Send className="w-3 h-3 text-emerald-400" />
-                                    <span>Focar Disparo Neste Passo</span>
-                                  </button>
-                                </div>
-                              </div>
-                            )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -3691,7 +3689,7 @@ export function MassOutreachModal({
                       }
 
                       if (step.type === 'audio') {
-                        const track = audioTracks.find((a) => a.id === step.audioId);
+                        const track = step.audioTrack || (step.audioId ? audioTracks.find((a) => a.id === step.audioId) : undefined);
 
                         if (!track) {
                           return (

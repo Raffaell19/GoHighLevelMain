@@ -123,8 +123,11 @@ interface AppContextType {
   reviews: GMBReview[];
   gmbStats: GMBStats;
   replyToReview: (reviewId: string, replyText: string) => Promise<void>;
+  updateSubaccountLogo: (subaccountId: string, logo: string) => Promise<void>;
+  updateGMBData: (stats: GMBStats, reviews: GMBReview[], isConnected?: boolean) => void;
   socialPosts: SocialPost[];
   addSocialPost: (post: Omit<SocialPost, 'id'>) => void;
+  deleteSocialPost: (id: string) => void;
   workflows: WorkflowRule[];
   toggleWorkflow: (workflowId: string) => void;
   addWorkflow: (wf: Omit<WorkflowRule, 'id' | 'totalExecutions'>) => Promise<void>;
@@ -148,7 +151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeContact, setActiveContact] = useState<WhatsAppContact | null>(null);
   const [messages, setMessages] = useState<Record<string, WhatsAppMessage[]>>({});
   const [reviews, setReviews] = useState<GMBReview[]>([]);
-  const [gmbStats] = useState<GMBStats>(initialGMBStats);
+  const [gmbStats, setGmbStats] = useState<GMBStats>(initialGMBStats);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>(initialSocialPosts);
   const [workflows, setWorkflows] = useState<WorkflowRule[]>(initialWorkflows);
   const [isDbConnected, setIsDbConnected] = useState(false);
@@ -178,7 +181,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 id: s.id,
                 name: s.name,
                 segment: s.segment || 'Serviços',
-                logo: s.logo || '🏢',
+                logo: s.logo && s.logo !== '🏢' ? s.logo : (s.name === 'Connect Digital' ? '/logo-connect-digital.png' : (s.logo || '🏢')),
                 phone: s.phone || '',
                 email: s.email || '',
                 whatsappConfig: {
@@ -205,7 +208,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               id: s.id,
               name: s.name,
               segment: s.segment || 'Serviços',
-              logo: s.logo || '🏢',
+              logo: s.logo && s.logo !== '🏢' ? s.logo : (s.name === 'Connect Digital' ? '/logo-connect-digital.png' : (s.logo || '🏢')),
               phone: s.phone || '',
               email: s.email || '',
               whatsappConfig: {
@@ -330,6 +333,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const dataWf = await resWf.json();
         if (dataWf.workflows && isMounted) {
           setWorkflows(dataWf.workflows);
+        }
+
+        // 5. Buscar Dados do Google Meu Negócio
+        const resGmb = await fetch(`/api/gmb?subaccountId=${currentSubaccount.id}`);
+        const dataGmb = await resGmb.json();
+        if (dataGmb && isMounted) {
+          if (dataGmb.stats) setGmbStats(dataGmb.stats);
+          if (dataGmb.reviews && Array.isArray(dataGmb.reviews) && dataGmb.reviews.length > 0) {
+            setReviews(dataGmb.reviews);
+          }
+        }
+
+        // 6. Buscar Postagens Sociais
+        const resSocial = await fetch(`/api/social/posts?subaccountId=${currentSubaccount.id}`);
+        const dataSocial = await resSocial.json();
+        if (dataSocial?.posts && isMounted) {
+          setSocialPosts((prev) => (prev.length === 0 ? dataSocial.posts : prev));
         }
       } catch (err) {
         console.error('Erro ao sincronizar dados em tempo real:', err);
@@ -878,27 +898,75 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const replyToReview = async (reviewId: string, replyText: string) => {
-    setReviews((prev) =>
-      prev.map((r) =>
-        r.id === reviewId
-          ? {
-              ...r,
-              replyText,
-              replyTime: 'Agora mesmo',
-            }
-          : r
-      )
+    const updatedReviews = reviews.map((r) =>
+      r.id === reviewId
+        ? {
+            ...r,
+            replyText,
+            replyTime: 'Agora mesmo',
+          }
+        : r
     );
+    setReviews(updatedReviews);
+
+    // Persiste no backend do Google Meu Negócio
+    try {
+      await fetch('/api/gmb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subaccountId: currentSubaccount.id,
+          action: 'sync',
+          customReviews: updatedReviews,
+          customStats: gmbStats,
+        }),
+      });
+    } catch (e) {
+      console.warn('Erro ao persistir resposta no GMB:', e);
+    }
+  };
+
+  const updateSubaccountLogo = async (subaccountId: string, logo: string) => {
+    setSubaccounts((prev) =>
+      prev.map((s) => (s.id === subaccountId ? { ...s, logo } : s))
+    );
+    setCurrentSubaccount((prev) => (prev.id === subaccountId ? { ...prev, logo } : prev));
+    try {
+      await fetch('/api/subaccounts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: subaccountId, logo }),
+      });
+    } catch (err) {
+      console.error('Erro ao atualizar logo da subconta:', err);
+    }
+  };
+
+  const updateGMBData = (stats: GMBStats, newReviews: GMBReview[], isConnected?: boolean) => {
+    setGmbStats(stats);
+    setReviews(newReviews);
+    if (isConnected !== undefined) {
+      setSubaccounts((prev) =>
+        prev.map((s) => (s.id === currentSubaccount.id ? { ...s, gmbConnected: isConnected } : s))
+      );
+      setCurrentSubaccount((prev) => ({ ...prev, gmbConnected: isConnected }));
+    }
   };
 
   const addSocialPost = (post: Omit<SocialPost, 'id'>) => {
     const newPost: SocialPost = {
       ...post,
       id: `post-${Date.now()}`,
-      likes: 0,
-      comments: 0,
+      likes: post.status === 'published' ? Math.floor(Math.random() * 30) + 10 : 0,
+      comments: post.status === 'published' ? Math.floor(Math.random() * 8) + 2 : 0,
+      shares: post.status === 'published' ? Math.floor(Math.random() * 5) + 1 : 0,
     };
     setSocialPosts((prev) => [newPost, ...prev]);
+  };
+
+  const deleteSocialPost = (id: string) => {
+    setSocialPosts((prev) => prev.filter((p) => p.id !== id));
+    fetch(`/api/social/posts?id=${id}`, { method: 'DELETE' }).catch(() => {});
   };
 
   const toggleWorkflow = async (workflowId: string) => {
@@ -996,11 +1064,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         handleInboundLeadResponse,
         updateWhatsAppConfig,
         refreshChatData,
-        reviews: reviews.filter((r) => r.subaccountId === currentSubaccount.id),
+        reviews: reviews.filter((r) => !r.subaccountId || r.subaccountId === currentSubaccount.id),
         gmbStats,
         replyToReview,
-        socialPosts: socialPosts.filter((p) => p.subaccountId === currentSubaccount.id),
+        updateSubaccountLogo,
+        updateGMBData,
+        socialPosts: socialPosts.filter((p) => !p.subaccountId || p.subaccountId === currentSubaccount.id),
         addSocialPost,
+        deleteSocialPost,
         workflows: workflows.filter((w) => w.subaccountId === currentSubaccount.id),
         toggleWorkflow,
         addWorkflow,

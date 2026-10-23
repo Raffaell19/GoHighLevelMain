@@ -29,6 +29,7 @@ import {
 import { useApp } from '@/context/AppContext';
 import { WhatsAppProvider } from '@/types';
 import { MassOutreachModal } from './MassOutreachModal';
+import { getContactDisplayName } from '@/lib/phone';
 
 export function WhatsAppView() {
   const {
@@ -594,7 +595,9 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-semibold text-xs text-slate-100 truncate">{contact.name}</p>
+                          <p className="font-semibold text-xs text-slate-100 truncate">
+                            {getContactDisplayName(contact.name, contact.phone)}
+                          </p>
                           <span className="text-[10px] text-slate-400 shrink-0">{contact.lastMessageTime}</span>
                         </div>
                         <p className="text-[11px] text-slate-400 truncate mt-0.5">{contact.lastMessage || 'Iniciou conversa'}</p>
@@ -643,7 +646,9 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                     />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-xs text-white leading-tight truncate">{activeContact.name}</h3>
+                    <h3 className="font-bold text-xs text-white leading-tight truncate">
+                      {getContactDisplayName(activeContact.name, activeContact.phone)}
+                    </h3>
                     <p className="text-[11px] text-slate-400 truncate">{activeContact.phone}</p>
                   </div>
                 </div>

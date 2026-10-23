@@ -21,6 +21,7 @@ import {
 import { useApp } from '@/context/AppContext';
 import { Lead } from '@/types';
 import { ActiveTab } from '@/components/Sidebar';
+import { getContactDisplayName, formatFullPhoneNumber } from '@/lib/phone';
 
 interface CRMViewProps {
   onOpenNewLeadModal: () => void;
@@ -42,7 +43,8 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
 
   const handleDeleteOpportunity = async () => {
     if (!selectedLead) return;
-    if (!confirm(`Tem certeza que deseja excluir a oportunidade "${selectedLead.name}"?`)) {
+    const leadDisplayName = getContactDisplayName(selectedLead.name, selectedLead.phone);
+    if (!confirm(`Tem certeza que deseja excluir a oportunidade "${leadDisplayName}"?`)) {
       return;
     }
     setIsDeleting(true);
@@ -144,7 +146,7 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
                       >
                         <div className="flex items-start justify-between gap-1 mb-1">
                           <h4 className="font-semibold text-xs text-slate-900 dark:text-white group-hover:text-blue-500 transition line-clamp-1">
-                            {lead.name}
+                            {getContactDisplayName(lead.name, lead.phone)}
                           </h4>
                           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.value)}
@@ -207,7 +209,8 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
                             <button
                               title="Excluir Oportunidade"
                               onClick={async () => {
-                                if (confirm(`Deseja excluir a oportunidade "${lead.name}"?`)) {
+                                const leadDisplayName = getContactDisplayName(lead.name, lead.phone);
+                                if (confirm(`Deseja excluir a oportunidade "${leadDisplayName}"?`)) {
                                   try {
                                     await deleteLead(lead.id);
                                   } catch (err: any) {
@@ -239,10 +242,12 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
             <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-base">
-                  {selectedLead.name.charAt(0)}
+                  {getContactDisplayName(selectedLead.name, selectedLead.phone).replace('+', '').charAt(0)}
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">{selectedLead.name}</h3>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                    {getContactDisplayName(selectedLead.name, selectedLead.phone)}
+                  </h3>
                   <p className="text-xs text-slate-500">{selectedLead.company || 'Pessoa Física'}</p>
                 </div>
               </div>
@@ -267,7 +272,7 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
 
                 <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
                   <span className="text-[10px] text-slate-400 uppercase font-semibold">Telefone / WhatsApp</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{selectedLead.phone}</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{formatFullPhoneNumber(selectedLead.phone)}</p>
                 </div>
 
                 <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">

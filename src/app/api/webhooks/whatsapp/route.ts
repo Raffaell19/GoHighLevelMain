@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { generateWithAI } from '@/lib/ai';
 import { fetchWhatsAppProfilePicture, getDefaultAvatarUrl, isRealAvatar } from '@/lib/whatsapp-avatar';
+import { formatFullPhoneNumber, isUnidentifiedContactName } from '@/lib/phone';
 
 // GET: Verificação de Webhook para Meta Cloud API Oficial
 export async function GET(request: NextRequest) {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       const rawJid = keyObj.remoteJidAlt || remoteJid;
       senderPhone = rawJid.replace('@s.whatsapp.net', '').replace('@lid', '').replace(/[^0-9]/g, '');
 
-      senderName = msgData?.pushName || `Contato ${senderPhone.slice(-4)}`;
+      senderName = msgData?.pushName?.trim() || formatFullPhoneNumber(senderPhone);
       messageText =
         msgData?.message?.conversation ||
         msgData?.message?.extendedTextMessage?.text ||
@@ -82,14 +83,14 @@ export async function POST(request: NextRequest) {
 
       senderPhone = message.from.replace(/[^0-9]/g, '');
       const contactObj = change.contacts?.[0];
-      senderName = contactObj?.profile?.name || `Contato ${senderPhone.slice(-4)}`;
+      senderName = contactObj?.profile?.name?.trim() || formatFullPhoneNumber(senderPhone);
       messageText = message.text?.body || '[Mídia ou Mensagem Oficial]';
       targetInstanceOrPhone = change.metadata?.phone_number_id || '';
     }
     // 3. Payload de teste / genérico
     else if (payload.phone && payload.text) {
       senderPhone = payload.phone.replace(/[^0-9]/g, '');
-      senderName = payload.name || `Contato ${senderPhone.slice(-4)}`;
+      senderName = payload.name?.trim() || formatFullPhoneNumber(senderPhone);
       messageText = payload.text;
       targetInstanceOrPhone = payload.subaccountId || 'connect-digital';
     }
@@ -199,15 +200,21 @@ export async function POST(request: NextRequest) {
         if (fetchedPic) contactAvatar = fetchedPic;
       }
 
+      const isExistingNameUnidentified = isUnidentifiedContactName(existingContact.name);
+      const isSenderNameIdentified = !isUnidentifiedContactName(senderName);
+      const resolvedContactName = isSenderNameIdentified
+        ? senderName
+        : (!isExistingNameUnidentified ? existingContact.name : senderName);
+
       await supabase
         .from('whatsapp_contacts')
         .update({
-          name: senderName || existingContact.name,
+          name: resolvedContactName,
           last_message: messageText,
           last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread_count: (existingContact.unread_count || 0) + 1,
           tags: Array.from(updatedTags),
-          avatar: isRealAvatar(contactAvatar) ? contactAvatar : getDefaultAvatarUrl(senderName || existingContact.name),
+          avatar: isRealAvatar(contactAvatar) ? contactAvatar : getDefaultAvatarUrl(resolvedContactName),
         })
         .eq('id', contactId);
     } else {
@@ -266,7 +273,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existingLead } = await supabase
       .from('leads')
-      .select('id')
+      .select('id, name')
       .eq('subaccount_id', subaccount.id)
       .eq('phone', formattedPhone)
       .maybeSingle();
@@ -303,6 +310,11 @@ export async function POST(request: NextRequest) {
       leadCreated = true;
       leadId = createdLead?.id;
       console.log(`[Webhook WhatsApp] Novo Lead criado automaticamente no CRM! ID: ${leadId}`);
+    } else if (existingLead && isUnidentifiedContactName(existingLead.name) && !isUnidentifiedContactName(senderName)) {
+      await supabase
+        .from('leads')
+        .update({ name: senderName })
+        .eq('id', existingLead.id);
     }
 
     // 7. MOTOR DE CHATBOT IA AUTÔNOMO TREINADO (Responde o cliente de volta no WhatsApp em tempo real)
