@@ -1170,6 +1170,20 @@ export function MassOutreachModal({
     setSteps([...steps, newStep]);
   };
 
+  // Helper para formatar o rótulo oficial do passo sempre sincronizado com sua posição real (Passo 1, Passo 2, etc.)
+  const getStepDisplayLabel = (step: SequenceStepItem | undefined, index: number): string => {
+    const stepNum = index + 1;
+    if (!step) return `Passo ${stepNum}`;
+    const cleanTitle = step.title
+      ? step.title.replace(/^Passo\s*\d+\s*:\s*/i, '').trim()
+      : step.type === 'audio'
+      ? 'Áudio Gravado PTT'
+      : step.type === 'delay'
+      ? 'Pausa / Intervalo'
+      : 'Mensagem de Texto';
+    return `Passo ${stepNum}: ${cleanTitle || 'Mensagem de Texto'}`;
+  };
+
   // Mover Passo para Cima
   const handleMoveStepUp = (index: number) => {
     if (index === 0) return;
@@ -1177,7 +1191,12 @@ export function MassOutreachModal({
     const temp = next[index - 1];
     next[index - 1] = next[index];
     next[index] = temp;
-    setSteps(next);
+    setSteps(
+      next.map((s, idx) => ({
+        ...s,
+        title: getStepDisplayLabel(s, idx),
+      }))
+    );
   };
 
   // Mover Passo para Baixo
@@ -1187,12 +1206,26 @@ export function MassOutreachModal({
     const temp = next[index + 1];
     next[index + 1] = next[index];
     next[index] = temp;
-    setSteps(next);
+    setSteps(
+      next.map((s, idx) => ({
+        ...s,
+        title: getStepDisplayLabel(s, idx),
+      }))
+    );
   };
 
   // Remover Passo
   const handleRemoveStep = (index: number) => {
-    setSteps(steps.filter((_, i) => i !== index));
+    const filtered = steps
+      .filter((_, i) => i !== index)
+      .map((s, idx) => ({
+        ...s,
+        title: getStepDisplayLabel(s, idx),
+      }));
+    setSteps(filtered);
+    if (targetStepIndexToDispatch >= filtered.length) {
+      setTargetStepIndexToDispatch(Math.max(0, filtered.length - 1));
+    }
   };
 
   // Inserir Tag Dinâmica no Texto do Passo
@@ -1438,7 +1471,7 @@ export function MassOutreachModal({
                 status: 'sending',
                 message:
                   dispatchMode === 'single_step'
-                    ? `Enviando ${targetStep.title || `Passo ${targetStepNum}`}...`
+                    ? `Enviando ${getStepDisplayLabel(targetStep, targetStepIndexToDispatch)}...`
                     : 'Iniciando sequência personalizada...',
               }
             : log
@@ -1594,7 +1627,7 @@ export function MassOutreachModal({
                 message: hasLeadError
                   ? `Falha: ${lastErrorMessage}`
                   : dispatchMode === 'single_step'
-                  ? `${targetStep.title || `Passo ${targetStepNum}`} enviado com sucesso`
+                  ? `${getStepDisplayLabel(targetStep, targetStepIndexToDispatch)} enviado com sucesso`
                   : `Passo inicial enviado (Aguardando resposta do lead)`,
                 time: new Date().toLocaleTimeString([], {
                   hour: '2-digit',
@@ -3920,7 +3953,7 @@ export function MassOutreachModal({
                   {dispatchLogs.every((l) => l.status === 'error')
                     ? 'Atenção: Falha no Disparo'
                     : dispatchMode === 'single_step'
-                    ? `${steps[targetStepIndexToDispatch]?.title || `Passo ${targetStepIndexToDispatch + 1}`} Disparado com Sucesso!`
+                    ? `${getStepDisplayLabel(steps[targetStepIndexToDispatch], targetStepIndexToDispatch)} Disparado com Sucesso!`
                     : 'Disparo em Massa Concluído!'}
                 </h3>
                 <div className="text-xs text-slate-400 max-w-md mx-auto space-y-1.5">
@@ -4074,20 +4107,11 @@ export function MassOutreachModal({
                     onChange={(e) => setTargetStepIndexToDispatch(Number(e.target.value))}
                     className="px-2.5 py-1.5 rounded-lg bg-[#161616] text-emerald-400 border border-[#262626] text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
                   >
-                    {steps.map((s, idx) => {
-                      const cleanTitle = s.title
-                        ? s.title.replace(/^Passo\s*\d+\s*:\s*/i, '').trim()
-                        : s.type === 'audio'
-                        ? 'Áudio Gravado PTT'
-                        : s.type === 'delay'
-                        ? 'Pausa / Intervalo'
-                        : 'Mensagem de Texto';
-                      return (
-                        <option key={s.id} value={idx}>
-                          Passo {idx + 1}: {cleanTitle}
-                        </option>
-                      );
-                    })}
+                    {steps.map((s, idx) => (
+                      <option key={s.id} value={idx}>
+                        {getStepDisplayLabel(s, idx)}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -4130,7 +4154,7 @@ export function MassOutreachModal({
                   {leadsToDispatch.length === 0
                     ? 'Nenhum lead selecionado'
                     : dispatchMode === 'single_step'
-                    ? `Disparar ${steps[targetStepIndexToDispatch]?.title || `Passo ${targetStepIndexToDispatch + 1}`} (${leadsToDispatch.length} Leads)`
+                    ? `Disparar ${getStepDisplayLabel(steps[targetStepIndexToDispatch], targetStepIndexToDispatch)} (${leadsToDispatch.length} Leads)`
                     : `Disparar Sequência Completa (${leadsToDispatch.length} Leads)`}
                 </span>
               </button>
