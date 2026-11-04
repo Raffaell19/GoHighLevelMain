@@ -572,6 +572,7 @@ export function MassOutreachModal({
 
   const [uploadTargetStepIndex, setUploadTargetStepIndex] = useState<number | null>(null);
   const [galleryPickerStepIndex, setGalleryPickerStepIndex] = useState<number | null>(null);
+  const [isQuickAudioBarOpen, setIsQuickAudioBarOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -696,9 +697,64 @@ export function MassOutreachModal({
     }
   };
 
-  // Salvar Áudio Gravado na Galeria e opcionalmente vincular EXCLUSIVAMENTE ao Passo ativo
-  const handleSaveRecordedAudio = () => {
+  // Vincular um áudio (recém-gravado ou da galeria) a um passo de áudio e selecioná-lo imediatamente para disparo
+  const assignAudioTrackForImmediateDispatch = (track: AudioTrackItem, explicitStepIdx?: number | null) => {
+    setSteps((prev) => {
+      // 1. Se foi passado um índice explícito válido
+      if (typeof explicitStepIdx === 'number' && explicitStepIdx >= 0 && explicitStepIdx < prev.length) {
+        setTargetStepIndexToDispatch(explicitStepIdx);
+        setDispatchMode('single_step');
+        return prev.map((s, idx) =>
+          idx === explicitStepIdx
+            ? { ...s, type: 'audio', audioId: track.id, audioTrack: track }
+            : s
+        );
+      }
+
+      // 2. Se o passo atualmente selecionado no botão verde já é do tipo 'audio', atualiza ele
+      if (prev[targetStepIndexToDispatch]?.type === 'audio') {
+        setDispatchMode('single_step');
+        return prev.map((s, idx) =>
+          idx === targetStepIndexToDispatch
+            ? { ...s, audioId: track.id, audioTrack: track }
+            : s
+        );
+      }
+
+      // 3. Se já existe algum passo do tipo 'audio' na sequência, vincula nele e seleciona ele no botão verde
+      const existingAudioStepIdx = prev.findIndex((s) => s.type === 'audio');
+      if (existingAudioStepIdx !== -1) {
+        setTargetStepIndexToDispatch(existingAudioStepIdx);
+        setDispatchMode('single_step');
+        return prev.map((s, idx) =>
+          idx === existingAudioStepIdx
+            ? { ...s, audioId: track.id, audioTrack: track }
+            : s
+        );
+      }
+
+      // 4. Caso o usuário tenha excluído o passo de áudio, cria um novo passo de Áudio PTT na posição 2 (ou no final) e seleciona ele!
+      const insertAt = prev.length >= 1 ? 1 : 0;
+      const newAudioStep: SequenceStepItem = {
+        id: `step_audio_${Date.now()}`,
+        type: 'audio',
+        title: `Passo ${insertAt + 1}: ${track.name || 'Áudio de Apresentação (PTT)'}`,
+        audioId: track.id,
+        audioTrack: track,
+        delaySeconds: 10,
+        requireResponse: true,
+      };
+      const nextSteps = [...prev.slice(0, insertAt), newAudioStep, ...prev.slice(insertAt)];
+      setTargetStepIndexToDispatch(insertAt);
+      setDispatchMode('single_step');
+      return nextSteps;
+    });
+  };
+
+  // Salvar Áudio Gravado na Galeria e vincular ao Passo ativo
+  const handleSaveRecordedAudio = (selectForImmediateDispatch: boolean | React.MouseEvent = true) => {
     if (!recordedAudioPayload) return;
+    const shouldSelect = typeof selectForImmediateDispatch === 'boolean' ? selectForImmediateDispatch : true;
 
     const targetIdx = recordedAudioPayload.targetStepIndex;
     const newTrack: AudioTrackItem = {
@@ -714,21 +770,16 @@ export function MassOutreachModal({
     setAudioTracks(updated);
     saveCustomAudios(updated);
 
-    // Se o áudio foi gravado diretamente para um passo da sequência, vincula EXCLUSIVAMENTE a esse passo
-    if (
-      targetIdx !== null &&
-      targetIdx >= 0 &&
-      targetIdx < steps.length
-    ) {
-      setSteps((prev) =>
-        prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id, audioTrack: newTrack } : s))
-      );
+    if (shouldSelect || (targetIdx !== null && targetIdx >= 0)) {
+      assignAudioTrackForImmediateDispatch(newTrack, targetIdx);
     }
 
     setRecordedAudioPayload(null);
     setRecordingTargetStepIndex(null);
     setRecordingSeconds(0);
     secondsRecordedRef.current = 0;
+    setIsQuickAudioBarOpen(false);
+    showSaveFeedback(`Áudio "${newTrack.name}" salvo e selecionado para disparo!`);
   };
 
   // Descartar gravação em andamento
@@ -774,16 +825,10 @@ export function MassOutreachModal({
         setAudioTracks(updated);
         saveCustomAudios(updated);
 
-        if (
-          targetIdx !== null &&
-          targetIdx >= 0 &&
-          targetIdx < steps.length
-        ) {
-          setSteps((prev) =>
-            prev.map((s, idx) => (idx === targetIdx ? { ...s, audioId: newTrack.id, audioTrack: newTrack } : s))
-          );
-        }
+        assignAudioTrackForImmediateDispatch(newTrack, targetIdx);
         setUploadTargetStepIndex(null);
+        setIsQuickAudioBarOpen(false);
+        showSaveFeedback(`Arquivo de áudio "${newTrack.name}" carregado e selecionado para disparo!`);
       };
 
       // Tentar calcular duração real via elemento temporário Audio
@@ -4064,6 +4109,166 @@ export function MassOutreachModal({
           )}
         </div>
 
+        {/* Painel Rápido de Gravação de Áudio (acessível de qualquer aba direto pelo rodapé) */}
+        {modalStage === 'builder' && (isQuickAudioBarOpen || isRecording || recordedAudioPayload !== null) && (
+          <div className="px-4 py-3 border-t border-emerald-500/30 bg-[#0d1512] flex flex-col gap-2.5 shrink-0 animate-in fade-in">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
+                  <Mic className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-white block">
+                    Gravador Rápido de Áudio (WhatsApp PTT)
+                  </span>
+                  <span className="text-[11px] text-slate-400 block">
+                    Grave ou envie um áudio para vincular e disparar imediatamente no passo selecionado.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('audio_studio')}
+                  className="px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-[#222222] text-slate-300 border border-[#2a2a2a] text-[11px] font-semibold transition cursor-pointer"
+                >
+                  Abrir Estúdio Completo ({audioTracks.length})
+                </button>
+                {!isRecording && !recordedAudioPayload && (
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAudioBarOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a1a] transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Controles de Gravação / Confirmação */}
+            {!isRecording && !recordedAudioPayload && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startRecording(steps[targetStepIndexToDispatch]?.type === 'audio' ? targetStepIndexToDispatch : null)}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition cursor-pointer"
+                  >
+                    <Mic className="w-4 h-4" />
+                    <span>Iniciar Gravação no Microfone</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload(steps[targetStepIndexToDispatch]?.type === 'audio' ? targetStepIndexToDispatch : null)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#161616] hover:bg-[#222222] text-slate-200 border border-[#2a2a2a] text-xs font-semibold transition cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Subir Arquivo (.mp3 / .ogg)</span>
+                  </button>
+                </div>
+
+                {audioTracks.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-slate-400">Ou usar salvo:</span>
+                    {audioTracks.slice(0, 3).map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          assignAudioTrackForImmediateDispatch(t);
+                          setIsQuickAudioBarOpen(false);
+                          showSaveFeedback(`Áudio "${t.name}" selecionado para disparo!`);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold transition cursor-pointer flex items-center gap-1"
+                      >
+                        <Volume2 className="w-3 h-3" />
+                        <span className="truncate max-w-[140px]">{t.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isRecording && (
+              <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl bg-red-950/30 border border-red-500/40">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
+                  <span className="text-xs font-bold text-red-200">
+                    Gravando do microfone... 0:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}s
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={stopRecording}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition cursor-pointer"
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span>Parar e Revisar Áudio</span>
+                </button>
+              </div>
+            )}
+
+            {!isRecording && recordedAudioPayload && (
+              <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl bg-[#111111] border border-emerald-500/40">
+                <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[240px]">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      togglePlayAudio({
+                        id: 'preview_quick_recorded',
+                        url: recordedAudioPayload.url,
+                      })
+                    }
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition cursor-pointer"
+                  >
+                    {activePlayingId === 'preview_quick_recorded' ? (
+                      <>
+                        <Pause className="w-3.5 h-3.5" />
+                        <span>Pausar</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5" />
+                        <span>Ouvir ({recordedAudioPayload.duration}s)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <input
+                    type="text"
+                    value={newAudioTitle}
+                    onChange={(e) => setNewAudioTitle(e.target.value)}
+                    placeholder="Nome do áudio (ex: Áudio Apresentação PTT)"
+                    className="flex-1 min-w-[180px] px-3 py-1.5 rounded-lg bg-[#0a0a0a] text-white border border-[#262626] text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDiscardRecordedAudio}
+                    className="px-3 py-1.5 rounded-lg bg-[#161616] hover:bg-red-950/50 text-slate-300 hover:text-red-300 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Descartar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveRecordedAudio(true)}
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Salvar e Usar no Disparo</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Rodapé do Modal (Builder Mode) */}
         {modalStage === 'builder' && (
           <div className="p-4 border-t border-[#1a1a1a] bg-[#111111] flex flex-wrap items-center justify-between gap-3 shrink-0">
@@ -4115,6 +4320,21 @@ export function MassOutreachModal({
                   </select>
                 </div>
               )}
+
+              {/* Botão Direto de Gravar Áudio na Barra Inferior */}
+              <button
+                type="button"
+                onClick={() => setIsQuickAudioBarOpen((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer ${
+                  isQuickAudioBarOpen || isRecording
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-[#161616] hover:bg-[#222222] text-emerald-400 border-emerald-500/40'
+                }`}
+                title="Gravar um áudio com seu microfone ou subir arquivo para disparar"
+              >
+                <Mic className="w-3.5 h-3.5" />
+                <span>{isRecording ? `Gravando (${recordingSeconds}s)` : 'Gravar Áudio'}</span>
+              </button>
 
               {/* Intervalo Anti-bloqueio */}
               <div className="flex items-center gap-1.5">

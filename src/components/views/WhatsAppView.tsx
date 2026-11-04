@@ -22,6 +22,9 @@ import {
   CheckCircle2,
   MessageCircle,
   UserCheck,
+  Mic,
+  Square,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { WhatsAppProvider } from '@/types';
@@ -48,6 +51,84 @@ export function WhatsAppView() {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [isRefreshingChat, setIsRefreshingChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Gravação de Áudio PTT direto no Chat 1-a-1
+  const [isChatRecording, setIsChatRecording] = useState(false);
+  const [chatRecordingSeconds, setChatRecordingSeconds] = useState(0);
+  const chatMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chatAudioChunksRef = useRef<Blob[]>([]);
+  const chatTimerRef = useRef<any>(null);
+
+  const startChatAudioRecording = async () => {
+    if (!activeContact) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chatAudioChunksRef.current = [];
+      let options: MediaRecorderOptions | undefined = undefined;
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          options = { mimeType: 'audio/webm;codecs=opus' };
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          options = { mimeType: 'audio/webm' };
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          options = { mimeType: 'audio/mp4' };
+        }
+      }
+      const recorder = options ? new MediaRecorder(stream, options) : new MediaRecorder(stream);
+      chatMediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) chatAudioChunksRef.current.push(ev.data);
+      };
+      recorder.start();
+      setIsChatRecording(true);
+      setChatRecordingSeconds(0);
+      if (chatTimerRef.current) clearInterval(chatTimerRef.current);
+      chatTimerRef.current = setInterval(() => {
+        setChatRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Erro ao acessar microfone no chat:', err);
+      alert('Não foi possível acessar seu microfone. Verifique as permissões do navegador.');
+    }
+  };
+
+  const cancelChatAudioRecording = () => {
+    if (chatMediaRecorderRef.current) {
+      chatMediaRecorderRef.current.onstop = null;
+      if (chatMediaRecorderRef.current.state !== 'inactive') {
+        chatMediaRecorderRef.current.stop();
+      }
+      chatMediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
+    }
+    if (chatTimerRef.current) clearInterval(chatTimerRef.current);
+    setIsChatRecording(false);
+    setChatRecordingSeconds(0);
+  };
+
+  const finishAndSendChatAudio = () => {
+    if (!chatMediaRecorderRef.current || !activeContact) return;
+    const targetContactId = activeContact.id;
+    const recorder = chatMediaRecorderRef.current;
+    recorder.onstop = () => {
+      const mimeType = recorder.mimeType || 'audio/webm';
+      const blob = new Blob(chatAudioChunksRef.current, { type: mimeType });
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = () => {
+        const base64Audio = reader.result as string;
+        if (base64Audio) {
+          sendMessage(targetContactId, '🎙️ Áudio de voz (PTT)', base64Audio, 'audio');
+        }
+      };
+    };
+    if (recorder.state !== 'inactive') {
+      recorder.stop();
+    }
+    recorder.stream.getTracks().forEach((t) => t.stop());
+    if (chatTimerRef.current) clearInterval(chatTimerRef.current);
+    setIsChatRecording(false);
+    setChatRecordingSeconds(0);
+  };
 
   // Estados locais para configuração da conexão
   const config = currentSubaccount.whatsappConfig;
@@ -115,7 +196,7 @@ export function WhatsAppView() {
           if (cachedBotState !== null) {
             setBotEnabled(cachedBotState === 'true');
           }
-        } catch (e) {}
+        } catch (e) { }
 
         const res = await fetch(`/api/ai/agent-config?subaccountId=${currentSubaccount.id}`);
         const data = await res.json();
@@ -129,7 +210,7 @@ export function WhatsAppView() {
             setBotEnabled(isEnabled);
             try {
               localStorage.setItem(`flowlevel_bot_enabled_${currentSubaccount.id}`, String(isEnabled));
-            } catch (e) {}
+            } catch (e) { }
           } else {
             setBotEnabled(false);
           }
@@ -159,7 +240,7 @@ export function WhatsAppView() {
 
     try {
       localStorage.setItem(`flowlevel_bot_enabled_${currentSubaccount.id}`, String(nextState));
-    } catch (e) {}
+    } catch (e) { }
 
     try {
       const res = await fetch('/api/ai/agent-config', {
@@ -326,7 +407,7 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
   useEffect(() => {
     const keepWarm = () => {
-      fetch('/api/cron/keepalive').catch(() => {});
+      fetch('/api/cron/keepalive').catch(() => { });
     };
     keepWarm();
     const warmInterval = setInterval(keepWarm, 4 * 60 * 1000);
@@ -436,11 +517,10 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
         <div className="flex items-center gap-1 p-1 rounded-[6px] bg-[#111111] border border-[#1a1a1a] text-[12px] font-medium">
           <button
             onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${
-              activeTab === 'chat'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${activeTab === 'chat'
                 ? 'bg-[#222222] text-white'
                 : 'text-[#949494] hover:text-white'
-            }`}
+              }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
             <span>Conversas</span>
@@ -453,11 +533,10 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
           <button
             onClick={() => setActiveTab('broadcast')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${
-              activeTab === 'broadcast'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${activeTab === 'broadcast'
                 ? 'bg-[#222222] text-white'
                 : 'text-[#949494] hover:text-white'
-            }`}
+              }`}
           >
             <Send className="w-3.5 h-3.5" />
             <span>Disparos</span>
@@ -465,11 +544,10 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
           <button
             onClick={() => setActiveTab('training')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${
-              activeTab === 'training'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${activeTab === 'training'
                 ? 'bg-[#222222] text-white'
                 : 'text-[#949494] hover:text-white'
-            }`}
+              }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Atendente IA</span>
@@ -477,11 +555,10 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
           <button
             onClick={() => setActiveTab('connection')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${
-              activeTab === 'connection'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${activeTab === 'connection'
                 ? 'bg-[#222222] text-white'
                 : 'text-[#949494] hover:text-white'
-            }`}
+              }`}
           >
             <Settings2 className="w-3.5 h-3.5" />
             <span>Conexão</span>
@@ -559,11 +636,10 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                     <button
                       key={contact.id}
                       onClick={() => setActiveContact(contact)}
-                      className={`w-full p-3 flex items-start gap-3 text-left transition-colors ${
-                        isSelected
+                      className={`w-full p-3 flex items-start gap-3 text-left transition-colors ${isSelected
                           ? 'bg-[#181818] border-l-2 border-white'
                           : 'hover:bg-[#141414]'
-                      }`}
+                        }`}
                     >
                       <div className="w-9 h-9 rounded-full bg-[#1a1a1a] overflow-hidden shrink-0 relative border border-[#2a2a2a] flex items-center justify-center">
                         <img
@@ -679,13 +755,12 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                         className={`flex flex-col ${isContact ? 'items-start' : 'items-end'}`}
                       >
                         <div
-                          className={`max-w-[75%] p-3 rounded-[8px] text-[13px] leading-relaxed ${
-                            isContact
+                          className={`max-w-[75%] p-3 rounded-[8px] text-[13px] leading-relaxed ${isContact
                               ? 'bg-[#161616] text-white border border-[#222222]'
                               : isBot
-                              ? 'bg-[#1f1f1f] text-white border border-[#333333]'
-                              : 'bg-[#222222] text-white border border-[#333333]'
-                          }`}
+                                ? 'bg-[#1f1f1f] text-white border border-[#333333]'
+                                : 'bg-[#222222] text-white border border-[#333333]'
+                            }`}
                         >
                           {isBot && (
                             <div className="flex items-center gap-1 text-[11px] text-[#c6f24e] font-medium mb-1">
@@ -715,19 +790,60 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
               {/* Chat Input */}
               <form onSubmit={handleSend} className="p-3 bg-[#111111] border-t border-[#161616] flex items-center gap-2 shrink-0">
-                <input
-                  type="text"
-                  placeholder="Digite uma mensagem ou use a sugestão da IA acima..."
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  className="flex-1 h-9 px-3.5 text-[13px] rounded-[6px] bg-[#0a0a0a] text-white placeholder:text-[#949494] border border-[#222222] focus:border-[#444444] focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="h-9 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black font-medium transition-colors flex items-center justify-center"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
+                {isChatRecording ? (
+                  <div className="flex-1 h-9 px-3.5 rounded-[6px] bg-red-950/30 border border-red-500/40 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-red-300 text-[12px] font-semibold">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                      <span>
+                        Gravando áudio PTT... {Math.floor(chatRecordingSeconds / 60)}:
+                        {(chatRecordingSeconds % 60).toString().padStart(2, '0')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={cancelChatAudioRecording}
+                        className="px-2.5 py-1 rounded-[4px] bg-[#1a1a1a] hover:bg-[#262626] text-slate-300 text-[11px] font-medium flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3 text-red-400" />
+                        <span>Cancelar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={finishAndSendChatAudio}
+                        className="px-3 py-1 rounded-[4px] bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Send className="w-3 h-3" />
+                        <span>Enviar Áudio</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Digite uma mensagem ou grave um áudio ao lado..."
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      className="flex-1 h-9 px-3.5 text-[13px] rounded-[6px] bg-[#0a0a0a] text-white placeholder:text-[#949494] border border-[#222222] focus:border-[#444444] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={startChatAudioRecording}
+                      title="Gravar áudio de voz (PTT)"
+                      className="h-9 px-3 rounded-[6px] bg-[#161616] hover:bg-[#222222] text-emerald-400 border border-[#2a2a2a] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Mic className="w-4 h-4" />
+                      <span className="hidden sm:inline text-[12px]">Gravar Áudio</span>
+                    </button>
+                    <button
+                      type="submit"
+                      className="h-9 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black font-medium transition-colors flex items-center justify-center cursor-pointer"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </form>
             </div>
           ) : (
@@ -746,7 +862,7 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
             isOpen={true}
             variant="embedded"
             onNavigateToWhatsApp={() => setActiveTab('chat')}
-            onNavigateToCrm={() => {}}
+            onNavigateToCrm={() => { }}
           />
         </div>
       )}
@@ -792,14 +908,12 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                 onClick={handleToggleBot}
                 disabled={isTogglingBot}
                 title={botEnabled ? 'Desativar atendimento da IA' : 'Ativar atendimento da IA'}
-                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
-                  botEnabled ? 'bg-[var(--ok)]' : 'bg-[#2a2a2a]'
-                }`}
+                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${botEnabled ? 'bg-[var(--ok)]' : 'bg-[#2a2a2a]'
+                  }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-black transition-transform ${
-                    botEnabled ? 'translate-x-5' : 'translate-x-0.5'
-                  }`}
+                  className={`inline-block h-4 w-4 transform rounded-full bg-black transition-transform ${botEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
                 />
               </button>
             </div>
@@ -851,11 +965,10 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                         key={tone.id}
                         type="button"
                         onClick={() => setBotTone(tone.id as any)}
-                        className={`p-3 rounded-[6px] border text-left transition-colors ${
-                          botTone === tone.id
+                        className={`p-3 rounded-[6px] border text-left transition-colors ${botTone === tone.id
                             ? 'border-white bg-[#222222] text-white font-medium'
                             : 'border-[#262626] bg-[#0a0a0a] text-[#b4b4b4] hover:border-[#3a3a3a]'
-                        }`}
+                          }`}
                       >
                         <p className="font-medium text-[12px] text-white">{tone.label}</p>
                         <p className="text-[11px] text-[#949494] mt-0.5">{tone.desc}</p>
@@ -1118,11 +1231,10 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
               onClick={() => setSelectedProvider('evolution')}
-              className={`p-4 rounded-[8px] border transition-colors cursor-pointer ${
-                selectedProvider === 'evolution'
+              className={`p-4 rounded-[8px] border transition-colors cursor-pointer ${selectedProvider === 'evolution'
                   ? 'border-white bg-[#161616]'
                   : 'border-[#1a1a1a] bg-[#0c0c0c] hover:border-[#2a2a2a]'
-              }`}
+                }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -1143,11 +1255,10 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
             <div
               onClick={() => setSelectedProvider('meta_cloud')}
-              className={`p-4 rounded-[8px] border transition-colors cursor-pointer ${
-                selectedProvider === 'meta_cloud'
+              className={`p-4 rounded-[8px] border transition-colors cursor-pointer ${selectedProvider === 'meta_cloud'
                   ? 'border-white bg-[#161616]'
                   : 'border-[#1a1a1a] bg-[#0c0c0c] hover:border-[#2a2a2a]'
-              }`}
+                }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -1357,7 +1468,7 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
             setIsModalBroadcastOpen(false);
             setActiveTab('chat');
           }}
-          onNavigateToCrm={() => {}}
+          onNavigateToCrm={() => { }}
         />
       )}
     </div>

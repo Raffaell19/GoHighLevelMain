@@ -81,7 +81,12 @@ interface AppContextType {
   activeContact: WhatsAppContact | null;
   setActiveContact: (contact: WhatsAppContact) => void;
   messages: Record<string, WhatsAppMessage[]>;
-  sendMessage: (contactId: string, text: string) => void;
+  sendMessage: (
+    contactId: string,
+    text: string,
+    mediaUrl?: string,
+    mediaType?: 'audio' | 'image' | 'video' | 'document'
+  ) => void;
   dispatchWhatsAppLead: (params: {
     leadName: string;
     leadPhone: string;
@@ -490,18 +495,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const sendMessage = async (contactId: string, text: string) => {
-    if (!text.trim()) return;
+  const sendMessage = async (
+    contactId: string,
+    text: string,
+    mediaUrl?: string,
+    mediaType?: 'audio' | 'image' | 'video' | 'document'
+  ) => {
+    if (!text.trim() && !mediaUrl) return;
 
     const targetContact = contacts.find((c) => c.id === contactId);
+    const displayText = text.trim() || (mediaType === 'audio' ? '🎙️ Áudio (PTT)' : '📎 Mídia');
 
     const newMsg: WhatsAppMessage = {
       id: `m-${Date.now()}`,
       contactId,
       sender: 'agent',
-      text,
+      text: displayText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'sent',
+      mediaUrl,
+      mediaType,
     };
 
     setMessages((prev) => ({
@@ -512,7 +525,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setContacts((prev) =>
       prev.map((c) =>
         c.id === contactId
-          ? { ...c, lastMessage: text, lastMessageTime: 'Agora', unreadCount: 0 }
+          ? { ...c, lastMessage: displayText, lastMessageTime: 'Agora', unreadCount: 0 }
           : c
       )
     );
@@ -524,7 +537,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           contactId,
           phone: targetContact?.phone || '',
-          text,
+          text: displayText,
+          mediaUrl,
+          mediaType,
           subaccountId: currentSubaccount.id,
           instanceName: currentSubaccount.whatsappConfig?.instanceName || 'connect-digital',
         }),
