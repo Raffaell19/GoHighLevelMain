@@ -374,7 +374,7 @@ export async function POST(request: NextRequest) {
         const isBotActive = agentConfig.botEnabled === true || agentConfig.botEnabled === 'true';
 
         if (!isBotActive) {
-          console.log(`[AI Chatbot] 🛑 Piloto Automático DESATIVADO para ${subaccount.name}. Sofia NÃO responderá ao lead ${senderPhone}.`);
+          console.log(`[AI Chatbot] Piloto Automático DESATIVADO para ${subaccount.name}. Sofia NÃO responderá ao lead ${senderPhone}.`);
         } else {
           // Verificar gatilho de transbordo humano
           const lowerMsg = messageText.toLowerCase();

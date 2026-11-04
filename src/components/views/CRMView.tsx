@@ -5,224 +5,225 @@ import {
   Plus,
   Phone,
   Building,
-  DollarSign,
-  ChevronRight,
-  ChevronLeft,
-  MoreVertical,
-  Calendar,
-  Tag,
-  CheckCircle,
-  XCircle,
-  FileText,
-  MessageSquare,
+  ArrowRight,
   Trash2,
+  X,
+  Check,
+  Search,
+  AlertTriangle,
   Loader2,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Lead } from '@/types';
-import { ActiveTab } from '@/components/Sidebar';
-import { getContactDisplayName, formatFullPhoneNumber } from '@/lib/phone';
 
 interface CRMViewProps {
-  onOpenNewLeadModal: () => void;
-  setActiveTab: (tab: ActiveTab) => void;
+  onOpenNewLead: () => void;
 }
 
-export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
-  const { leads, stages, moveLeadStage, updateLead, deleteLead, setActiveContact, contacts } = useApp();
+export default function CRMView({ onOpenNewLead }: CRMViewProps) {
+  const { leads, stages, moveLeadStage, updateLead, deleteLead, currentSubaccount } = useApp();
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [editingNotes, setEditingNotes] = useState(false);
-  const [tempNotes, setTempNotes] = useState('');
+  const [noteInput, setNoteInput] = useState('');
+  const [valueInput, setValueInput] = useState('');
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleOpenLeadModal = (lead: Lead) => {
+  const filteredLeads = leads.filter(
+    (l) =>
+      l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const totalPipelineValue = filteredLeads.reduce((acc, l) => acc + l.value, 0);
+
+  const handleOpenLeadDetail = (lead: Lead) => {
     setSelectedLead(lead);
-    setTempNotes(lead.notes);
-    setEditingNotes(false);
+    setNoteInput(lead.notes);
+    setValueInput(lead.value.toString());
   };
 
-  const handleDeleteOpportunity = async () => {
+  const handleSaveLeadChanges = () => {
     if (!selectedLead) return;
-    const leadDisplayName = getContactDisplayName(selectedLead.name, selectedLead.phone);
-    if (!confirm(`Tem certeza que deseja excluir a oportunidade "${leadDisplayName}"?`)) {
-      return;
+    updateLead({
+      ...selectedLead,
+      notes: noteInput,
+      value: Number(valueInput) || 0,
+      lastActivity: 'Atualizado agora',
+    });
+    setSelectedLead(null);
+  };
+
+  const handleRequestDelete = (lead: Lead, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
+    setLeadToDelete(lead);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!leadToDelete) return;
     setIsDeleting(true);
     try {
-      await deleteLead(selectedLead.id);
-      setSelectedLead(null);
-    } catch (err: any) {
-      alert(`Erro ao excluir oportunidade: ${err.message || 'Falha de comunicação'}`);
+      await deleteLead(leadToDelete.id);
+      if (selectedLead?.id === leadToDelete.id) {
+        setSelectedLead(null);
+      }
+      setLeadToDelete(null);
+    } catch {
+      alert('Não foi possível excluir a oportunidade. Tente novamente.');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleSaveNotes = () => {
-    if (selectedLead) {
-      const updated = { ...selectedLead, notes: tempNotes, lastActivity: 'Anotações atualizadas' };
-      updateLead(updated);
-      setSelectedLead(updated);
-      setEditingNotes(false);
-    }
-  };
-
-  const handleOpenWhatsApp = (lead: Lead) => {
-    const leadClean = (lead.phone || '').replace(/[^0-9]/g, '');
-    const contact = contacts.find((c) => {
-      const cClean = (c.phone || '').replace(/[^0-9]/g, '');
-      return (
-        (cClean && leadClean && (cClean.includes(leadClean.slice(-8)) || leadClean.includes(cClean.slice(-8)))) ||
-        (c.name && lead.name && c.name.toLowerCase().trim() === lead.name.toLowerCase().trim())
-      );
-    });
-    if (contact) {
-      setActiveContact(contact);
-    }
-    setActiveTab('whatsapp');
-  };
-
   return (
-    <div className="h-full flex flex-col space-y-4">
-      {/* CRM Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>Funil de Vendas (CRM Kanban)</span>
-          </h2>
-          <p className="text-xs text-slate-500">
-            Arraste ou mova leads entre etapas para atualizar o status e acionar gatilhos de automação.
+    <div className="max-w-[1440px] mx-auto space-y-6 h-full flex flex-col">
+      {/* Row 1 — Screen Title + Supporting Subline + Primary Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-white">
+            Funil de vendas
+          </h1>
+          <p className="text-[14px] text-[#b4b4b4] tabular-nums">
+            {currentSubaccount.name} · {filteredLeads.length} oportunidades ativas somando R${' '}
+            {totalPipelineValue.toLocaleString('pt-BR')}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-[#949494] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Filtrar por nome, empresa ou tag..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9 pl-9 pr-3.5 rounded-full bg-[#111111] border border-[#2e2e2e] text-[13px] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444] w-64"
+            />
+          </div>
+
           <button
-            onClick={onOpenNewLeadModal}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition"
+            type="button"
+            onClick={onOpenNewLead}
+            className="h-9 px-4 rounded-full bg-white hover:bg-[#e6e6e6] text-black text-[13px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Nova Oportunidade</span>
+            <span>Nova oportunidade</span>
           </button>
         </div>
       </div>
 
-      {/* Kanban Board Horizontal Scroll */}
+      {/* Kanban Board — 5 Columns on Flat #111111 Surface */}
       <div className="flex-1 overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-[1100px] h-full items-start">
+        <div className="flex gap-4 min-w-max h-full">
           {stages.map((stage, stageIdx) => {
-            const stageLeads = leads.filter((l) => l.stageId === stage.id);
-            const stageTotal = stageLeads.reduce((acc, curr) => acc + curr.value, 0);
+            const stageLeads = filteredLeads.filter((l) => l.stageId === stage.id);
+            const stageTotal = stageLeads.reduce((acc, l) => acc + l.value, 0);
+            const nextStage = stages[stageIdx + 1];
 
             return (
               <div
                 key={stage.id}
-                className="w-72 bg-slate-100/80 dark:bg-slate-900/90 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[calc(100vh-12rem)] shadow-sm shrink-0"
+                className="w-[304px] bg-[#111111] rounded-[20px] border border-[#1a1a1a] flex flex-col max-h-[calc(100vh-210px)]"
               >
                 {/* Column Header */}
-                <div className={`p-3 border-t-4 rounded-t-xl ${stage.color} bg-white dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700/60`}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-slate-800 dark:text-slate-100">{stage.name}</span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold">
-                      {stageLeads.length}
-                    </span>
+                <div className="p-4 border-b border-[#1a1a1a] flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-[14px] font-semibold text-white truncate">
+                        {stage.name}
+                      </h2>
+                      <span className="h-5 px-2 rounded-full bg-[#222222] text-[12px] text-[#b4b4b4] font-medium tabular-nums inline-flex items-center">
+                        {stageLeads.length}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-[#949494] tabular-nums mt-0.5">
+                      R$ {stageTotal.toLocaleString('pt-BR')}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stageTotal)}
-                  </p>
                 </div>
 
                 {/* Cards Container */}
-                <div className="p-2 space-y-2.5 overflow-y-auto flex-1">
+                <div className="p-3 space-y-3 overflow-y-auto flex-1">
                   {stageLeads.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-lg">
-                      Nenhum lead nesta etapa
+                    <div className="h-32 rounded-[14px] border border-dashed border-[#222222] flex items-center justify-center text-[12px] text-[#949494]">
+                      Nenhuma oportunidade nesta etapa
                     </div>
                   ) : (
                     stageLeads.map((lead) => (
                       <div
                         key={lead.id}
-                        onClick={() => handleOpenLeadModal(lead)}
-                        className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 shadow-sm hover:shadow-md transition cursor-pointer group"
+                        onClick={() => handleOpenLeadDetail(lead)}
+                        className="p-4 bg-[#181818] hover:bg-[#202020] rounded-[14px] border border-[#242424] transition-colors cursor-pointer space-y-3 group"
                       >
-                        <div className="flex items-start justify-between gap-1 mb-1">
-                          <h4 className="font-semibold text-xs text-slate-900 dark:text-white group-hover:text-blue-500 transition line-clamp-1">
-                            {getContactDisplayName(lead.name, lead.phone)}
-                          </h4>
-                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.value)}
-                          </span>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="text-[14px] font-medium text-white truncate">
+                              {lead.name}
+                            </h3>
+                            <div className="flex items-center gap-1.5 text-[12px] text-[#949494] mt-0.5">
+                              <Building className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{lead.company}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[13px] font-medium text-[#c6f24e] bg-[#222a10] px-2.5 py-0.5 rounded-full tabular-nums">
+                              R$ {lead.value.toLocaleString('pt-BR')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleRequestDelete(lead, e)}
+                              title="Excluir oportunidade"
+                              className="p-1 rounded-full text-[#949494] hover:text-[#e5566f] hover:bg-[#2c1a20] transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
-                        {lead.company && (
-                          <div className="flex items-center gap-1 text-[11px] text-slate-500 mb-2 truncate">
-                            <Building className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{lead.company}</span>
+                        {lead.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {lead.tags.map((tag, i) => (
+                              <span
+                                key={i}
+                                className="text-[12px] px-2 py-0.5 rounded-full bg-[#222222] text-[#b4b4b4]"
+                              >
+                                {tag}
+                              </span>
+                            ))}
                           </div>
                         )}
 
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-1 mb-2.5">
-                          {lead.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
+                        {lead.notes && (
+                          <p className="text-[12px] text-[#b4b4b4] line-clamp-2 bg-[#111111] p-2.5 rounded-[10px] border border-[#1f1f1f]">
+                            {lead.notes}
+                          </p>
+                        )}
 
-                        {/* Footer & Actions */}
-                        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
-                          <span className="truncate text-[10px]">{lead.lastActivity}</span>
+                        <div className="pt-2 border-t border-[#242424] flex items-center justify-between text-[12px] text-[#949494]">
+                          <span className="flex items-center gap-1 truncate tabular-nums">
+                            <Phone className="w-3 h-3 shrink-0" />
+                            {lead.phone}
+                          </span>
 
-                          {/* Quick Stage Mover Buttons */}
-                          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          {nextStage && (
                             <button
-                              title="Abrir WhatsApp"
-                              onClick={() => handleOpenWhatsApp(lead)}
-                              className="p-1 rounded text-slate-400 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-700"
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                            </button>
-
-                            {stageIdx > 0 && (
-                              <button
-                                title="Mover para etapa anterior"
-                                onClick={() => moveLeadStage(lead.id, stages[stageIdx - 1].id)}
-                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-white"
-                              >
-                                <ChevronLeft className="w-3 h-3" />
-                              </button>
-                            )}
-
-                            {stageIdx < stages.length - 1 && (
-                              <button
-                                title="Mover para próxima etapa"
-                                onClick={() => moveLeadStage(lead.id, stages[stageIdx + 1].id)}
-                                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-white"
-                              >
-                                <ChevronRight className="w-3 h-3" />
-                              </button>
-                            )}
-
-                            <button
-                              title="Excluir Oportunidade"
-                              onClick={async () => {
-                                const leadDisplayName = getContactDisplayName(lead.name, lead.phone);
-                                if (confirm(`Deseja excluir a oportunidade "${leadDisplayName}"?`)) {
-                                  try {
-                                    await deleteLead(lead.id);
-                                  } catch (err: any) {
-                                    alert(`Erro ao excluir oportunidade: ${err.message || 'Falha de conexão'}`);
-                                  }
-                                }
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveLeadStage(lead.id, nextStage.id);
                               }}
-                              className="p-1 rounded hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition cursor-pointer"
+                              className="flex items-center gap-1 text-white hover:text-[#c6f24e] font-medium transition-colors cursor-pointer shrink-0"
+                              title={`Avançar para ${nextStage.name}`}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <span>Avançar</span>
+                              <ArrowRight className="w-3 h-3" />
                             </button>
-                          </div>
+                          )}
                         </div>
                       </div>
                     ))
@@ -234,129 +235,142 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
         </div>
       </div>
 
-      {/* Lead Details Modal 360° */}
+      {/* Lead Edit Modal */}
       {selectedLead && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-base">
-                  {getContactDisplayName(selectedLead.name, selectedLead.phone).replace('+', '').charAt(0)}
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                    {getContactDisplayName(selectedLead.name, selectedLead.phone)}
-                  </h3>
-                  <p className="text-xs text-slate-500">{selectedLead.company || 'Pessoa Física'}</p>
-                </div>
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div
+            data-ui="lead-modal"
+            className="bg-[#111111] border border-[#2a2a2a] rounded-[20px] max-w-lg w-full p-6 space-y-5"
+          >
+            <div className="flex items-start justify-between pb-4 border-b border-[#1a1a1a]">
+              <div>
+                <h2 className="text-[18px] font-semibold text-white">{selectedLead.name}</h2>
+                <p className="text-[13px] text-[#b4b4b4] mt-0.5">
+                  {selectedLead.company} · {selectedLead.phone}
+                </p>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedLead(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                className="h-8 w-8 rounded-full bg-[#1a1a1a] text-[#b4b4b4] hover:text-white flex items-center justify-center cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-5 overflow-y-auto flex-1 text-xs">
-              {/* Quick Info Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Valor da Oportunidade</span>
-                  <p className="font-bold text-sm text-emerald-500 mt-0.5">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedLead.value)}
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Telefone / WhatsApp</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{formatFullPhoneNumber(selectedLead.phone)}</p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Etapa Atual</span>
-                  <p className="font-semibold text-blue-500 mt-0.5">
-                    {stages.find((s) => s.id === selectedLead.stageId)?.name}
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Status do Negócio</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200 capitalize mt-0.5">
-                    {selectedLead.status === 'won' ? 'Ganho / Fechado' : 'Em Negociação'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2 pt-2">
-                <button
-                  onClick={() => {
-                    handleOpenWhatsApp(selectedLead);
-                    setSelectedLead(null);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Conversar no WhatsApp</span>
-                </button>
-                <button
-                  onClick={() => {
-                    moveLeadStage(selectedLead.id, 'stage-5');
-                    setSelectedLead({ ...selectedLead, stageId: 'stage-5', status: 'won' });
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  <span>Marcar como Ganho</span>
-                </button>
-              </div>
-
-              {/* Notes & Timeline */}
+            <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Anotações e Histórico Comercial</span>
-                  </span>
-                  {!editingNotes ? (
-                    <button
-                      onClick={() => setEditingNotes(true)}
-                      className="text-blue-500 hover:underline font-semibold"
-                    >
-                      Editar
-                    </button>
-                  ) : (
-                    <button onClick={handleSaveNotes} className="text-emerald-500 hover:underline font-semibold">
-                      Salvar Anotação
-                    </button>
-                  )}
-                </div>
+                <label className="block text-[13px] font-medium text-[#b4b4b4] mb-1.5">
+                  Etapa do funil
+                </label>
+                <select
+                  value={selectedLead.stageId}
+                  onChange={(e) => {
+                    moveLeadStage(selectedLead.id, e.target.value);
+                    setSelectedLead({ ...selectedLead, stageId: e.target.value });
+                  }}
+                  className="w-full h-10 px-3.5 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-[14px] text-white focus:outline-none focus:border-[#444444]"
+                >
+                  {stages.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                {editingNotes ? (
-                  <textarea
-                    rows={4}
-                    value={tempNotes}
-                    onChange={(e) => setTempNotes(e.target.value)}
-                    className="w-full p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
-                  />
-                ) : (
-                  <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                    {selectedLead.notes || 'Nenhuma anotação registrada ainda.'}
-                  </div>
-                )}
+              <div>
+                <label className="block text-[13px] font-medium text-[#b4b4b4] mb-1.5">
+                  Valor estimado (R$)
+                </label>
+                <input
+                  type="number"
+                  value={valueInput}
+                  onChange={(e) => setValueInput(e.target.value)}
+                  className="w-full h-10 px-3.5 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-[14px] text-white tabular-nums focus:outline-none focus:border-[#444444]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-medium text-[#b4b4b4] mb-1.5">
+                  Anotações comerciais
+                </label>
+                <textarea
+                  rows={3}
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  className="w-full p-3.5 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-[14px] text-white focus:outline-none focus:border-[#444444]"
+                />
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+            <div className="flex items-center justify-between pt-4 border-t border-[#1a1a1a]">
+              <button
+                type="button"
+                onClick={(e) => handleRequestDelete(selectedLead, e)}
+                className="h-9 px-3.5 rounded-full bg-[#2c1a20] text-[#e5566f] text-[13px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Excluir</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedLead(null)}
+                  className="h-9 px-4 rounded-full border border-[#2e2e2e] text-[#b4b4b4] hover:text-white text-[13px] font-medium transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveLeadChanges}
+                  className="h-9 px-4 rounded-full bg-white hover:bg-[#e6e6e6] text-black text-[13px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Salvar alterações</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {leadToDelete && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
+          <div
+            data-ui="delete-modal"
+            className="bg-[#111111] border border-[#2a2a2a] rounded-[20px] max-w-md w-full p-6 space-y-5"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#2c1a20] text-[#e5566f] flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-[16px] font-semibold text-white">
+                  Excluir oportunidade
+                </h3>
+                <p className="text-[13px] text-[#b4b4b4]">
+                  Confirma a exclusão permanente de <strong className="text-white">{leadToDelete.name}</strong> ({leadToDelete.company})?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#1a1a1a]">
               <button
                 type="button"
                 disabled={isDeleting}
-                onClick={handleDeleteOpportunity}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-semibold shadow-md shadow-red-600/20 transition disabled:opacity-50 cursor-pointer"
+                onClick={() => setLeadToDelete(null)}
+                className="h-9 px-4 rounded-full border border-[#2e2e2e] text-[#b4b4b4] hover:text-white text-[13px] font-medium transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="h-9 px-4 rounded-full bg-[#e5484d] hover:bg-[#d13c41] text-white text-[13px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 {isDeleting ? (
                   <>
@@ -366,17 +380,9 @@ export function CRMView({ onOpenNewLeadModal, setActiveTab }: CRMViewProps) {
                 ) : (
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Excluir Oportunidade</span>
+                    <span>Confirmar exclusão</span>
                   </>
                 )}
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => setSelectedLead(null)}
-                className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition cursor-pointer"
-              >
-                Fechar
               </button>
             </div>
           </div>

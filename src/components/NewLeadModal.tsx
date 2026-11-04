@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, X, DollarSign, User, Phone, Mail, Building, Tag, FileText } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
 interface NewLeadModalProps {
@@ -9,7 +9,7 @@ interface NewLeadModalProps {
   onClose: () => void;
 }
 
-export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
+export default function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
   const { currentSubaccount, stages, addLead } = useApp();
 
   const [name, setName] = useState('');
@@ -18,7 +18,7 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
   const [email, setEmail] = useState('');
   const [value, setValue] = useState('');
   const [stageId, setStageId] = useState(stages[0]?.id || 'stage-1');
-  const [tagInput, setTagInput] = useState('WhatsApp Inbound');
+  const [tagsInput, setTagsInput] = useState('');
   const [notes, setNotes] = useState('');
 
   if (!isOpen) return null;
@@ -27,100 +27,142 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
     e.preventDefault();
     if (!name.trim()) return;
 
+    const tags = tagsInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
     addLead({
       subaccountId: currentSubaccount.id,
       name,
-      company,
-      phone: phone || currentSubaccount.phone,
-      email: email || 'lead@email.com',
-      value: parseFloat(value) || 0,
+      company: company || 'Pessoa Física',
+      phone: phone || '+55 11 99999-9999',
+      email: email || 'sem-email@cliente.com',
+      value: Number(value) || 0,
       stageId,
-      tags: tagInput.split(',').map((t) => t.trim()).filter(Boolean),
+      tags: tags.length > 0 ? tags : ['Novo Lead'],
       notes,
       status: 'open',
     });
 
-    onClose();
     setName('');
     setCompany('');
     setPhone('');
     setEmail('');
     setValue('');
+    setTagsInput('');
     setNotes('');
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-            <Plus className="w-4 h-4 text-blue-500" />
-            <span>Adicionar Nova Oportunidade / Lead</span>
-          </h3>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white">
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+      <div
+        data-ui="new-lead-modal"
+        className="bg-[#111111] border border-[#2a2a2a] rounded-[20px] max-w-md w-full p-6 space-y-5"
+      >
+        <div className="flex items-center justify-between pb-4 border-b border-[#1a1a1a]">
+          <div>
+            <h2 className="text-[18px] font-semibold text-white">
+              Cadastrar oportunidade
+            </h2>
+            <p className="text-[12px] text-[#949494]">
+              Subconta: <span className="text-[#b4b4b4]">{currentSubaccount.name}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 w-8 rounded-full bg-[#1a1a1a] text-[#b4b4b4] hover:text-white flex items-center justify-center cursor-pointer"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-3.5 overflow-y-auto flex-1 text-xs">
-          <div>
-            <label className="block text-slate-400 font-semibold mb-1">Nome do Contato *</label>
-            <input
-              type="text"
-              required
-              placeholder="Ex: Carlos Albuquerque"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-[13px]">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Empresa / Residência</label>
+              <label className="block text-[#b4b4b4] font-medium mb-1">
+                Nome do contato *
+              </label>
               <input
                 type="text"
-                placeholder="Ex: Padaria Bela Vista"
+                required
+                placeholder="Ex: João Mendes"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full h-9 px-3 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[#b4b4b4] font-medium mb-1">
+                Empresa / Negócio
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: Mendes Engenharia"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-400 font-semibold mb-1">Telefone / WhatsApp</label>
-              <input
-                type="text"
-                placeholder="+55 11 98888-7777"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                className="w-full h-9 px-3 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Valor Estimado (R$)</label>
+              <label className="block text-[#b4b4b4] font-medium mb-1">
+                WhatsApp / Telefone
+              </label>
               <input
-                type="number"
-                placeholder="Ex: 5000"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                type="text"
+                placeholder="+55 51 98888-7777"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full h-9 px-3 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-white placeholder:text-[#949494] tabular-nums focus:outline-none focus:border-[#444444]"
               />
             </div>
+
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Etapa Inicial do Funil</label>
+              <label className="block text-[#b4b4b4] font-medium mb-1">
+                Valor estimado (R$)
+              </label>
+              <input
+                type="number"
+                placeholder="2500"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="w-full h-9 px-3 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-white placeholder:text-[#949494] tabular-nums focus:outline-none focus:border-[#444444]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[#b4b4b4] font-medium mb-1">
+                E-mail comercial
+              </label>
+              <input
+                type="email"
+                placeholder="contato@empresa.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-9 px-3 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[#b4b4b4] font-medium mb-1">
+                Etapa inicial
+              </label>
               <select
                 value={stageId}
                 onChange={(e) => setStageId(e.target.value)}
-                className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                className="w-full h-9 px-3 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-white focus:outline-none focus:border-[#444444]"
               >
-                {stages.map((stage) => (
-                  <option key={stage.id} value={stage.id}>
-                    {stage.name}
+                {stages.map((st) => (
+                  <option key={st.id} value={st.id}>
+                    {st.name}
                   </option>
                 ))}
               </select>
@@ -128,40 +170,45 @@ export function NewLeadModal({ isOpen, onClose }: NewLeadModalProps) {
           </div>
 
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">Tags (separadas por vírgula)</label>
+            <label className="block text-[#b4b4b4] font-medium mb-1">
+              Tags (separadas por vírgula)
+            </label>
             <input
               type="text"
-              placeholder="WhatsApp Inbound, Orçamento, Google Ads"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+              placeholder="Google Maps, Orçamento, Urgente"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              className="w-full h-9 px-3 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
             />
           </div>
 
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">Anotações / Descrição do Projeto</label>
+            <label className="block text-[#b4b4b4] font-medium mb-1">
+              Observações do negócio
+            </label>
             <textarea
-              rows={3}
-              placeholder="Descreva a necessidade do lead..."
+              rows={2}
+              placeholder="Detalhes do serviço solicitado ou contexto da abordagem..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+              className="w-full p-3 rounded-[10px] bg-[#181818] border border-[#2e2e2e] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
             />
           </div>
 
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#1a1a1a]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold"
+              className="h-9 px-4 rounded-full border border-[#2e2e2e] text-[#b4b4b4] hover:text-white font-medium transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition"
+              className="h-9 px-4 rounded-full bg-white hover:bg-[#e6e6e6] text-black font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              Criar Oportunidade
+              <Plus className="w-3.5 h-3.5" />
+              <span>Criar oportunidade</span>
             </button>
           </div>
         </form>

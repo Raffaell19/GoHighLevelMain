@@ -672,50 +672,47 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-[#161616]">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-cyan-500/20">
-              <Compass className="w-4 h-4" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Gerador de Leads B2B (Google Maps)
-            </h2>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-blue-500/10 text-blue-500 border border-blue-500/20">
-              compass/crawler-google-places
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-white">
+              Gerador de leads B2B
+            </h1>
+            <span className="text-[11px] px-2 py-0.5 rounded-[4px] font-medium bg-[#161616] text-[#b4b4b4] border border-[#262626]">
+              Google Maps Crawler
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Minere empresas e clientes qualificados no Google Maps com telefones, endereços e avaliações diretamente para o seu Funil de Vendas.
+          <p className="text-[13px] text-[#b4b4b4] mt-1">
+            Minere empresas e clientes qualificados no Google Maps com telefones, endereços e avaliações diretamente para o funil de vendas.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Aba de Navegação Nova Extração vs Histórico */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+          <div className="flex items-center bg-[#111111] p-1 rounded-[6px] border border-[#1a1a1a] text-[12px]">
             <button
               onClick={() => setActiveTab('search')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-[4px] font-medium transition-colors ${
                 activeTab === 'search'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-[#222222] text-white'
+                  : 'text-[#949494] hover:text-white'
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>Nova Extração</span>
+              <span>Nova extração</span>
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-[4px] font-medium transition-colors ${
                 activeTab === 'history'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-[#222222] text-white'
+                  : 'text-[#949494] hover:text-white'
               }`}
             >
               <History className="w-3.5 h-3.5" />
-              <span>Histórico de Listas</span>
+              <span>Histórico</span>
               {history.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] text-slate-800 dark:text-slate-200 font-bold">
+                <span className="ml-1 px-1.5 py-0.2 rounded-[4px] bg-[#161616] text-[11px] text-[#b4b4b4] tabular-nums">
                   {history.length}
                 </span>
               )}
@@ -725,12 +722,12 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
           <button
             type="button"
             onClick={() => setIsOutreachModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md shadow-emerald-600/20"
+            className="h-8 flex items-center gap-1.5 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[12px] font-medium transition-colors"
           >
             <MessageCircle className="w-3.5 h-3.5" />
-            <span>Disparo & Filtro WhatsApp</span>
+            <span>Disparo WhatsApp</span>
             {selectedIds.size > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-900 text-emerald-200 text-[10px]">
+              <span className="ml-1 px-1.5 py-0.2 rounded-[4px] bg-black/15 text-black text-[11px] font-semibold tabular-nums">
                 {selectedIds.size}
               </span>
             )}
@@ -738,43 +735,43 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
           <button
             onClick={() => setIsTokenModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition border border-slate-300 dark:border-slate-700"
+            className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#161616] hover:bg-[#222222] text-[#b4b4b4] hover:text-white text-[12px] font-medium transition-colors border border-[#2a2a2a]"
           >
-            <Key className="w-3.5 h-3.5 text-amber-500" />
-            <span>Configurar Token Apify</span>
+            <Key className="w-3.5 h-3.5 text-[var(--warn)]" />
+            <span>Token Apify</span>
           </button>
         </div>
       </div>
 
       {/* VIEW: HISTÓRICO DE LISTAS */}
       {activeTab === 'history' && (
-        <div className="space-y-4 animate-in fade-in duration-200">
-          <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="space-y-4">
+          <div className="p-5 bg-[#111111] rounded-[8px] border border-[#1a1a1a] space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#161616]">
               <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-cyan-500" />
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  Histórico de Extrações & Listas Salvas
+                <History className="w-4 h-4 text-[#949494]" />
+                <h3 className="font-semibold text-[14px] text-white">
+                  Histórico de extrações e listas salvas
                 </h3>
-                <span className="text-xs text-slate-400 font-medium">({history.length} listas disponíveis)</span>
+                <span className="text-[12px] text-[#949494] tabular-nums">({history.length} listas)</span>
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <div className="relative flex-1 sm:w-64">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#949494]" />
                   <input
                     type="text"
                     placeholder="Filtrar por nicho ou cidade..."
                     value={historySearchQuery}
                     onChange={(e) => setHistorySearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                    className="w-full h-8 pl-8 pr-7 rounded-[6px] bg-[#0a0a0a] text-[12px] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                   />
                   {historySearchQuery && (
                     <button
                       onClick={() => setHistorySearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#949494] hover:text-white"
                     >
-                      ✕
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -782,29 +779,29 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                 {history.length > 0 && (
                   <button
                     onClick={handleClearAllHistory}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg text-rose-500 hover:bg-rose-500/10 font-medium transition shrink-0"
+                    className="h-8 flex items-center gap-1 px-3 text-[12px] rounded-[6px] text-[var(--err)] hover:bg-[#1a1a1a] font-medium transition-colors shrink-0"
                     title="Limpar todo o histórico"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Limpar Tudo</span>
+                    <span className="hidden sm:inline">Limpar tudo</span>
                   </button>
                 )}
               </div>
             </div>
 
             {filteredHistory.length === 0 ? (
-              <div className="text-center py-12 space-y-2 text-slate-400 text-xs">
-                <FolderOpen className="w-8 h-8 mx-auto text-slate-500 stroke-1" />
-                <p className="font-semibold text-slate-300">Nenhuma lista encontrada no histórico.</p>
-                <p className="text-[11px] text-slate-500">
+              <div className="text-center py-12 space-y-2 text-[#949494] text-[13px]">
+                <FolderOpen className="w-7 h-7 mx-auto text-[#444444]" />
+                <p className="font-medium text-white">Nenhuma lista encontrada no histórico.</p>
+                <p className="text-[12px] text-[#949494]">
                   {historySearchQuery ? 'Tente outro termo de busca.' : 'Execute uma nova extração para que ela fique salva aqui automaticamente.'}
                 </p>
                 <button
                   onClick={() => setActiveTab('search')}
-                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md transition"
+                  className="mt-3 h-8 inline-flex items-center gap-1.5 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[12px] font-medium transition-colors"
                 >
                   <Zap className="w-3.5 h-3.5" />
-                  <span>Realizar Primeira Extração</span>
+                  <span>Realizar primeira extração</span>
                 </button>
               </div>
             ) : (
@@ -815,58 +812,58 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     <div
                       key={item.id}
                       onClick={() => handleOpenHistoryItem(item)}
-                      className={`group p-4 rounded-xl border text-xs flex flex-col justify-between transition cursor-pointer relative overflow-hidden ${
+                      className={`group p-4 rounded-[8px] border text-[12px] flex flex-col justify-between transition-colors cursor-pointer relative overflow-hidden ${
                         isActive
-                          ? 'bg-blue-50/60 dark:bg-blue-950/30 border-blue-500 shadow-md shadow-blue-500/10'
-                          : 'bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800/80 shadow-sm'
+                          ? 'bg-[#181818] border-white'
+                          : 'bg-[#141414] border-[#1f1f1f] hover:border-[#333333]'
                       }`}
                     >
                       {isActive && (
-                        <div className="absolute top-0 right-0 bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg uppercase tracking-wider">
-                          Aberta Agora
+                        <div className="absolute top-0 right-0 bg-white text-black text-[10px] font-medium px-2 py-0.5 rounded-bl-[4px]">
+                          Aberta agora
                         </div>
                       )}
 
                       <div className="space-y-2.5">
                         <div className="flex items-start justify-between gap-2 pr-4">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="px-2 py-0.5 rounded-md bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">
+                            <span className="px-2 py-0.5 rounded-[4px] bg-[#222222] text-white font-medium text-[11px]">
                               {item.searchTerm}
                             </span>
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px]">
+                            <span className="px-2 py-0.5 rounded-[4px] bg-[#1a1a1a] text-[var(--ok)] font-medium text-[11px] tabular-nums">
                               {item.resultsCount} leads
                             </span>
                           </div>
                         </div>
 
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold truncate" title={item.location}>
-                            <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          <div className="flex items-center gap-1.5 text-[#e5e5e5] font-medium truncate" title={item.location}>
+                            <MapPin className="w-3.5 h-3.5 text-[#949494] shrink-0" />
                             <span className="truncate">{item.location}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                            <Clock className="w-3 h-3 text-slate-500 shrink-0" />
+                          <div className="flex items-center gap-1.5 text-[11px] text-[#949494] tabular-nums">
+                            <Clock className="w-3 h-3 shrink-0" />
                             <span>{item.formattedDate}</span>
                           </div>
                         </div>
 
                         {/* Prévia de Empresas */}
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/60 space-y-1">
-                          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
-                            Amostra de Estabelecimentos:
+                        <div className="p-2.5 rounded-[6px] bg-[#0a0a0a] border border-[#1f1f1f] space-y-1">
+                          <p className="text-[11px] text-[#949494] font-medium">
+                            Amostra de estabelecimentos:
                           </p>
                           <div className="space-y-0.5">
                             {item.results.slice(0, 2).map((r, i) => (
-                              <p key={i} className="text-[11px] text-slate-600 dark:text-slate-300 truncate flex items-center gap-1">
-                                <span className="w-1 h-1 rounded-full bg-cyan-500" />
+                              <p key={i} className="text-[11px] text-[#b4b4b4] truncate flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-[#949494]" />
                                 <span className="font-medium truncate">{r.name}</span>
                                 {r.rating > 0 && (
-                                  <span className="text-[10px] text-amber-500 shrink-0">({r.rating}★)</span>
+                                  <span className="text-[11px] text-[var(--warn)] shrink-0 tabular-nums">({r.rating})</span>
                                 )}
                               </p>
                             ))}
                             {item.results.length > 2 && (
-                              <p className="text-[10px] text-slate-400 italic">
+                              <p className="text-[11px] text-[#949494] tabular-nums">
                                 + {item.results.length - 2} outros estabelecimentos
                               </p>
                             )}
@@ -875,17 +872,17 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                       </div>
 
                       {/* Card Actions */}
-                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1.5">
+                      <div className="pt-3 mt-3 border-t border-[#1f1f1f] flex items-center justify-between gap-1.5">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenHistoryItem(item);
                           }}
-                          className="flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 group-hover:underline"
+                          className="flex items-center gap-1 text-[12px] font-medium text-white group-hover:underline"
                         >
                           <FolderOpen className="w-3.5 h-3.5" />
-                          <span>Abrir Lista</span>
+                          <span>Abrir lista</span>
                           <ArrowRight className="w-3 h-3 ml-0.5" />
                         </button>
 
@@ -894,7 +891,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                             type="button"
                             onClick={(e) => handleExportHistoryItemCsv(item, e)}
                             title="Exportar CSV direto"
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-500 hover:bg-emerald-500/10 transition"
+                            className="p-1.5 rounded-[4px] text-[#949494] hover:text-white hover:bg-[#222222] transition-colors"
                           >
                             <FileSpreadsheet className="w-3.5 h-3.5" />
                           </button>
@@ -902,7 +899,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                             type="button"
                             onClick={(e) => handleDeleteHistoryItem(item.id, e)}
                             title="Excluir do histórico"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
+                            className="p-1.5 rounded-[4px] text-[#949494] hover:text-[var(--err)] hover:bg-[#222222] transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -919,34 +916,34 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
       {/* VIEW: NOVA EXTRAÇÃO & RESULTADOS */}
       {activeTab === 'search' && (
-        <div className="space-y-5 animate-in fade-in duration-200">
+        <div className="space-y-5">
           {/* Card de Pesquisa no Google Maps */}
-          <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="p-5 bg-[#111111] rounded-[8px] border border-[#1a1a1a] space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#161616]">
               <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-blue-500" />
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  Parâmetros de Busca & Extração de Estabelecimentos
+                <Search className="w-4 h-4 text-[#949494]" />
+                <h3 className="font-semibold text-[14px] text-white">
+                  Parâmetros de busca e extração de estabelecimentos
                 </h3>
               </div>
-              <span className="text-[11px] text-slate-400">
-                Empresa Ativa: <strong className="text-slate-700 dark:text-slate-300">{currentSubaccount.name}</strong>
+              <span className="text-[12px] text-[#949494]">
+                Empresa ativa: <strong className="text-[#b4b4b4] font-medium">{currentSubaccount.name}</strong>
               </span>
             </div>
 
-            <form onSubmit={handleStartMining} className="space-y-4 text-xs">
+            <form onSubmit={handleStartMining} className="space-y-4 text-[13px]">
               {/* Quick Niches Chips */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-slate-400 font-semibold mr-1">Sugestões de Nicho:</span>
+                <span className="text-[12px] text-[#949494] font-medium mr-1">Sugestões de nicho:</span>
                 {quickNiches.map((niche) => (
                   <button
                     key={niche}
                     type="button"
                     onClick={() => setSearchTerm(niche.toLowerCase())}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition ${
+                    className={`px-2.5 py-1 rounded-[4px] text-[12px] font-medium transition-colors ${
                       searchTerm.toLowerCase() === niche.toLowerCase()
-                        ? 'bg-blue-600 text-white font-semibold shadow-sm'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        ? 'bg-white text-black'
+                        : 'bg-[#161616] text-[#b4b4b4] hover:text-white border border-[#222222]'
                     }`}
                   >
                     {niche}
@@ -957,32 +954,32 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 {/* Search Term */}
                 <div className="md:col-span-5 space-y-1.5">
-                  <label className="block text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5">
-                    <Search className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Search term(s) / Palavra-chave</span>
+                  <label className="block text-[12px] text-[#b4b4b4] font-medium flex items-center gap-1.5">
+                    <Search className="w-3.5 h-3.5 text-[#949494]" />
+                    <span>Palavra-chave / nicho</span>
                   </label>
                   <input
                     type="text"
                     placeholder="Ex: esquadrias, climatização, vidraçaria..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                     required
                   />
                 </div>
 
                 {/* Location */}
                 <div className="md:col-span-4 space-y-1.5">
-                  <label className="block text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Location / Região & Cidade</span>
+                  <label className="block text-[12px] text-[#b4b4b4] font-medium flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#949494]" />
+                    <span>Região e cidade</span>
                   </label>
                   <input
                     type="text"
                     placeholder="Ex: Novo Hamburgo, RS, Brasil"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                     required
                   />
                 </div>
@@ -990,16 +987,16 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                 {/* Limit */}
                 <div className="md:col-span-3 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5 text-xs sm:text-sm">
-                      <Sliders className="w-3.5 h-3.5 text-cyan-500" />
-                      <span>Qtd. de Lugares (Places)</span>
+                    <label className="text-[12px] text-[#b4b4b4] font-medium flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-[#949494]" />
+                      <span>Qtd. de lugares</span>
                     </label>
                     <button
                       type="button"
                       onClick={() => setIsCustomLimit((prev) => !prev)}
-                      className="text-[11px] text-cyan-500 hover:text-cyan-400 font-medium hover:underline cursor-pointer transition"
+                      className="text-[11px] text-white hover:underline cursor-pointer"
                     >
-                      {isCustomLimit ? 'Ver lista padrão' : 'Personalizar'}
+                      {isCustomLimit ? 'Lista padrão' : 'Personalizar'}
                     </button>
                   </div>
 
@@ -1016,10 +1013,10 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                             setLimit(isNaN(val) ? 1 : val);
                           }}
                           placeholder="Ex: 35"
-                          className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-semibold"
+                          className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#444444] focus:outline-none font-medium tabular-nums"
                           autoFocus
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-medium pointer-events-none">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[#949494] pointer-events-none">
                           lugares
                         </span>
                       </div>
@@ -1029,10 +1026,10 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                           setIsCustomLimit(false);
                           if (!PRESET_LIMITS.includes(limit)) setLimit(70);
                         }}
-                        className="px-2.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition border border-slate-300 dark:border-slate-700 cursor-pointer shrink-0"
+                        className="h-9 px-2.5 rounded-[6px] bg-[#161616] hover:bg-[#222222] text-[#b4b4b4] text-[12px] font-medium transition-colors border border-[#2a2a2a] cursor-pointer shrink-0"
                         title="Voltar para opções pré-definidas"
                       >
-                        Presets
+                        Padrão
                       </button>
                     </div>
                   ) : (
@@ -1045,7 +1042,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                           setLimit(Number(e.target.value));
                         }
                       }}
-                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500 text-sm"
+                      className="w-full h-9 px-2.5 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444] text-[13px] tabular-nums"
                     >
                       <option value={20}>20 estabelecimentos</option>
                       <option value={50}>50 estabelecimentos</option>
@@ -1053,7 +1050,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                       <option value={100}>100 estabelecimentos</option>
                       <option value={150}>150 estabelecimentos</option>
                       <option value={200}>200 estabelecimentos</option>
-                      <option value="custom">✏️ Personalizado (Digitar quantidade)...</option>
+                      <option value="custom">Personalizado (Digitar quantidade)...</option>
                     </select>
                   )}
                 </div>
@@ -1061,27 +1058,27 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
               {/* Action Row */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                <div className="text-[11px] text-slate-400 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>Idioma configurado: <strong>Português (Brasil)</strong> com filtros de contatos enriquecidos</span>
+                <div className="text-[12px] text-[#949494] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[var(--ok)]" />
+                  <span>Idioma configurado: <strong className="text-[#b4b4b4] font-medium">Português (Brasil)</strong> com filtros de contatos enriquecidos</span>
                 </div>
 
-                <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   {history.length > 0 && (
                     <button
                       type="button"
                       onClick={() => setActiveTab('history')}
-                      className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold flex items-center gap-1.5 transition text-xs"
+                      className="h-9 px-3.5 rounded-[6px] bg-[#161616] hover:bg-[#222222] border border-[#2a2a2a] text-[#b4b4b4] hover:text-white font-medium flex items-center gap-1.5 transition-colors text-[12px] tabular-nums"
                     >
-                      <History className="w-3.5 h-3.5 text-cyan-500" />
-                      <span>Ver Histórico ({history.length})</span>
+                      <History className="w-3.5 h-3.5" />
+                      <span>Ver histórico ({history.length})</span>
                     </button>
                   )}
 
                   <button
                     type="submit"
                     disabled={isRunning}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/30 transition disabled:opacity-50"
+                    className="h-9 flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[13px] font-medium transition-colors disabled:opacity-50 tabular-nums"
                   >
                     {isRunning ? (
                       <>
@@ -1090,8 +1087,8 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                       </>
                     ) : (
                       <>
-                        <Zap className="w-4 h-4 fill-current text-cyan-300" />
-                        <span>Extrair Estabelecimentos ({limit})</span>
+                        <Zap className="w-4 h-4" />
+                        <span>Extrair estabelecimentos ({limit})</span>
                       </>
                     )}
                   </button>
@@ -1101,10 +1098,10 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
             {/* Quick Access Bar to Recent History */}
             {history.length > 0 && (
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-2 overflow-x-auto text-xs py-1">
-                <span className="text-[11px] text-slate-400 flex items-center gap-1 font-semibold shrink-0">
-                  <Clock className="w-3 h-3 text-slate-500" />
-                  Listas Recentes:
+              <div className="pt-3 border-t border-[#161616] flex items-center gap-2 overflow-x-auto text-[12px] py-1">
+                <span className="text-[12px] text-[#949494] flex items-center gap-1 font-medium shrink-0">
+                  <Clock className="w-3 h-3" />
+                  Listas recentes:
                 </span>
                 <div className="flex items-center gap-1.5">
                   {history.slice(0, 4).map((h) => {
@@ -1114,14 +1111,14 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                         key={h.id}
                         type="button"
                         onClick={() => handleOpenHistoryItem(h)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1.5 transition shrink-0 border ${
+                        className={`px-2.5 py-1 rounded-[4px] text-[12px] flex items-center gap-1.5 transition-colors shrink-0 border tabular-nums ${
                           isSelected
-                            ? 'bg-blue-600 text-white border-blue-500 font-semibold shadow-sm'
-                            : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                            ? 'bg-white text-black border-white font-medium'
+                            : 'bg-[#161616] hover:bg-[#222222] text-[#b4b4b4] border-[#262626]'
                         }`}
                       >
-                        <span className="font-semibold">{h.searchTerm}</span>
-                        <span className="text-[10px] opacity-75">({h.resultsCount})</span>
+                        <span className="font-medium">{h.searchTerm}</span>
+                        <span className="text-[11px] opacity-75">({h.resultsCount})</span>
                       </button>
                     );
                   })}
@@ -1131,11 +1128,11 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
             {/* Live Loading Indicator */}
             {isRunning && (
-              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-3 animate-pulse text-xs text-blue-600 dark:text-blue-400">
-                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+              <div className="p-4 rounded-[6px] bg-[#161616] border border-[#2a2a2a] flex items-center gap-3 text-[13px] text-white">
+                <Loader2 className="w-4 h-4 animate-spin shrink-0 text-[#c6f24e]" />
                 <div className="space-y-0.5">
-                  <p className="font-bold">{statusMessage || `Processando busca de até ${limit} estabelecimentos...`}</p>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="font-medium">{statusMessage || `Processando busca de até ${limit} estabelecimentos...`}</p>
+                  <p className="text-[12px] text-[#949494]">
                     Buscando até {limit} estabelecimentos em &quot;{location || 'região selecionada'}&quot;. Extraindo telefones comerciais, endereços e avaliações.
                   </p>
                 </div>
@@ -1144,7 +1141,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
             {/* Success Alert */}
             {importSuccessMessage && (
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+              <div className="p-4 rounded-[6px] bg-[#161616] border border-[var(--ok)]/40 flex items-center justify-between gap-3 text-[13px] text-[var(--ok)]">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>{importSuccessMessage}</span>
@@ -1152,9 +1149,9 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                 {onNavigateToCrm && (
                   <button
                     onClick={onNavigateToCrm}
-                    className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition shrink-0"
+                    className="h-8 px-3 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[12px] font-medium transition-colors shrink-0"
                   >
-                    Ver no Funil CRM →
+                    Ver no funil CRM &rarr;
                   </button>
                 )}
               </div>
@@ -1163,11 +1160,11 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
           {/* Banner de Lista Salva do Histórico Ativa */}
           {activeHistoryItem && results.length > 0 && (
-            <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs animate-in fade-in">
-              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-                <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
+            <div className="p-3.5 rounded-[6px] bg-[#161616] border border-[#262626] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-[12px]">
+              <div className="flex items-center gap-2 text-[#b4b4b4] tabular-nums">
+                <FolderOpen className="w-4 h-4 text-white shrink-0" />
                 <span>
-                  Exibindo lista salva: <strong>&quot;{activeHistoryItem.searchTerm}&quot;</strong> em <strong>&quot;{activeHistoryItem.location}&quot;</strong> • Gravada em {activeHistoryItem.formattedDate} ({activeHistoryItem.resultsCount} leads encontrados)
+                  Exibindo lista salva: <strong className="text-white">&quot;{activeHistoryItem.searchTerm}&quot;</strong> em <strong className="text-white">&quot;{activeHistoryItem.location}&quot;</strong> • Gravada em {activeHistoryItem.formattedDate} ({activeHistoryItem.resultsCount} leads encontrados)
                 </span>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -1176,9 +1173,9 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     setActiveHistoryItem(null);
                     setResults([]);
                   }}
-                  className="px-2.5 py-1 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 text-[11px] font-semibold"
+                  className="px-2.5 py-1 text-[#949494] hover:text-white text-[12px] font-medium"
                 >
-                  Fechar Lista
+                  Fechar lista
                 </button>
               </div>
             </div>
@@ -1186,48 +1183,48 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
           {/* Results Section */}
           {results.length > 0 && (
-            <div id="prospects-results-table" className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div id="prospects-results-table" className="p-5 bg-[#111111] rounded-[8px] border border-[#1a1a1a] space-y-4">
               {/* Action and Filter Toolbar */}
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-[#161616]">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-900 dark:text-white select-none">
+                  <label className="flex items-center gap-2 cursor-pointer text-[12px] font-medium text-white select-none tabular-nums">
                     <input
                       type="checkbox"
                       checked={displayedResults.length > 0 && displayedResults.every((p) => selectedIds.has(p.id))}
                       onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700"
+                      className="w-4 h-4 rounded border-[#333333]"
                     />
                     <span>
-                      Selecionar Todos ({activeSelectedCount} de {displayedResults.length})
+                      Selecionar todos ({activeSelectedCount} de {displayedResults.length})
                     </span>
                   </label>
 
-                  <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+                  <div className="h-4 w-px bg-[#222222] hidden sm:block" />
 
-                  {/* 🎯 Botão Rápido: Selecionar Apenas Sem Site */}
+                  {/* Botão Rápido: Selecionar Apenas Sem Site */}
                   <button
                     type="button"
                     onClick={handleSelectOnlyWithoutWebsite}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition border cursor-pointer ${
+                    className={`h-8 flex items-center gap-1.5 px-3 rounded-[6px] font-medium text-[12px] transition-colors border cursor-pointer tabular-nums ${
                       websiteFilter === 'without_website' && activeSelectedCount === withoutWebsiteCount
-                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm shadow-amber-500/30'
-                        : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/30'
+                        ? 'bg-[var(--warn)] text-black border-[var(--warn)]'
+                        : 'bg-[#161616] hover:bg-[#222222] text-[var(--warn)] border-[#2a2a2a]'
                     }`}
                     title="Selecionar apenas empresas sem website para oferta de criação de site e Google Meu Negócio"
                   >
-                    <Sparkles className="w-3.5 h-3.5 fill-current" />
-                    <span>Selecionar Sem Site ({withoutWebsiteCount})</span>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Selecionar sem site ({withoutWebsiteCount})</span>
                   </button>
 
                   {/* Filtro de Abas: Todos / Sem Site / Com Site */}
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                  <div className="flex items-center bg-[#0a0a0a] p-1 rounded-[6px] border border-[#222222] text-[12px] tabular-nums">
                     <button
                       type="button"
                       onClick={() => handleWebsiteFilterChange('all')}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition ${
+                      className={`px-2.5 py-1 rounded-[4px] font-medium transition-colors ${
                         websiteFilter === 'all'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-[#222222] text-white'
+                          : 'text-[#949494] hover:text-white'
                       }`}
                     >
                       Todos ({results.length})
@@ -1235,57 +1232,57 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     <button
                       type="button"
                       onClick={() => handleWebsiteFilterChange('without_website')}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] font-medium transition-colors ${
                         websiteFilter === 'without_website'
-                          ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-                          : 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                          ? 'bg-[#222222] text-[var(--warn)]'
+                          : 'text-[#949494] hover:text-white'
                       }`}
                       title="Exibir na tabela somente negócios que não possuem website institucional"
                     >
-                      <span>Sem Site ({withoutWebsiteCount})</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                      <span>Sem site ({withoutWebsiteCount})</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--warn)]" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleWebsiteFilterChange('with_website')}
-                      className={`px-2.5 py-1 rounded-lg font-semibold transition ${
+                      className={`px-2.5 py-1 rounded-[4px] font-medium transition-colors ${
                         websiteFilter === 'with_website'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-[#222222] text-white'
+                          : 'text-[#949494] hover:text-white'
                       }`}
                     >
-                      Com Site ({withWebsiteCount})
+                      Com site ({withWebsiteCount})
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs">
-                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white select-none">
+                  <div className="flex items-center gap-2 text-[12px]">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[#b4b4b4] hover:text-white select-none">
                       <input
                         type="checkbox"
                         checked={filterOnlyWithPhone}
                         onChange={(e) => setFilterOnlyWithPhone(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded text-blue-600"
+                        className="w-3.5 h-3.5 rounded"
                       />
-                      <span>Apenas c/ Telefone</span>
+                      <span>Apenas c/ telefone</span>
                     </label>
                   </div>
                 </div>
 
                 {/* Batch Actions */}
-                <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
+                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end tabular-nums">
                   <button
                     onClick={exportCurrentSelectionToCsv}
                     disabled={activeSelectedCount === 0}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition disabled:opacity-40"
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#161616] hover:bg-[#222222] border border-[#2a2a2a] text-[#b4b4b4] hover:text-white text-[12px] font-medium transition-colors disabled:opacity-40"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-[var(--ok)]" />
                     <span>Exportar CSV ({activeSelectedCount})</span>
                   </button>
 
                   <button
                     onClick={() => setIsOutreachModalOpen(true)}
                     disabled={activeSelectedCount === 0}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition disabled:opacity-40 cursor-pointer"
+                    className="h-8 flex items-center gap-1.5 px-3.5 rounded-[6px] bg-[#161616] hover:bg-[#222222] border border-[#2a2a2a] text-[var(--ok)] text-[12px] font-medium transition-colors disabled:opacity-40 cursor-pointer"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
                     <span>Disparar WhatsApp ({activeSelectedCount})</span>
@@ -1294,7 +1291,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                   <button
                     onClick={handleImportToCrm}
                     disabled={activeSelectedCount === 0 || isImporting}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition disabled:opacity-40"
+                    className="h-8 flex items-center gap-1.5 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[12px] font-medium transition-colors disabled:opacity-40"
                   >
                     {isImporting ? (
                       <>
@@ -1304,7 +1301,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     ) : (
                       <>
                         <Download className="w-3.5 h-3.5" />
-                        <span>Importar {activeSelectedCount} para o Funil</span>
+                        <span>Importar {activeSelectedCount} para o funil</span>
                       </>
                     )}
                   </button>
@@ -1313,38 +1310,38 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
               {/* Banner Informativo quando o filtro Sem Site estiver ativo */}
               {websiteFilter === 'without_website' && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-amber-600 dark:text-amber-400 animate-in fade-in">
+                <div className="p-3 rounded-[6px] bg-[#161616] border border-[#2a2a2a] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-[12px] text-[#b4b4b4]">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 shrink-0 text-amber-500 fill-amber-500" />
+                    <Sparkles className="w-4 h-4 shrink-0 text-[var(--warn)]" />
                     <span>
-                      Exibindo <strong>{withoutWebsiteCount} empresas sem website institucional</strong>. Leads altamente qualificados para oferta de <strong>Criação de Site</strong> e <strong>Otimização no Google Meu Negócio</strong>!
+                      Exibindo <strong className="text-white">{withoutWebsiteCount} empresas sem website institucional</strong>. Leads qualificados para oferta de criação de site e Google Meu Negócio.
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={handleSelectOnlyWithoutWebsite}
-                    className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[11px] shrink-0 transition shadow-sm cursor-pointer"
+                    className="h-7 px-3 rounded-[4px] bg-white hover:bg-[#e5e5e5] text-black font-medium text-[11px] shrink-0 transition-colors cursor-pointer tabular-nums"
                   >
-                    Marcar Todas as {withoutWebsiteCount} Sem Site
+                    Marcar todas as {withoutWebsiteCount} sem site
                   </button>
                 </div>
               )}
 
               {/* Prospects Table */}
-              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-400 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-slate-800">
+              <div className="overflow-x-auto rounded-[6px] border border-[#1a1a1a]">
+                <table className="w-full text-left text-[13px]">
+                  <thead className="bg-[#0c0c0c] text-[#949494] font-medium text-[12px] border-b border-[#1a1a1a]">
                     <tr>
                       <th className="p-3 w-8"></th>
-                      <th className="p-3">Empresa / Estabelecimento</th>
+                      <th className="p-3">Empresa / estabelecimento</th>
                       <th className="p-3">Telefone / WhatsApp</th>
-                      <th className="p-3">Avaliação Google</th>
+                      <th className="p-3 text-right">Avaliação Google</th>
                       <th className="p-3">Endereço</th>
                       <th className="p-3">Website</th>
                       <th className="p-3 text-right">Ação</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  <tbody className="divide-y divide-[#161616]">
                     {displayedResults.map((prospect) => {
                       const isSelected = selectedIds.has(prospect.id);
                       const cleanPhone = prospect.phone?.replace(/[^0-9]/g, '');
@@ -1353,10 +1350,10 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                         <tr
                           key={prospect.id}
                           onClick={() => toggleSelectOne(prospect.id)}
-                          className={`cursor-pointer transition ${
+                          className={`cursor-pointer transition-colors ${
                             isSelected
-                              ? 'bg-blue-50/50 dark:bg-blue-950/20'
-                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                              ? 'bg-[#181818]'
+                              : 'hover:bg-[#141414]'
                           }`}
                         >
                           <td className="p-3" onClick={(e) => e.stopPropagation()}>
@@ -1364,22 +1361,22 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleSelectOne(prospect.id)}
-                              className="w-4 h-4 rounded text-blue-600"
+                              className="w-4 h-4 rounded"
                             />
                           </td>
 
                           <td className="p-3">
-                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                              <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                            <div className="font-medium text-white flex items-center gap-1.5">
+                              <Building2 className="w-3.5 h-3.5 text-[#949494] shrink-0" />
                               <span>{prospect.name}</span>
                             </div>
-                            <span className="text-[11px] text-slate-400 block mt-0.5">{prospect.category}</span>
+                            <span className="text-[11px] text-[#949494] block mt-0.5">{prospect.category}</span>
                           </td>
 
-                          <td className="p-3 font-mono text-slate-700 dark:text-slate-300">
+                          <td className="p-3 text-[#b4b4b4] tabular-nums">
                             {prospect.phone ? (
                               <div className="flex items-center gap-1.5">
-                                <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <Phone className="w-3.5 h-3.5 text-[var(--ok)] shrink-0" />
                                 <span>{prospect.phone}</span>
                                 {cleanPhone && (
                                   <a
@@ -1388,26 +1385,26 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                                     rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
                                     title="Abrir conversa no WhatsApp"
-                                    className="p-1 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded transition"
+                                    className="p-1 text-[var(--ok)] hover:bg-[#222222] rounded-[4px] transition-colors"
                                   >
-                                    💬
+                                    <MessageCircle className="w-3.5 h-3.5" />
                                   </a>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-slate-400 italic">Não informado</span>
+                              <span className="text-[#949494]">Não informado</span>
                             )}
                           </td>
 
-                          <td className="p-3">
-                            <div className="flex items-center gap-1">
-                              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                              <span className="font-bold text-slate-900 dark:text-white">{prospect.rating}</span>
-                              <span className="text-[11px] text-slate-400">({prospect.reviewsCount})</span>
+                          <td className="p-3 text-right tabular-nums">
+                            <div className="inline-flex items-center justify-end gap-1">
+                              <Star className="w-3.5 h-3.5 text-[var(--warn)] fill-current" />
+                              <span className="font-medium text-white">{prospect.rating}</span>
+                              <span className="text-[11px] text-[#949494]">({prospect.reviewsCount})</span>
                             </div>
                           </td>
 
-                          <td className="p-3 text-slate-500 dark:text-slate-400 max-w-xs truncate" title={prospect.address}>
+                          <td className="p-3 text-[#949494] max-w-xs truncate" title={prospect.address}>
                             {prospect.address}
                           </td>
 
@@ -1418,16 +1415,16 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-cyan-500 hover:underline flex items-center gap-1.5 max-w-[150px] truncate font-medium"
+                                className="text-white hover:underline flex items-center gap-1.5 max-w-[150px] truncate text-[12px]"
                                 title={prospect.website}
                               >
-                                <Globe className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
+                                <Globe className="w-3.5 h-3.5 shrink-0 text-[#949494]" />
                                 <span className="truncate">{prospect.website?.replace(/^https?:\/\//, '')}</span>
                               </a>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/25">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                Sem Site (Oportunidade)
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] text-[11px] font-medium bg-[#1a1a1a] text-[var(--warn)] border border-[#2a2a2a]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--warn)]" />
+                                Sem site
                               </span>
                             )}
                           </td>
@@ -1438,7 +1435,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                                 href={prospect.googleUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex transition"
+                                className="p-1.5 rounded-[4px] text-[#949494] hover:text-white hover:bg-[#222222] inline-flex transition-colors"
                                 title="Ver no Google Maps"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
@@ -1458,31 +1455,31 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
 
       {/* Token Modal */}
       {isTokenModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 space-y-4 animate-in zoom-in-95 text-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#111111] border border-[#222222] rounded-[8px] p-5 space-y-4 text-[13px]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1a1a1a]">
               <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-amber-500" />
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Configurar Token da Apify</h3>
+                <Key className="w-4 h-4 text-[var(--warn)]" />
+                <h3 className="font-semibold text-[14px] text-white">Configurar token da Apify</h3>
               </div>
-              <button onClick={() => setIsTokenModalOpen(false)} className="text-slate-400 hover:text-white">
-                ✕
+              <button onClick={() => setIsTokenModalOpen(false)} className="text-[#949494] hover:text-white p-1">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-slate-400 leading-relaxed">
-              Insira o seu <strong>Personal API Token</strong> da Apify (obtido em <em>Apify Console &gt; Settings &gt; Integrations</em>).
-              Ele também já está configurado na nuvem da Vercel como <code className="text-cyan-400 font-mono">APIFY_API_TOKEN</code>.
+            <p className="text-[#b4b4b4] text-[12px] leading-relaxed">
+              Insira o seu <strong className="text-white">Personal API Token</strong> da Apify (obtido em Apify Console &gt; Settings &gt; Integrations).
+              Ele também já está configurado na nuvem da Vercel como <code className="text-white">APIFY_API_TOKEN</code>.
             </p>
 
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Apify API Token</label>
+              <label className="block text-[12px] text-[#949494] font-medium mb-1.5">Apify API Token</label>
               <input
                 type="password"
                 placeholder="apify_api_..."
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
-                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500 font-mono"
+                className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#262626] focus:outline-none focus:border-[#444444]"
               />
             </div>
 
@@ -1490,7 +1487,7 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
               <button
                 type="button"
                 onClick={() => setIsTokenModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold"
+                className="h-9 px-4 rounded-[6px] bg-[#161616] hover:bg-[#222222] text-[#b4b4b4] hover:text-white font-medium transition-colors"
               >
                 Fechar
               </button>
@@ -1500,9 +1497,9 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                   setIsTokenModalOpen(false);
                   alert('Token salvo para esta sessão do painel!');
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md shadow-blue-600/30 transition"
+                className="h-9 px-4 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black font-medium transition-colors"
               >
-                Salvar Token
+                Salvar token
               </button>
             </div>
           </div>

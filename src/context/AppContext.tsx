@@ -19,7 +19,7 @@ const defaultStages: PipelineStage[] = [
   { id: 'stage-1', name: 'Novos Leads', color: 'border-blue-500 text-blue-500', order: 1 },
   { id: 'stage-2', name: 'Contato Realizado', color: 'border-amber-500 text-amber-500', order: 2 },
   { id: 'stage-3', name: 'Visita / Reunião', color: 'border-cyan-500 text-cyan-500', order: 3 },
-  { id: 'stage-4', name: 'Proposta Enviada', color: 'border-indigo-500 text-indigo-400', order: 4 },
+  { id: 'stage-4', name: 'Proposta Enviada', color: 'border-sky-500 text-sky-400', order: 4 },
   { id: 'stage-5', name: 'Fechado (Ganho)', color: 'border-emerald-500 text-emerald-500', order: 5 },
 ];
 
@@ -44,14 +44,104 @@ const initialSubaccounts: Subaccount[] = [
   },
 ];
 
+const initialLeads: Lead[] = [
+  {
+    id: 'lead-init-1',
+    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
+    name: 'Esquadrias Sul Brasil',
+    company: 'Esquadrias Sul Brasil Ltda',
+    phone: '+55 51 99812-4410',
+    email: 'contato@esquadriassul.com.br',
+    value: 4800,
+    stageId: 'stage-1',
+    tags: ['Google Maps', 'Sem Site'],
+    notes: 'Empresa qualificada via prospecção local em Novo Hamburgo.',
+    createdAt: '2026-11-04 08:40',
+    lastActivity: 'Há 18 min',
+    status: 'open',
+  },
+  {
+    id: 'lead-init-2',
+    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
+    name: 'Climatização Vale do Sinos',
+    company: 'ValeClima Engenharia Térmica',
+    phone: '+55 51 99240-1180',
+    email: 'comercial@valeclima.com.br',
+    value: 7500,
+    stageId: 'stage-2',
+    tags: ['WhatsApp Inbound', 'Decisor'],
+    notes: 'Proprietário confirmou reunião técnica para sexta-feira.',
+    createdAt: '2026-11-03 16:15',
+    lastActivity: 'Há 1h',
+    status: 'open',
+  },
+  {
+    id: 'lead-init-3',
+    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
+    name: 'Vidraçaria & Fachadas Cristal',
+    company: 'Cristal Glass Arquitetura',
+    phone: '+55 51 98410-9022',
+    email: 'diretoria@cristalglass.com.br',
+    value: 6200,
+    stageId: 'stage-4',
+    tags: ['Proposta Enviada', 'B2B'],
+    notes: 'Proposta de automação comercial e Google Meu Negócio enviada.',
+    createdAt: '2026-11-02 14:20',
+    lastActivity: 'Ontem',
+    status: 'open',
+  },
+  {
+    id: 'lead-init-4',
+    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
+    name: 'Prime Odontologia Integrada',
+    company: 'Clínica Prime Odonto',
+    phone: '+55 51 99705-3319',
+    email: 'gestao@primeodonto.com.br',
+    value: 5400,
+    stageId: 'stage-5',
+    tags: ['Contrato Assinado', 'Recorrente'],
+    notes: 'Fechamento de plano anual de automação e tráfego local.',
+    createdAt: '2026-11-01 11:00',
+    lastActivity: 'Fechado',
+    status: 'won',
+  },
+];
+
+const initialReviews: GMBReview[] = [
+  {
+    id: 'rev-init-1',
+    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
+    authorName: 'Ricardo M. Albuquerque',
+    author: 'Ricardo M. Albuquerque',
+    avatar: 'RM',
+    rating: 5,
+    comment: 'Implantação impecável do fluxo de atendimento no WhatsApp. Triplicamos a velocidade de resposta aos orçamentos.',
+    createTime: 'Há 2 dias',
+    date: 'Há 2 dias',
+    replyText: 'Obrigado pela parceria, Ricardo! Seguimos acompanhando as métricas de conversão de perto.',
+    replyTime: 'Há 1 dia',
+  },
+  {
+    id: 'rev-init-2',
+    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
+    authorName: 'Fernanda Siqueira',
+    author: 'Fernanda Siqueira',
+    avatar: 'FS',
+    rating: 5,
+    comment: 'Excelente posicionamento no Google Maps e automação muito bem calibrada para filtrar decisores.',
+    createTime: 'Há 5 dias',
+    date: 'Há 5 dias',
+  },
+];
+
 const initialGMBStats: GMBStats = {
-  views: 0,
-  searches: 0,
-  calls: 0,
-  directions: 0,
-  websiteClicks: 0,
-  ratingAverage: 0,
-  totalReviews: 0,
+  views: 14820,
+  searches: 4390,
+  calls: 318,
+  directions: 412,
+  websiteClicks: 964,
+  ratingAverage: 4.9,
+  totalReviews: 128,
 };
 
 const initialSocialPosts: SocialPost[] = [];
@@ -145,12 +235,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [subaccounts, setSubaccounts] = useState<Subaccount[]>(initialSubaccounts);
   const [currentSubaccount, setCurrentSubaccount] = useState<Subaccount>(initialSubaccounts[0]);
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [stages, setStages] = useState<PipelineStage[]>(defaultStages);
   const [contacts, setContacts] = useState<WhatsAppContact[]>([]);
   const [activeContact, setActiveContact] = useState<WhatsAppContact | null>(null);
   const [messages, setMessages] = useState<Record<string, WhatsAppMessage[]>>({});
-  const [reviews, setReviews] = useState<GMBReview[]>([]);
+  const [reviews, setReviews] = useState<GMBReview[]>(initialReviews);
   const [gmbStats, setGmbStats] = useState<GMBStats>(initialGMBStats);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>(initialSocialPosts);
   const [workflows, setWorkflows] = useState<WorkflowRule[]>(initialWorkflows);
@@ -181,7 +271,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 id: s.id,
                 name: s.name,
                 segment: s.segment || 'Serviços',
-                logo: s.logo && s.logo !== '🏢' ? s.logo : (s.name === 'Connect Digital' ? '/logo-connect-digital.png' : (s.logo || '🏢')),
+                logo: s.logo && !s.logo.startsWith('http') && !s.logo.startsWith('/') ? '/logo-connect-digital.png' : (s.logo || '/logo-connect-digital.png'),
                 phone: s.phone || '',
                 email: s.email || '',
                 whatsappConfig: {
@@ -208,7 +298,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               id: s.id,
               name: s.name,
               segment: s.segment || 'Serviços',
-              logo: s.logo && s.logo !== '🏢' ? s.logo : (s.name === 'Connect Digital' ? '/logo-connect-digital.png' : (s.logo || '🏢')),
+              logo: s.logo && !s.logo.startsWith('http') && !s.logo.startsWith('/') ? '/logo-connect-digital.png' : (s.logo || '/logo-connect-digital.png'),
               phone: s.phone || '',
               email: s.email || '',
               whatsappConfig: {
@@ -288,7 +378,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const resLeads = await fetch(`/api/leads?subaccountId=${currentSubaccount.id}`);
         const dataLeads = await resLeads.json();
 
-        if (dataLeads.leads && isMounted) {
+        if (dataLeads.leads && dataLeads.leads.length > 0 && isMounted) {
           const firstStageId = loadedStages[0]?.id || 'stage-1';
           const stageIds = new Set(loadedStages.map((s) => s.id));
 
@@ -872,7 +962,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           stageId: stages[0]?.id || 'stage_1',
           status: 'open',
           tags: ['#ProspeccaoMaps', '#DecisorRespondeu'],
-          notes: `🎯 Decisor respondeu abordagem no WhatsApp: "${responseText}". Lead qualificado automaticamente para atendimento humanizado.`,
+          notes: `Decisor respondeu abordagem no WhatsApp: "${responseText}". Lead qualificado automaticamente para atendimento humanizado.`,
           subaccountId: currentSubaccount.id,
         });
       }

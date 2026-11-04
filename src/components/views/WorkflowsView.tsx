@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import {
-  GitBranch,
   Zap,
   Play,
   Plus,
@@ -10,24 +9,17 @@ import {
   ArrowDown,
   MessageSquare,
   Tag,
-  Star,
   Users,
-  Settings,
   Clock,
   Trash2,
-  Copy,
-  ChevronRight,
   Sparkles,
   Filter,
   ArrowRight,
-  CornerDownRight,
-  Send,
   X,
-  Eye,
   Sliders,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { WorkflowRule, WorkflowStep, WorkflowStepType, WorkflowActionType } from '@/types';
+import { WorkflowRule, WorkflowStep, WorkflowStepType } from '@/types';
 
 export function WorkflowsView() {
   const { currentSubaccount, workflows, toggleWorkflow, addWorkflow, updateWorkflow, deleteWorkflow, stages } = useApp();
@@ -42,14 +34,13 @@ export function WorkflowsView() {
 
   // Selected Step for Configuration in Builder
   const [selectedStep, setSelectedStep] = useState<WorkflowStep | null>(null);
-  const [selectedBranch, setSelectedBranch] = useState<'root' | 'yes' | 'no'>('root');
 
   // Simulator State
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [simContactName, setSimContactName] = useState('Carlos Eduardo');
   const [simContactPhone, setSimContactPhone] = useState('(11) 98765-4321');
   const [simMessage, setSimMessage] = useState('Olá! Gostaria de um orçamento para instalação de 2 ar-condicionados');
-  const [simRating, setSimRating] = useState(5);
+  const [simRating] = useState(5);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationTrace, setSimulationTrace] = useState<any[] | null>(null);
 
@@ -153,7 +144,6 @@ export function WorkflowsView() {
     }
   };
 
-  // Helper to add a step to the active workflow
   const handleAddStepToWorkflow = (type: WorkflowStepType, branchTarget: 'root' | 'yes' | 'no' = 'root', parentCondId?: string) => {
     if (!activeWorkflow) return;
 
@@ -250,56 +240,56 @@ export function WorkflowsView() {
   };
 
   // =========================================================================
-  // VIEW: FULL VISUAL BUILDER (CANVAS GHL STYLE)
+  // VIEW: FULL VISUAL BUILDER (CANVAS)
   // =========================================================================
   if (activeWorkflow) {
     return (
-      <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="space-y-6">
         {/* Top Builder Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-[#161616]">
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
                 setActiveWorkflow(null);
                 setSelectedStep(null);
               }}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition flex items-center gap-1.5"
+              className="h-8 px-3 rounded-[6px] bg-[#161616] hover:bg-[#1f1f1f] border border-[#2a2a2a] text-[#b4b4b4] hover:text-white text-[13px] font-medium transition-colors"
             >
-              <span>← Voltar à Lista</span>
+              Voltar à lista
             </button>
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+            <div className="h-5 w-px bg-[#1a1a1a] hidden sm:block" />
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <input
                   type="text"
                   value={activeWorkflow.name}
                   onChange={(e) => setActiveWorkflow({ ...activeWorkflow, name: e.target.value })}
-                  className="font-bold text-base text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-slate-400 focus:border-blue-500 focus:outline-none transition px-1"
+                  className="font-semibold text-[18px] tracking-[-0.02em] text-white bg-transparent border-b border-transparent hover:border-[#2a2a2a] focus:border-[#444444] focus:outline-none px-1"
                 />
                 <span
-                  className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  className={`text-[12px] px-2 py-0.5 rounded-[4px] font-medium ${
                     activeWorkflow.isActive
-                      ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                      ? 'bg-[var(--ok)]/15 text-[var(--ok)]'
+                      : 'bg-[#1a1a1a] text-[#949494]'
                   }`}
                 >
-                  {activeWorkflow.isActive ? 'Publicado / Ativo' : 'Rascunho'}
+                  {activeWorkflow.isActive ? 'Ativo' : 'Rascunho'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 px-1 mt-0.5">{activeWorkflow.description}</p>
+              <p className="text-[12px] text-[#949494] px-1 mt-0.5">{activeWorkflow.description}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               onClick={() => {
                 setIsSimulatorOpen(true);
                 setSimulationTrace(null);
               }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 text-xs font-semibold transition"
+              className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#161616] hover:bg-[#1f1f1f] text-[var(--warn)] border border-[#2a2a2a] text-[13px] font-medium transition-colors"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Testar Automação</span>
+              <span>Testar automação</span>
             </button>
 
             <button
@@ -309,76 +299,72 @@ export function WorkflowsView() {
                 setActiveWorkflow(updated);
                 updateWorkflow(updated);
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
-                activeWorkflow.isActive
-                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
+              className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#161616] hover:bg-[#1f1f1f] border border-[#2a2a2a] text-[#b4b4b4] hover:text-white text-[13px] font-medium transition-colors"
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>{activeWorkflow.isActive ? 'Pausar Fluxo' : 'Publicar Fluxo'}</span>
+              <span>{activeWorkflow.isActive ? 'Pausar fluxo' : 'Publicar fluxo'}</span>
             </button>
 
             <button
               onClick={handleUpdateActiveWorkflow}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition"
+              className="h-8 flex items-center gap-1.5 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[13px] font-medium transition-colors"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Salvar Alterações</span>
+              <span>Salvar alterações</span>
             </button>
           </div>
         </div>
 
         {/* Builder Layout: Canvas Graph + Node Config Drawer */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Main Canvas Flow Graph */}
-          <div className="lg:col-span-8 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 min-h-[600px] flex flex-col items-center relative overflow-x-auto shadow-inner">
-            <div className="w-full max-w-xl flex flex-col items-center space-y-6">
+          <div className="lg:col-span-8 bg-[#111111] border border-[#1a1a1a] rounded-[8px] p-6 min-h-[580px] flex flex-col items-center relative overflow-x-auto">
+            <div className="w-full max-w-xl flex flex-col items-center space-y-5">
               {/* 1. TRIGGER NODE */}
               <div
                 onClick={() => setSelectedStep(null)}
-                className="w-full bg-white dark:bg-slate-900 border-2 border-blue-500/60 hover:border-blue-500 rounded-2xl p-5 shadow-lg shadow-blue-500/5 cursor-pointer transition transform hover:-translate-y-0.5"
+                className="w-full bg-[#161616] border border-[#2a2a2a] hover:border-[#444444] rounded-[8px] p-4 cursor-pointer transition-colors"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between pb-3 border-b border-[#222222]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-600/30">
-                      <Zap className="w-4 h-4 fill-current" />
+                    <div className="w-7 h-7 rounded-[6px] bg-[#222222] border border-[#333333] flex items-center justify-center text-[#c6f24e]">
+                      <Zap className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500">
-                        Gatilho Inicial (Trigger)
+                      <span className="text-[11px] font-medium text-[#949494]">
+                        Gatilho inicial
                       </span>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                      <h4 className="font-semibold text-[14px] text-white">
                         {activeWorkflow.triggerLabel}
                       </h4>
                     </div>
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                  <span className="text-[11px] font-medium text-[#b4b4b4] bg-[#222222] px-2 py-0.5 rounded-[4px]">
                     {activeWorkflow.triggerType}
                   </span>
                 </div>
 
-                <div className="pt-3 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-1.5 items-center">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">Filtro de ativação:</span>
+                <div className="pt-3 text-[12px] text-[#949494] flex flex-wrap gap-1.5 items-center">
+                  <span className="font-medium text-[#b4b4b4]">Filtro de ativação:</span>
                   {activeWorkflow.triggerConfig?.keywords && activeWorkflow.triggerConfig.keywords.length > 0 ? (
                     activeWorkflow.triggerConfig.keywords.map((k, i) => (
                       <span
                         key={i}
-                        className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 rounded-md text-[10px] font-medium"
+                        className="px-2 py-0.5 bg-[#111111] text-[#b4b4b4] border border-[#2a2a2a] rounded-[4px] text-[11px]"
                       >
                         &quot;{k}&quot;
                       </span>
                     ))
                   ) : (
-                    <span className="italic text-slate-400">Qualquer mensagem / evento</span>
+                    <span className="text-[#949494]">Qualquer mensagem ou evento</span>
                   )}
                 </div>
               </div>
 
               {/* Connecting Connector Arrow */}
               <div className="flex flex-col items-center">
-                <div className="w-0.5 h-6 bg-blue-500/40" />
-                <ArrowDown className="w-4 h-4 text-blue-500" />
+                <div className="w-px h-5 bg-[#2a2a2a]" />
+                <ArrowDown className="w-3.5 h-3.5 text-[#949494]" />
               </div>
 
               {/* 2. SEQUENTIAL & CONDITIONAL STEPS */}
@@ -388,64 +374,63 @@ export function WorkflowsView() {
                     {step.stepType === 'condition' ? (
                       /* CONDITIONAL IF/ELSE NODE */
                       <div className="w-full flex flex-col items-center space-y-4">
-                        {/* Condition Diamond Card */}
                         <div
                           onClick={() => setSelectedStep(step)}
-                          className={`w-full bg-white dark:bg-slate-900 border-2 ${
-                            selectedStep?.id === step.id ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-amber-500/50 hover:border-amber-500'
-                          } rounded-2xl p-5 shadow-lg shadow-amber-500/5 cursor-pointer transition`}
+                          className={`w-full bg-[#161616] border ${
+                            selectedStep?.id === step.id ? 'border-[var(--warn)]' : 'border-[#2a2a2a] hover:border-[#444444]'
+                          } rounded-[8px] p-4 cursor-pointer transition-colors`}
                         >
-                          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center justify-between pb-3 border-b border-[#222222]">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-md shadow-amber-500/30">
-                                <Filter className="w-4 h-4" />
+                              <div className="w-7 h-7 rounded-[6px] bg-[var(--warn)]/15 flex items-center justify-center text-[var(--warn)]">
+                                <Filter className="w-3.5 h-3.5" />
                               </div>
                               <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
-                                  Bifurcação Condicional (IF / ELSE)
+                                <span className="text-[11px] font-medium text-[var(--warn)]">
+                                  Bifurcação condicional (IF / ELSE)
                                 </span>
-                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                                <h4 className="font-semibold text-[14px] text-white">
                                   {step.label}
                                 </h4>
                               </div>
                             </div>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                              Decisão Lógica
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-[4px] bg-[var(--warn)]/15 text-[var(--warn)]">
+                              Decisão lógica
                             </span>
                           </div>
 
-                          <div className="pt-3 text-xs text-slate-500 dark:text-slate-400">
-                            Campo: <span className="font-semibold text-slate-800 dark:text-slate-200">{step.config?.condition?.field || 'mensagem'}</span>{' '}
+                          <div className="pt-3 text-[12px] text-[#949494]">
+                            Campo: <span className="font-medium text-white">{step.config?.condition?.field || 'mensagem'}</span>{' '}
                             {step.config?.condition?.operator === 'contains' ? 'contém' : 'é igual a'}{' '}
-                            <span className="font-semibold text-amber-600 dark:text-amber-400">&quot;{step.config?.condition?.value || ''}&quot;</span>
+                            <span className="font-medium text-[var(--warn)]">&quot;{step.config?.condition?.value || ''}&quot;</span>
                           </div>
                         </div>
 
                         {/* Dual Branch Visualizer: YES (SIM) vs NO (NÃO) */}
-                        <div className="w-full grid grid-cols-2 gap-4 pt-2">
+                        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                           {/* Branch YES (SIM) */}
-                          <div className="flex flex-col items-center space-y-3 p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
+                          <div className="flex flex-col items-center space-y-3 p-3.5 rounded-[8px] bg-[#0c0c0c] border border-[#1f1f1f]">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[var(--ok)]/15 text-[var(--ok)] text-[11px] font-medium">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Branch SIM (Atende)</span>
+                              <span>Ramo SIM (Atende)</span>
                             </div>
 
                             {step.yesSteps?.map((subStep) => (
                               <div
                                 key={subStep.id}
                                 onClick={() => setSelectedStep(subStep)}
-                                className={`w-full bg-white dark:bg-slate-900 border ${
-                                  selectedStep?.id === subStep.id ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-emerald-500/30 hover:border-emerald-500'
-                                } p-3.5 rounded-xl shadow-sm cursor-pointer text-xs space-y-2`}
+                                className={`w-full bg-[#161616] border ${
+                                  selectedStep?.id === subStep.id ? 'border-[var(--ok)]' : 'border-[#262626] hover:border-[#3a3a3a]'
+                                } p-3 rounded-[6px] cursor-pointer text-[12px] space-y-1.5`}
                               >
-                                <div className="flex items-center gap-2 text-emerald-500 font-bold">
+                                <div className="flex items-center gap-2 text-[var(--ok)] font-medium">
                                   {subStep.actionType === 'send_whatsapp' && <MessageSquare className="w-3.5 h-3.5" />}
                                   {subStep.actionType === 'add_tag' && <Tag className="w-3.5 h-3.5" />}
                                   {subStep.actionType === 'update_stage' && <Users className="w-3.5 h-3.5" />}
                                   <span>{subStep.label}</span>
                                 </div>
                                 {subStep.config?.messageTemplate && (
-                                  <p className="text-[11px] text-slate-500 line-clamp-2 italic bg-slate-50 dark:bg-slate-800/60 p-1.5 rounded">
+                                  <p className="text-[11px] text-[#949494] line-clamp-2 bg-[#111111] p-2 rounded-[4px] border border-[#1f1f1f]">
                                     &quot;{subStep.config.messageTemplate}&quot;
                                   </p>
                                 )}
@@ -454,44 +439,44 @@ export function WorkflowsView() {
 
                             <button
                               onClick={() => handleAddStepToWorkflow('action', 'yes', step.id)}
-                              className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 flex items-center gap-1 py-1"
+                              className="text-[12px] font-medium text-[var(--ok)] hover:underline flex items-center gap-1 py-1"
                             >
                               <Plus className="w-3 h-3" />
-                              <span>Adicionar Ação ao SIM</span>
+                              <span>Adicionar ação ao SIM</span>
                             </button>
                           </div>
 
                           {/* Branch NO (NÃO) */}
-                          <div className="flex flex-col items-center space-y-3 p-3 rounded-2xl bg-slate-500/5 border border-slate-500/20">
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                          <div className="flex flex-col items-center space-y-3 p-3.5 rounded-[8px] bg-[#0c0c0c] border border-[#1f1f1f]">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#222222] text-[#b4b4b4] text-[11px] font-medium">
                               <X className="w-3.5 h-3.5" />
-                              <span>Branch NÃO (Outro)</span>
+                              <span>Ramo NÃO (Outro)</span>
                             </div>
 
                             {step.noSteps?.map((subStep) => (
                               <div
                                 key={subStep.id}
                                 onClick={() => setSelectedStep(subStep)}
-                                className={`w-full bg-white dark:bg-slate-900 border ${
-                                  selectedStep?.id === subStep.id ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-300 dark:border-slate-700 hover:border-blue-500'
-                                } p-3.5 rounded-xl shadow-sm cursor-pointer text-xs space-y-2`}
+                                className={`w-full bg-[#161616] border ${
+                                  selectedStep?.id === subStep.id ? 'border-white' : 'border-[#262626] hover:border-[#3a3a3a]'
+                                } p-3 rounded-[6px] cursor-pointer text-[12px] space-y-1.5`}
                               >
-                                <div className="flex items-center gap-2 text-blue-500 font-bold">
+                                <div className="flex items-center gap-2 text-white font-medium">
                                   {subStep.actionType === 'ai_toggle' ? <Sparkles className="w-3.5 h-3.5" /> : <MessageSquare className="w-3.5 h-3.5" />}
                                   <span>{subStep.label}</span>
                                 </div>
-                                <p className="text-[11px] text-slate-500 line-clamp-2 italic bg-slate-50 dark:bg-slate-800/60 p-1.5 rounded">
-                                  {subStep.actionType === 'ai_toggle' ? 'Atendente Inteligente ativado' : subStep.label}
+                                <p className="text-[11px] text-[#949494] line-clamp-2 bg-[#111111] p-2 rounded-[4px] border border-[#1f1f1f]">
+                                  {subStep.actionType === 'ai_toggle' ? 'Atendente inteligente ativado' : subStep.label}
                                 </p>
                               </div>
                             ))}
 
                             <button
                               onClick={() => handleAddStepToWorkflow('action', 'no', step.id)}
-                              className="text-[10px] font-semibold text-slate-500 hover:text-slate-400 flex items-center gap-1 py-1"
+                              className="text-[12px] font-medium text-[#b4b4b4] hover:text-white flex items-center gap-1 py-1"
                             >
                               <Plus className="w-3 h-3" />
-                              <span>Adicionar Ação ao NÃO</span>
+                              <span>Adicionar ação ao NÃO</span>
                             </button>
                           </div>
                         </div>
@@ -500,51 +485,49 @@ export function WorkflowsView() {
                       /* LINEAR STEP (ACTION OR DELAY) */
                       <div
                         onClick={() => setSelectedStep(step)}
-                        className={`w-full bg-white dark:bg-slate-900 border-2 ${
+                        className={`w-full bg-[#161616] border ${
                           selectedStep?.id === step.id
-                            ? 'border-blue-500 ring-2 ring-blue-500/20'
-                            : step.stepType === 'delay'
-                            ? 'border-amber-400/40 hover:border-amber-400'
-                            : 'border-slate-200 dark:border-slate-800 hover:border-blue-500'
-                        } rounded-2xl p-5 shadow-sm cursor-pointer transition`}
+                            ? 'border-white'
+                            : 'border-[#2a2a2a] hover:border-[#444444]'
+                        } rounded-[8px] p-4 cursor-pointer transition-colors`}
                       >
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center justify-between pb-3 border-b border-[#222222]">
                           <div className="flex items-center gap-2.5">
                             <div
-                              className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md ${
+                              className={`w-7 h-7 rounded-[6px] flex items-center justify-center ${
                                 step.stepType === 'delay'
-                                  ? 'bg-amber-500 shadow-amber-500/30'
-                                  : 'bg-emerald-600 shadow-emerald-600/30'
+                                  ? 'bg-[var(--warn)]/15 text-[var(--warn)]'
+                                  : 'bg-[var(--ok)]/15 text-[var(--ok)]'
                               }`}
                             >
-                              {step.stepType === 'delay' ? <Clock className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                              {step.stepType === 'delay' ? <Clock className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                             </div>
                             <div>
                               <span
-                                className={`text-[10px] font-bold uppercase tracking-wider ${
-                                  step.stepType === 'delay' ? 'text-amber-500' : 'text-emerald-500'
+                                className={`text-[11px] font-medium ${
+                                  step.stepType === 'delay' ? 'text-[var(--warn)]' : 'text-[var(--ok)]'
                                 }`}
                               >
-                                {step.stepType === 'delay' ? 'Temporizador / Espera' : 'Ação Automatizada'}
+                                {step.stepType === 'delay' ? 'Temporizador de espera' : 'Ação automatizada'}
                               </span>
-                              <h4 className="font-bold text-sm text-slate-900 dark:text-white">{step.label}</h4>
+                              <h4 className="font-semibold text-[14px] text-white">{step.label}</h4>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400">
+                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-[4px] bg-[#222222] text-[#949494] tabular-nums">
                             Passo {step.stepOrder || idx + 1}
                           </span>
                         </div>
 
                         {step.config?.messageTemplate && (
-                          <div className="pt-3 text-xs text-slate-500 dark:text-slate-400">
-                            <p className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50 italic">
+                          <div className="pt-3 text-[12px] text-[#b4b4b4]">
+                            <p className="bg-[#111111] p-2.5 rounded-[6px] border border-[#222222]">
                               &quot;{step.config.messageTemplate}&quot;
                             </p>
                           </div>
                         )}
 
                         {step.stepType === 'delay' && (
-                          <div className="pt-3 text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
+                          <div className="pt-3 text-[12px] text-[var(--warn)] font-medium flex items-center gap-1.5 tabular-nums">
                             <Clock className="w-3.5 h-3.5" />
                             <span>Espera de {step.config?.delayMinutes || 60} minutos antes de prosseguir.</span>
                           </div>
@@ -555,43 +538,43 @@ export function WorkflowsView() {
                     {/* Connecting Connector Arrow between steps */}
                     {idx < (activeWorkflow.steps?.length || 0) - 1 && (
                       <div className="flex flex-col items-center">
-                        <div className="w-0.5 h-6 bg-slate-300 dark:bg-slate-700" />
-                        <ArrowDown className="w-4 h-4 text-slate-400" />
+                        <div className="w-px h-5 bg-[#2a2a2a]" />
+                        <ArrowDown className="w-3.5 h-3.5 text-[#949494]" />
                       </div>
                     )}
                   </React.Fragment>
                 ))
               ) : (
-                <div className="text-center py-6 text-xs text-slate-400">
-                  Nenhum passo adicionado ainda. Clique abaixo para construir o fluxo.
+                <div className="text-center py-6 text-[13px] text-[#949494]">
+                  Nenhum passo adicionado ainda. Selecione uma opção abaixo para construir o fluxo.
                 </div>
               )}
 
               {/* Action Toolbar to append nodes */}
-              <div className="flex flex-col items-center pt-4">
-                <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
+              <div className="flex flex-col items-center pt-3">
+                <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-[8px] bg-[#161616] border border-[#2a2a2a]">
                   <button
                     onClick={() => handleAddStepToWorkflow('action')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs font-semibold transition"
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#222222] hover:bg-[#2a2a2a] text-white text-[12px] font-medium transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ Ação (WhatsApp/CRM)</span>
+                    <span>Ação (WhatsApp/CRM)</span>
                   </button>
 
                   <button
                     onClick={() => handleAddStepToWorkflow('condition')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-600 dark:text-amber-400 text-xs font-semibold transition"
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#222222] hover:bg-[#2a2a2a] text-[var(--warn)] text-[12px] font-medium transition-colors"
                   >
                     <Filter className="w-3.5 h-3.5" />
-                    <span>+ Condição (IF / ELSE)</span>
+                    <span>Condição (IF / ELSE)</span>
                   </button>
 
                   <button
                     onClick={() => handleAddStepToWorkflow('delay')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#222222] hover:bg-[#2a2a2a] text-[#b4b4b4] hover:text-white text-[12px] font-medium transition-colors"
                   >
                     <Clock className="w-3.5 h-3.5" />
-                    <span>+ Delay (Espera)</span>
+                    <span>Espera (Delay)</span>
                   </button>
                 </div>
               </div>
@@ -599,16 +582,16 @@ export function WorkflowsView() {
           </div>
 
           {/* Node Inspector & Configuration Drawer */}
-          <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-500" />
-                <span>Painel de Configuração do Nó</span>
+          <div className="lg:col-span-4 bg-[#111111] border border-[#1a1a1a] rounded-[8px] p-5 space-y-5 h-fit">
+            <div className="flex items-center justify-between pb-3 border-b border-[#161616]">
+              <h3 className="font-semibold text-[14px] text-white flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-[#949494]" />
+                <span>Configuração do passo</span>
               </h3>
               {selectedStep && (
                 <button
                   onClick={() => setSelectedStep(null)}
-                  className="text-xs text-slate-400 hover:text-slate-200"
+                  className="text-[12px] text-[#949494] hover:text-white"
                 >
                   Fechar
                 </button>
@@ -616,16 +599,15 @@ export function WorkflowsView() {
             </div>
 
             {selectedStep ? (
-              <div className="space-y-4 text-xs animate-in fade-in duration-200">
+              <div className="space-y-4 text-[13px]">
                 <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Título do Passo</label>
+                  <label className="block text-[12px] text-[#949494] font-medium mb-1.5">Título do passo</label>
                   <input
                     type="text"
                     value={selectedStep.label}
                     onChange={(e) => {
                       const updated = { ...selectedStep, label: e.target.value };
                       setSelectedStep(updated);
-                      // Update active workflow step list
                       const updateInTree = (list: WorkflowStep[]): WorkflowStep[] =>
                         list.map((s) => {
                           if (s.id === updated.id) return updated;
@@ -638,16 +620,16 @@ export function WorkflowsView() {
                         steps: updateInTree(activeWorkflow.steps || []),
                       });
                     }}
-                    className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                   />
                 </div>
 
                 {/* If Condition Config */}
                 {selectedStep.stepType === 'condition' && (
-                  <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-3">
-                    <span className="font-bold text-amber-500 block">Regra da Condição Lógica:</span>
+                  <div className="p-3.5 rounded-[6px] bg-[#161616] border border-[#262626] space-y-3">
+                    <span className="font-medium text-[var(--warn)] block text-[12px]">Regra da condição lógica</span>
                     <div>
-                      <label className="block text-slate-400 mb-1">Campo para avaliar:</label>
+                      <label className="block text-[12px] text-[#949494] mb-1">Campo para avaliar</label>
                       <select
                         value={selectedStep.config?.condition?.field || 'message'}
                         onChange={(e) => {
@@ -663,16 +645,16 @@ export function WorkflowsView() {
                           };
                           setSelectedStep(updated);
                         }}
-                        className="w-full p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
+                        className="w-full h-9 px-2.5 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                       >
                         <option value="message">Mensagem do WhatsApp (Texto)</option>
-                        <option value="rating">Nota da Avaliação do Google (1 a 5)</option>
-                        <option value="lead_value">Valor Estimado do Lead (R$)</option>
+                        <option value="rating">Nota da avaliação do Google (1 a 5)</option>
+                        <option value="lead_value">Valor estimado do lead (R$)</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-slate-400 mb-1">Operador:</label>
+                      <label className="block text-[12px] text-[#949494] mb-1">Operador</label>
                       <select
                         value={selectedStep.config?.condition?.operator || 'contains'}
                         onChange={(e) => {
@@ -688,7 +670,7 @@ export function WorkflowsView() {
                           };
                           setSelectedStep(updated);
                         }}
-                        className="w-full p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
+                        className="w-full h-9 px-2.5 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                       >
                         <option value="contains">Contém o texto</option>
                         <option value="equals">É exatamente igual a</option>
@@ -697,7 +679,7 @@ export function WorkflowsView() {
                     </div>
 
                     <div>
-                      <label className="block text-slate-400 mb-1">Valor de Referência:</label>
+                      <label className="block text-[12px] text-[#949494] mb-1">Valor de referência</label>
                       <input
                         type="text"
                         value={selectedStep.config?.condition?.value || ''}
@@ -715,7 +697,7 @@ export function WorkflowsView() {
                           setSelectedStep(updated);
                         }}
                         placeholder="Ex: orçamento, instalação..."
-                        className="w-full p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
+                        className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                       />
                     </div>
                   </div>
@@ -725,11 +707,11 @@ export function WorkflowsView() {
                 {selectedStep.actionType === 'send_whatsapp' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <label className="block text-slate-400 font-semibold">Mensagem do WhatsApp</label>
-                      <span className="text-[10px] text-blue-500 font-semibold">Variáveis disponíveis</span>
+                      <label className="block text-[12px] text-[#949494] font-medium">Mensagem do WhatsApp</label>
+                      <span className="text-[11px] text-[#b4b4b4]">Variáveis</span>
                     </div>
 
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {['{{contact.name}}', '{{empresa}}', '{{telefone}}'].map((chip) => (
                         <button
                           key={chip}
@@ -742,7 +724,7 @@ export function WorkflowsView() {
                             };
                             setSelectedStep(updated);
                           }}
-                          className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 text-[10px] font-mono"
+                          className="px-2 py-0.5 rounded-[4px] bg-[#161616] hover:bg-[#222222] text-[#b4b4b4] border border-[#2a2a2a] text-[11px]"
                         >
                           +{chip}
                         </button>
@@ -759,15 +741,15 @@ export function WorkflowsView() {
                         };
                         setSelectedStep(updated);
                       }}
-                      className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500 leading-relaxed"
+                      className="w-full p-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444] leading-relaxed"
                     />
                   </div>
                 )}
 
                 {/* If Delay Config */}
                 {selectedStep.stepType === 'delay' && (
-                  <div className="space-y-3">
-                    <label className="block text-slate-400 font-semibold">Tempo de Espera (Minutos)</label>
+                  <div className="space-y-2">
+                    <label className="block text-[12px] text-[#949494] font-medium">Tempo de espera (minutos)</label>
                     <input
                       type="number"
                       min="1"
@@ -779,9 +761,9 @@ export function WorkflowsView() {
                         };
                         setSelectedStep(updated);
                       }}
-                      className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] tabular-nums"
                     />
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[12px] text-[#949494]">
                       Ex: 60 = 1 hora, 1440 = 24 horas. O sistema aguarda esse tempo antes de executar a próxima etapa.
                     </p>
                   </div>
@@ -789,8 +771,8 @@ export function WorkflowsView() {
 
                 {/* If Move Stage Config */}
                 {selectedStep.actionType === 'update_stage' && (
-                  <div className="space-y-3">
-                    <label className="block text-slate-400 font-semibold">Etapa de Destino no Funil</label>
+                  <div className="space-y-2">
+                    <label className="block text-[12px] text-[#949494] font-medium">Etapa de destino no funil</label>
                     <select
                       value={selectedStep.config?.stageId || stages[0]?.id}
                       onChange={(e) => {
@@ -800,7 +782,7 @@ export function WorkflowsView() {
                         };
                         setSelectedStep(updated);
                       }}
-                      className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700"
+                      className="w-full h-9 px-2.5 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222]"
                     >
                       {stages.map((st) => (
                         <option key={st.id} value={st.id}>
@@ -811,10 +793,9 @@ export function WorkflowsView() {
                   </div>
                 )}
 
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between">
+                <div className="pt-4 border-t border-[#161616] flex justify-between gap-2">
                   <button
                     onClick={() => {
-                      // Remove step from tree
                       const removeFromTree = (list: WorkflowStep[]): WorkflowStep[] =>
                         list
                           .filter((s) => s.id !== selectedStep.id)
@@ -829,10 +810,10 @@ export function WorkflowsView() {
                       });
                       setSelectedStep(null);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-semibold transition"
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[var(--err)]/15 hover:bg-[var(--err)]/25 text-[var(--err)] text-[12px] font-medium transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Excluir Nó</span>
+                    <span>Excluir nó</span>
                   </button>
 
                   <button
@@ -840,16 +821,16 @@ export function WorkflowsView() {
                       updateWorkflow(activeWorkflow);
                       setSelectedStep(null);
                     }}
-                    className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition shadow-md shadow-blue-600/20"
+                    className="h-8 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[12px] font-medium transition-colors"
                   >
-                    Aplicar Configuração
+                    Aplicar configuração
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 text-slate-400 space-y-3">
-                <Sliders className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-700" />
-                <p className="text-xs">Clique em qualquer nó do fluxo ao lado para editar parâmetros e regras.</p>
+              <div className="text-center py-12 text-[#949494] space-y-2">
+                <Sliders className="w-6 h-6 mx-auto text-[#444444]" />
+                <p className="text-[12px]">Selecione qualquer nó do fluxo ao lado para editar parâmetros e regras.</p>
               </div>
             )}
           </div>
@@ -857,52 +838,52 @@ export function WorkflowsView() {
 
         {/* SIMULATOR MODAL */}
         {isSimulatorOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl bg-[#111111] border border-[#222222] rounded-[8px] overflow-hidden">
+              <div className="px-5 py-4 border-b border-[#1a1a1a] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Play className="w-4 h-4 text-amber-500 fill-current" />
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                    Simulador & Auditor de Execução em Tempo Real
+                  <Play className="w-4 h-4 text-[var(--warn)] fill-current" />
+                  <h3 className="font-semibold text-[14px] text-white">
+                    Simulador de execução em tempo real
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsSimulatorOpen(false)}
-                  className="text-slate-400 hover:text-white font-bold px-2 py-1"
+                  className="text-[#949494] hover:text-white p-1"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-6 space-y-5 text-xs max-h-[80vh] overflow-y-auto">
+              <div className="p-5 space-y-4 text-[13px] max-h-[80vh] overflow-y-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Nome do Contato Mock</label>
+                    <label className="block text-[12px] text-[#949494] font-medium mb-1">Nome do contato de teste</label>
                     <input
                       type="text"
                       value={simContactName}
                       onChange={(e) => setSimContactName(e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222]"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 font-semibold mb-1">WhatsApp de Teste</label>
+                    <label className="block text-[12px] text-[#949494] font-medium mb-1">WhatsApp de teste</label>
                     <input
                       type="text"
                       value={simContactPhone}
                       onChange={(e) => setSimContactPhone(e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] tabular-nums"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Mensagem Recebida do Contato</label>
+                  <label className="block text-[12px] text-[#949494] font-medium mb-1">Mensagem recebida do contato</label>
                   <input
                     type="text"
                     value={simMessage}
                     onChange={(e) => setSimMessage(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222]"
                   />
                 </div>
 
@@ -910,46 +891,46 @@ export function WorkflowsView() {
                   <button
                     onClick={handleRunSimulator}
                     disabled={isSimulating}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-md shadow-amber-500/20 transition disabled:opacity-50"
+                    className="h-9 flex items-center gap-2 px-4 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black font-medium transition-colors disabled:opacity-50"
                   >
-                    <Play className="w-4 h-4 fill-current" />
-                    <span>{isSimulating ? 'Executando Análise...' : 'Executar Teste do Fluxo'}</span>
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>{isSimulating ? 'Executando análise...' : 'Executar teste do fluxo'}</span>
                   </button>
                 </div>
 
                 {/* Simulation Trace Result */}
                 {simulationTrace && (
-                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span>Rastro de Execução (Timeline GoHighLevel):</span>
+                  <div className="mt-4 pt-4 border-t border-[#1a1a1a] space-y-3">
+                    <h4 className="font-medium text-[12px] text-[#b4b4b4] flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[var(--ok)]" />
+                      <span>Rastro de execução:</span>
                     </h4>
 
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {simulationTrace.map((t, idx) => (
                         <div
                           key={idx}
-                          className={`p-3 rounded-xl border ${
+                          className={`p-3 rounded-[6px] border ${
                             t.status === 'branch_yes'
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
+                              ? 'bg-[var(--ok)]/10 border-[var(--ok)]/30 text-[var(--ok)]'
                               : t.status === 'branch_no'
-                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                              ? 'bg-[var(--warn)]/10 border-[var(--warn)]/30 text-[var(--warn)]'
                               : t.status === 'waiting'
-                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                              ? 'bg-[var(--warn)]/10 border-[var(--warn)]/30 text-[var(--warn)]'
+                              : 'bg-[#161616] border-[#262626] text-white'
                           } space-y-1`}
                         >
-                          <div className="flex items-center justify-between font-bold text-xs">
+                          <div className="flex items-center justify-between font-medium text-[12px]">
                             <span>
                               {idx + 1}. {t.title}
                             </span>
-                            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-black/10 dark:bg-white/10">
+                            <span className="text-[11px] px-2 py-0.5 rounded-[4px] bg-black/40 text-[#b4b4b4]">
                               {t.type}
                             </span>
                           </div>
-                          <p className="text-[11px] leading-relaxed opacity-90">{t.details}</p>
+                          <p className="text-[12px] leading-relaxed text-[#b4b4b4]">{t.details}</p>
                           {t.outputPayload && (
-                            <div className="mt-1 p-2 rounded bg-black/5 dark:bg-black/30 font-mono text-[10px]">
+                            <div className="mt-1 p-2 rounded-[4px] bg-[#0a0a0a] border border-[#1f1f1f] text-[11px] text-[#949494]">
                               Saída: {JSON.stringify(t.outputPayload)}
                             </div>
                           )}
@@ -972,100 +953,97 @@ export function WorkflowsView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-[#161616]">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <GitBranch className="w-5 h-5 text-blue-500" />
-            <span>Motor de Automações & Workflows (GHL Style)</span>
-          </h2>
-          <p className="text-xs text-slate-400">
-            Crie fluxos condicionais com gatilhos de WhatsApp, ramificações IF / ELSE e sincronização contínua com o CRM.
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-white">
+            Automações e fluxos
+          </h1>
+          <p className="text-[13px] text-[#b4b4b4] mt-1">
+            Fluxos condicionais com gatilhos de WhatsApp, ramificações lógicas e sincronização direta com o funil.
           </p>
         </div>
 
         <button
           onClick={() => setIsNewModalOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition"
+          className="h-8 flex items-center gap-1.5 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[13px] font-medium transition-colors"
         >
-          <Plus className="w-4 h-4" />
-          <span>Criar Nova Automação</span>
+          <Plus className="w-3.5 h-3.5" />
+          <span>Nova automação</span>
         </button>
       </div>
 
-      {/* Metrics Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs text-slate-400 font-medium">Automações Ativas</span>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
-              {activeCount} <span className="text-xs font-normal text-slate-400">de {workflows.length}</span>
-            </h3>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
-            <Zap className="w-5 h-5" />
+      {/* Divided KPI Strip */}
+      <div className="bg-[#111111] border border-[#1a1a1a] rounded-[8px] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#161616]">
+        <div className="p-5">
+          <div className="text-[12px] font-medium text-[#949494]">Automações ativas</div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-[26px] font-semibold tracking-[-0.03em] text-white tabular-nums">
+              {activeCount}
+            </span>
+            <span className="text-[12px] text-[#949494] tabular-nums">de {workflows.length} fluxos</span>
           </div>
         </div>
 
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs text-slate-400 font-medium">Total de Disparos</span>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{totalDisparos}</h3>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
-            <Send className="w-5 h-5" />
+        <div className="p-5">
+          <div className="text-[12px] font-medium text-[#949494]">Total de disparos</div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-[26px] font-semibold tracking-[-0.03em] text-white tabular-nums">
+              {totalDisparos}
+            </span>
+            <span className="text-[12px] text-[var(--ok)]">Em tempo real</span>
           </div>
         </div>
 
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs text-slate-400 font-medium">Taxa de Execução</span>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">99.4%</h3>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center font-bold">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className="p-5">
+          <div className="text-[12px] font-medium text-[#949494]">Taxa de entrega</div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-[26px] font-semibold tracking-[-0.03em] text-white tabular-nums">
+              99.4%
+            </span>
+            <span className="text-[12px] text-[#949494]">Webhook ativo</span>
           </div>
         </div>
       </div>
 
       {/* Filters and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-800 text-xs w-full sm:w-auto">
+        <div className="flex items-center gap-1 p-1 rounded-[6px] bg-[#111111] border border-[#1a1a1a] text-[12px] w-full sm:w-auto">
           <button
             onClick={() => setCategoryFilter('all')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+            className={`px-3 py-1 rounded-[4px] font-medium transition-colors tabular-nums ${
               categoryFilter === 'all'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#222222] text-white'
+                : 'text-[#949494] hover:text-white'
             }`}
           >
             Todos ({workflows.length})
           </button>
           <button
             onClick={() => setCategoryFilter('whatsapp')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+            className={`px-3 py-1 rounded-[4px] font-medium transition-colors ${
               categoryFilter === 'whatsapp'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#222222] text-white'
+                : 'text-[#949494] hover:text-white'
             }`}
           >
             WhatsApp
           </button>
           <button
             onClick={() => setCategoryFilter('crm')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+            className={`px-3 py-1 rounded-[4px] font-medium transition-colors ${
               categoryFilter === 'crm'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#222222] text-white'
+                : 'text-[#949494] hover:text-white'
             }`}
           >
             Funil / CRM
           </button>
           <button
             onClick={() => setCategoryFilter('gmb')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+            className={`px-3 py-1 rounded-[4px] font-medium transition-colors ${
               categoryFilter === 'gmb'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#222222] text-white'
+                : 'text-[#949494] hover:text-white'
             }`}
           >
             Google (GMB)
@@ -1077,75 +1055,73 @@ export function WorkflowsView() {
           placeholder="Buscar automação..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full sm:w-64 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+          className="w-full sm:w-64 h-8 px-3 rounded-[6px] bg-[#111111] border border-[#1a1a1a] text-[13px] text-white placeholder-[#949494] focus:outline-none focus:border-[#444444]"
         />
       </div>
 
       {/* Workflows List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {filteredWorkflows.map((wf) => (
           <div
             key={wf.id}
-            className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition space-y-4 group"
+            className="p-5 bg-[#111111] rounded-[8px] border border-[#1a1a1a] hover:border-[#2a2a2a] transition-colors space-y-4"
           >
             {/* Top row: Name, trigger, toggle switch */}
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5">
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-500 transition">
+                  <h3 className="font-semibold text-[15px] text-white">
                     {wf.name}
                   </h3>
                   <span
-                    className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${
+                    className={`text-[11px] px-2 py-0.5 rounded-[4px] font-medium ${
                       wf.isActive
-                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                        ? 'bg-[var(--ok)]/15 text-[var(--ok)]'
+                        : 'bg-[#1a1a1a] text-[#949494]'
                     }`}
                   >
-                    {wf.isActive ? 'Em Execução' : 'Pausado'}
+                    {wf.isActive ? 'Em execução' : 'Pausado'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed max-w-3xl">{wf.description}</p>
+                <p className="text-[13px] text-[#b4b4b4] leading-relaxed max-w-[65ch]">{wf.description}</p>
               </div>
 
               {/* Status Toggle & Executions */}
               <div className="flex items-center gap-4 shrink-0">
-                <div className="text-right text-xs">
-                  <span className="text-slate-400">Disparos: </span>
-                  <span className="font-bold text-slate-900 dark:text-white">{wf.totalExecutions || 0}</span>
+                <div className="text-right text-[12px] tabular-nums">
+                  <span className="text-[#949494]">Disparos: </span>
+                  <span className="font-semibold text-white">{wf.totalExecutions || 0}</span>
                 </div>
                 <button
                   onClick={() => toggleWorkflow(wf.id)}
-                  className={`w-12 h-6 flex items-center rounded-full p-1 transition duration-300 ${
-                    wf.isActive ? 'bg-emerald-500 justify-end' : 'bg-slate-700 justify-start'
+                  className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors ${
+                    wf.isActive ? 'bg-[var(--ok)] justify-end' : 'bg-[#2a2a2a] justify-start'
                   }`}
                 >
-                  <div className="w-4 h-4 rounded-full bg-white shadow-md transform" />
+                  <div className="w-4 h-4 rounded-full bg-black" />
                 </button>
               </div>
             </div>
 
             {/* Visual Node Diagram Summary of the Flow */}
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center gap-2.5 text-xs">
-              {/* Trigger Node */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/10 border border-blue-500/30 text-blue-500 font-semibold text-xs">
-                <Zap className="w-3.5 h-3.5" />
+            <div className="p-3 rounded-[6px] bg-[#0a0a0a] border border-[#161616] flex flex-wrap items-center gap-2 text-[12px]">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#161616] border border-[#262626] text-white font-medium">
+                <Zap className="w-3.5 h-3.5 text-[#c6f24e]" />
                 <span>{wf.triggerLabel}</span>
               </div>
 
-              <span className="text-slate-400 font-bold">➔</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#949494]" />
 
-              {/* Steps/Conditions summary */}
               {wf.steps && wf.steps.length > 0 ? (
                 wf.steps.map((st, idx) => (
                   <React.Fragment key={st.id}>
                     <div
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] font-medium ${
                         st.stepType === 'condition'
-                          ? 'bg-amber-500/10 border border-amber-500/30 text-amber-500'
+                          ? 'bg-[var(--warn)]/10 border border-[var(--warn)]/30 text-[var(--warn)]'
                           : st.stepType === 'delay'
-                          ? 'bg-slate-500/10 border border-slate-500/30 text-slate-400'
-                          : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
+                          ? 'bg-[#161616] border border-[#262626] text-[#b4b4b4]'
+                          : 'bg-[var(--ok)]/10 border border-[var(--ok)]/30 text-[var(--ok)]'
                       }`}
                     >
                       {st.stepType === 'condition' ? (
@@ -1157,11 +1133,11 @@ export function WorkflowsView() {
                       )}
                       <span>{st.label}</span>
                     </div>
-                    {idx < (wf.steps?.length || 0) - 1 && <span className="text-slate-400 font-bold">➔</span>}
+                    {idx < (wf.steps?.length || 0) - 1 && <ArrowRight className="w-3.5 h-3.5 text-[#949494]" />}
                   </React.Fragment>
                 ))
               ) : (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-semibold text-xs">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[var(--ok)]/10 border border-[var(--ok)]/30 text-[var(--ok)] font-medium">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Ações automáticas padrão</span>
                 </div>
@@ -1169,9 +1145,9 @@ export function WorkflowsView() {
             </div>
 
             {/* Action Bar */}
-            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/80 text-xs">
-              <span className="text-slate-400 text-[11px]">
-                Subconta: <strong className="text-slate-700 dark:text-slate-300">{currentSubaccount.name}</strong>
+            <div className="flex items-center justify-between pt-2 border-t border-[#161616] text-[12px]">
+              <span className="text-[#949494]">
+                Subconta: <strong className="text-[#b4b4b4] font-medium">{currentSubaccount.name}</strong>
               </span>
 
               <div className="flex items-center gap-2">
@@ -1181,7 +1157,7 @@ export function WorkflowsView() {
                     setIsSimulatorOpen(true);
                     setSimulationTrace(null);
                   }}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-semibold transition"
+                  className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#161616] hover:bg-[#1f1f1f] border border-[#2a2a2a] text-[#b4b4b4] hover:text-white font-medium transition-colors"
                 >
                   <Play className="w-3 h-3 fill-current" />
                   <span>Testar</span>
@@ -1189,15 +1165,15 @@ export function WorkflowsView() {
 
                 <button
                   onClick={() => setActiveWorkflow(wf)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition shadow-sm"
+                  className="h-8 flex items-center gap-1.5 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black font-medium transition-colors"
                 >
                   <Sliders className="w-3.5 h-3.5" />
-                  <span>Abrir no Visual Canvas</span>
+                  <span>Editar fluxo</span>
                 </button>
 
                 <button
                   onClick={() => deleteWorkflow(wf.id)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 transition"
+                  className="h-8 w-8 flex items-center justify-center rounded-[6px] text-[#949494] hover:text-[var(--err)] hover:bg-[#161616] transition-colors"
                   title="Excluir automação"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -1210,54 +1186,54 @@ export function WorkflowsView() {
 
       {/* New Workflow Modal */}
       {isNewModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Zap className="w-4 h-4 text-blue-500" />
-                <span>Criar Novo Fluxo de Automação (GHL Style)</span>
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-[#111111] border border-[#222222] rounded-[8px] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1a1a1a] flex items-center justify-between">
+              <h3 className="font-semibold text-[15px] text-white flex items-center gap-2">
+                <Zap className="w-4 h-4 text-[#c6f24e]" />
+                <span>Criar novo fluxo de automação</span>
               </h3>
-              <button onClick={() => setIsNewModalOpen(false)} className="text-slate-400 hover:text-white">
-                ✕
+              <button onClick={() => setIsNewModalOpen(false)} className="text-[#949494] hover:text-white p-1">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateWorkflow} className="p-6 space-y-4 text-xs">
+            <form onSubmit={handleCreateWorkflow} className="p-5 space-y-4 text-[13px]">
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Nome do Fluxo</label>
+                <label className="block text-[12px] text-[#949494] font-medium mb-1.5">Nome do fluxo</label>
                 <input
                   type="text"
                   placeholder="Ex: Triagem Automática de Climatização & Elétrica"
                   value={wfName}
                   onChange={(e) => setWfName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                  className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Descrição</label>
+                <label className="block text-[12px] text-[#949494] font-medium mb-1.5">Descrição</label>
                 <textarea
                   rows={2}
                   placeholder="Explique o objetivo deste fluxo para a equipe..."
                   value={wfDescription}
                   onChange={(e) => setWfDescription(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                  className="w-full p-3 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Evento de Gatilho (Trigger)</label>
+                <label className="block text-[12px] text-[#949494] font-medium mb-1.5">Evento de gatilho</label>
                 <select
                   value={triggerType}
                   onChange={(e) => setTriggerType(e.target.value as any)}
-                  className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-blue-500"
+                  className="w-full h-9 px-2.5 rounded-[6px] bg-[#0a0a0a] text-white border border-[#222222] focus:outline-none focus:border-[#444444]"
                 >
-                  <option value="whatsapp_received">💬 Mensagem Recebida no WhatsApp</option>
-                  <option value="lead_created">👤 Novo Lead Cadastrado no CRM</option>
-                  <option value="stage_changed">📊 Oportunidade Mudou de Etapa no Funil</option>
-                  <option value="gmb_review_received">⭐ Nova Avaliação Recebida no Google</option>
-                  <option value="tag_added">🏷️ Tag Adicionada ao Contato</option>
+                  <option value="whatsapp_received">Mensagem recebida no WhatsApp</option>
+                  <option value="lead_created">Novo lead cadastrado no CRM</option>
+                  <option value="stage_changed">Oportunidade mudou de etapa no funil</option>
+                  <option value="gmb_review_received">Nova avaliação recebida no Google</option>
+                  <option value="tag_added">Tag adicionada ao contato</option>
                 </select>
               </div>
 
@@ -1265,15 +1241,15 @@ export function WorkflowsView() {
                 <button
                   type="button"
                   onClick={() => setIsNewModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold"
+                  className="h-9 px-4 rounded-[6px] bg-[#161616] hover:bg-[#222222] text-[#b4b4b4] hover:text-white font-medium transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition shadow-md shadow-blue-600/30"
+                  className="h-9 px-4 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black font-medium transition-colors"
                 >
-                  Salvar e Abrir no Canvas
+                  Salvar e abrir no editor
                 </button>
               </div>
             </form>

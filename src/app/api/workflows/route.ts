@@ -38,7 +38,7 @@ const defaultSeedWorkflows = (subaccountId: string): WorkflowRule[] => [
             label: 'Enviar Mensagem com Apresentação & Tabela de Serviços',
             config: {
               messageTemplate:
-                'Olá {{contact.name}}! Aqui é da Connect Digital. 🚀 Já recebemos seu contato e em instantes um especialista da nossa equipe falará com você!',
+                'Olá {{contact.name}}! Aqui é da Connect Digital. Já recebemos seu contato e em instantes um especialista da nossa equipe falará com você!',
             },
           },
           {
@@ -148,7 +148,7 @@ const defaultSeedWorkflows = (subaccountId: string): WorkflowRule[] => [
   {
     id: `wf-seed-3`,
     subaccountId,
-    name: 'Alerta e Agradecimento de Avaliação 5★ no Google',
+    name: 'Alerta e Agradecimento de Avaliação 5 Estrelas no Google',
     description: 'Quando um cliente deixa uma avaliação de 4 ou 5 estrelas no Perfil do Google, envia cupom fidelidade.',
     triggerType: 'gmb_review_received',
     triggerLabel: 'Quando avaliação positiva for postada no Google',

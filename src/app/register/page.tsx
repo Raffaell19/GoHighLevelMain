@@ -2,42 +2,40 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import {
-  Zap,
-  Lock,
-  Mail,
   Building2,
-  Phone,
+  Mail,
+  Lock,
   User,
+  Phone,
+  Briefcase,
   ArrowRight,
-  ShieldCheck,
+  Loader2,
   CheckCircle2,
   AlertCircle,
-  Briefcase,
-  Layers,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function RegisterPage() {
-  const router = useRouter();
-
-  // Form states
   const [fullName, setFullName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [companySegment, setCompanySegment] = useState('Climatização & Engenharia');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [companySegment, setCompanySegment] = useState('Serviços & Instalações');
-  const [phone, setPhone] = useState('');
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [successInfo, setSuccessInfo] = useState({ message: '', email: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<{
+    message: string;
+    needsEmailConfirmation: boolean;
+  } | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setErrorMessage('');
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch('/api/auth/register', {
@@ -45,288 +43,250 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName,
-          email,
-          password,
           companyName,
           companySegment,
           phone,
+          email: email.trim(),
+          password,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        throw new Error(data.error || 'Erro ao registrar empresa.');
+        setError(data.error || 'Não foi possível concluir o cadastro.');
+        setLoading(false);
+        return;
       }
 
-      setIsSuccess(true);
-      setSuccessInfo({
+      if (!data.needsEmailConfirmation) {
+        const { data: loginData } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (loginData?.session) {
+          document.cookie = `sb-access-token=${loginData.session.access_token}; path=/; max-age=${
+            60 * 60 * 24 * 7
+          }; SameSite=Lax`;
+          window.location.href = '/';
+          return;
+        }
+      }
+
+      setSuccessData({
         message: data.message,
-        email: email,
+        needsEmailConfirmation: data.needsEmailConfirmation,
       });
     } catch (err: any) {
-      setErrorMessage(err.message || 'Erro inesperado ao registrar empresa.');
+      setError(err.message || 'Erro de conexão com o servidor.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden py-12">
-      {/* Background Glows */}
-      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Brand Header */}
-      <div className="mb-6 text-center z-10">
-        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-3">
-          <img
-            src="/logo-flow-level.png"
-            alt="FlowLevel Logo"
-            className="h-8 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(234,179,8,0.25)]"
-          />
-          <span className="font-bold text-lg text-white tracking-tight">FlowLevel</span>
-          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            Cadastro de Empresa
-          </span>
-        </div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Criar Conta para sua Empresa</h1>
-        <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-          Tenha seu CRM Kanban, WhatsApp Oficial com Chatbot e Automações com workspace 100% isolado.
-        </p>
-      </div>
-
-      {/* Main Container */}
-      <div className="w-full max-w-lg bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-7 shadow-2xl shadow-black/60 z-10 relative">
-        {isSuccess ? (
-          /* Confirmation Success Screen */
-          <div className="text-center py-4 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-
-            <div className="space-y-1">
-              <h2 className="text-lg font-bold text-white">Empresa Cadastrada com Sucesso!</h2>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Enviamos um link de validação para o endereço:
-              </p>
-              <p className="text-xs font-bold text-cyan-400 bg-cyan-950/40 py-1 px-3 rounded-lg border border-cyan-800/50 inline-block mt-1">
-                {successInfo.email}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 text-left space-y-2 text-xs text-slate-300">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                <ShieldCheck className="w-4 h-4" />
-                <span>O que já foi preparado para sua empresa:</span>
-              </div>
-              <ul className="list-disc pl-5 space-y-1 text-slate-400 text-[11px]">
-                <li>Banco de dados isolado com ID único de empresa</li>
-                <li>Funil de Vendas padrão com 5 etapas no CRM Kanban</li>
-                <li>Fluxo automatizado de captura de leads via WhatsApp</li>
-                <li>Cofre seguro com criptografia AES-256 para sua instância</li>
-              </ul>
-            </div>
-
-            <div className="pt-2">
-              <p className="text-[11px] text-slate-400 mb-3">
-                Após clicar no link no seu e-mail, seu login estará liberado imediatamente.
-              </p>
-              <Link
-                href="/login"
-                id="btn-goto-login"
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition"
-              >
-                <span>Acessar Tela de Login</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+    <div className="min-h-[100svh] bg-black flex flex-col justify-center items-center p-4 py-8">
+      <div className="w-full max-w-lg space-y-6">
+        {/* Product Mark & Title */}
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className="w-12 h-12 rounded-[14px] bg-[#111111] border border-[#2a2a2a] flex items-center justify-center p-2">
+            <img
+              src="/logo-connect-digital.png"
+              alt="FlowLevel"
+              className="w-full h-full object-contain"
+            />
           </div>
-        ) : (
-          /* Registration Form */
-          <>
-            {errorMessage && (
-              <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-rose-400 text-xs animate-in fade-in">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p className="leading-relaxed">{errorMessage}</p>
-              </div>
-            )}
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-white">
+            Provisionar novo workspace
+          </h1>
+          <p className="text-[13px] text-[#b4b4b4]">
+            Crie o ambiente isolado da sua empresa com CRM, WhatsApp e automações
+          </p>
+        </div>
 
+        {/* Card */}
+        <div className="bg-[#111111] border border-[#1a1a1a] rounded-[20px] p-6 sm:p-7 space-y-5">
+          {error && (
+            <div className="p-3.5 rounded-[12px] bg-[#2c1a20] border border-[#e5484d]/30 flex items-start gap-2.5 text-[13px] text-[#e5566f]">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {successData ? (
+            <div className="py-4 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-[#222a10] text-[#c6f24e] flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="space-y-1.5">
+                <h2 className="text-[18px] font-semibold text-white">
+                  Ambiente provisionado com sucesso
+                </h2>
+                <p className="text-[13px] text-[#b4b4b4] leading-relaxed max-w-md mx-auto">
+                  {successData.message}
+                </p>
+              </div>
+              <div className="pt-2">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 h-10 px-6 rounded-full bg-white hover:bg-[#e6e6e6] text-black font-medium text-[14px] transition-colors"
+                >
+                  <span>Ir para a tela de login</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          ) : (
             <form onSubmit={handleRegister} className="space-y-4">
-              {/* Seção 1: Dados da Empresa */}
-              <div className="border-b border-slate-800 pb-3 mb-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 mb-3">
-                  <Building2 className="w-4 h-4" />
-                  <span>1. Dados da Sua Empresa</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-medium text-[#b4b4b4]">
+                    Seu nome completo *
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-[#949494] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Ex: Rafael Silva"
+                      className="w-full h-10 pl-10 pr-3 rounded-[12px] bg-[#181818] border border-[#2e2e2e] text-[13px] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="company-name">
-                      Nome da Empresa / Negócio *
-                    </label>
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-medium text-[#b4b4b4]">
+                    Nome da empresa *
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 text-[#949494] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
-                      id="company-name"
                       type="text"
                       required
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="Ex: Alves Climatização & Elétrica"
-                      className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-950/70 border border-slate-800 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition"
+                      placeholder="Ex: Connect Digital"
+                      className="w-full h-10 pl-10 pr-3 rounded-[12px] bg-[#181818] border border-[#2e2e2e] text-[13px] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
                     />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="company-segment">
-                        Segmento de Atuação
-                      </label>
-                      <select
-                        id="company-segment"
-                        value={companySegment}
-                        onChange={(e) => setCompanySegment(e.target.value)}
-                        className="w-full px-3 py-2 text-xs rounded-xl bg-slate-950/70 border border-slate-800 text-white focus:outline-none focus:border-blue-500 transition"
-                      >
-                        <option value="Serviços & Instalações">Serviços & Instalações</option>
-                        <option value="Saúde & Odontologia">Saúde & Odontologia</option>
-                        <option value="Imobiliária & Corretagem">Imobiliária & Corretagem</option>
-                        <option value="Agência & Marketing">Agência & Marketing</option>
-                        <option value="Comércio & Varejo">Comércio & Varejo</option>
-                        <option value="Educação & Cursos">Educação & Cursos</option>
-                        <option value="Outro Segmento">Outro Segmento</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="company-phone">
-                        WhatsApp Comercial
-                      </label>
-                      <div className="relative">
-                        <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          id="company-phone"
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="(11) 98877-6655"
-                          className="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-950/70 border border-slate-800 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition"
-                        />
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Seção 2: Dados do Login do Proprietário */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-blue-400 mb-2">
-                  <User className="w-4 h-4" />
-                  <span>2. Login do Proprietário da Empresa</span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="full-name">
-                    Seu Nome Completo
-                  </label>
-                  <input
-                    id="full-name"
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Ex: Rafael Silva"
-                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-950/70 border border-slate-800 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="register-email">
-                    E-mail de Acesso (Receberá a confirmação) *
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-medium text-[#b4b4b4]">
+                    Segmento de atuação
                   </label>
                   <div className="relative">
-                    <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Briefcase className="w-4 h-4 text-[#949494] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <select
+                      value={companySegment}
+                      onChange={(e) => setCompanySegment(e.target.value)}
+                      className="w-full h-10 pl-10 pr-3 rounded-[12px] bg-[#181818] border border-[#2e2e2e] text-[13px] text-white focus:outline-none focus:border-[#444444]"
+                    >
+                      <option value="Climatização & Engenharia">Climatização & Engenharia</option>
+                      <option value="Marketing & Agência Digital">Marketing & Agência Digital</option>
+                      <option value="Saúde & Clínicas">Saúde & Clínicas</option>
+                      <option value="Imobiliária & Construção">Imobiliária & Construção</option>
+                      <option value="Energia Solar & Elétrica">Energia Solar & Elétrica</option>
+                      <option value="Consultoria & B2B">Consultoria & B2B</option>
+                      <option value="Comércio & Serviços Locais">Comércio & Serviços Locais</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-medium text-[#b4b4b4]">
+                    WhatsApp comercial
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-[#949494] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
-                      id="register-email"
+                      type="text"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+55 51 99999-9999"
+                      className="w-full h-10 pl-10 pr-3 rounded-[12px] bg-[#181818] border border-[#2e2e2e] text-[13px] text-white placeholder:text-[#949494] tabular-nums focus:outline-none focus:border-[#444444]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-medium text-[#b4b4b4]">
+                    E-mail de login *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-[#949494] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="seu.email@empresa.com.br"
-                      className="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-950/70 border border-slate-800 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition"
+                      placeholder="contato@empresa.com.br"
+                      className="w-full h-10 pl-10 pr-3 rounded-[12px] bg-[#181818] border border-[#2e2e2e] text-[13px] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="register-password">
-                    Senha de Acesso (mínimo 6 dígitos) *
+                <div className="space-y-1.5">
+                  <label className="block text-[13px] font-medium text-[#b4b4b4]">
+                    Senha (mín. 6 caracteres) *
                   </label>
                   <div className="relative">
-                    <Lock className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-[#949494] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
-                      id="register-password"
                       type="password"
                       required
                       minLength={6}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Crie uma senha segura"
-                      className="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-950/70 border border-slate-800 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition"
+                      placeholder="••••••••"
+                      className="w-full h-10 pl-10 pr-3 rounded-[12px] bg-[#181818] border border-[#2e2e2e] text-[13px] text-white placeholder:text-[#949494] focus:outline-none focus:border-[#444444]"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Botão de Envio */}
               <button
-                id="btn-register-submit"
                 type="submit"
-                disabled={isLoading}
-                className="w-full mt-4 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+                disabled={loading}
+                className="w-full h-10 rounded-full bg-white hover:bg-[#e6e6e6] text-black font-medium text-[14px] flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer mt-2"
               >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    Provisionando Banco & Workspace...
-                  </span>
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Provisionando workspace...</span>
+                  </>
                 ) : (
                   <>
-                    <span>Criar Workspace da Empresa</span>
+                    <span>Criar conta e acessar plataforma</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
+          )}
 
-            {/* Link para Login */}
-            <div className="mt-5 text-center border-t border-slate-800/80 pt-4">
-              <p className="text-xs text-slate-400">
-                Já tem um cadastro?{' '}
-                <Link href="/login" className="text-cyan-400 hover:text-cyan-300 font-semibold transition">
-                  Fazer Login
-                </Link>
-              </p>
-            </div>
-          </>
-        )}
-      </div>
+          <div className="pt-4 border-t border-[#1a1a1a] flex items-center justify-between text-[13px]">
+            <span className="text-[#949494]">Já possui uma conta cadastrada?</span>
+            <Link
+              href="/login"
+              className="text-white hover:text-[#c6f24e] font-medium transition-colors"
+            >
+              Fazer login
+            </Link>
+          </div>
+        </div>
 
-      {/* Footer Features */}
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Dados 100% Isolados por Subconta</span>
-        </span>
-        <span>•</span>
-        <span className="flex items-center gap-1.5">
-          <Zap className="w-3.5 h-3.5 text-blue-500" />
-          <span>Instância Própria de WhatsApp</span>
-        </span>
-        <span>•</span>
-        <span className="flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-cyan-500" />
-          <span>Funil Kanban Pré-carregado</span>
-        </span>
+        <div className="flex items-center justify-center gap-2 text-[12px] text-[#949494]">
+          <ShieldCheck className="w-4 h-4 text-[#c6f24e]" />
+          <span>Dados e credenciais isolados por subconta no Supabase</span>
+        </div>
       </div>
     </div>
   );

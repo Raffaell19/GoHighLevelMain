@@ -335,7 +335,7 @@ export async function POST(req: NextRequest) {
       const { data: updatedContact, error: upErr } = await supabase
         .from('whatsapp_contacts')
         .update({
-          last_message: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz' : 'Mensagem enviada'),
+          last_message: text || (mediaType === 'audio' ? 'Mensagem de Voz' : 'Mensagem enviada'),
           last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           unread_count: 0,
           tags: finalTags,
@@ -370,7 +370,7 @@ export async function POST(req: NextRequest) {
           name: name && !isUnidentifiedContactName(name) ? name : getContactDisplayName(name, cleanPhone),
           phone: `+${cleanPhone}`,
           avatar: contactAvatar,
-          last_message: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz' : 'Mensagem enviada'),
+          last_message: text || (mediaType === 'audio' ? 'Mensagem de Voz' : 'Mensagem enviada'),
           last_message_time: 'Agora',
           unread_count: 0,
           tags: finalTags,
@@ -395,7 +395,7 @@ export async function POST(req: NextRequest) {
         subaccount_id: resolvedSubId,
         contact_id: resolvedContactId,
         sender: 'agent',
-        text: text || (mediaType === 'audio' ? '🎙️ Mensagem de Voz (Áudio Gravado)' : 'Mensagem enviada'),
+        text: text || (mediaType === 'audio' ? 'Mensagem de Voz (Áudio Gravado)' : 'Mensagem enviada'),
         status: evoSendSuccess ? 'sent' : 'error',
       })
       .select()

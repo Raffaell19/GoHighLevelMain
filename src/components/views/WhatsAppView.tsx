@@ -18,11 +18,8 @@ import {
   Sliders,
   DollarSign,
   MapPin,
-  Clock,
-  HelpCircle,
   Play,
   CheckCircle2,
-  Users,
   MessageCircle,
   UserCheck,
 } from 'lucide-react';
@@ -68,7 +65,6 @@ export function WhatsAppView() {
   const [isLoadingQr, setIsLoadingQr] = useState<boolean>(false);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
 
-  // Sincronizar dados de conexão exclusivos quando a subconta mudar
   useEffect(() => {
     if (currentSubaccount?.whatsappConfig) {
       const cfg = currentSubaccount.whatsappConfig;
@@ -85,7 +81,7 @@ export function WhatsAppView() {
   const [botName, setBotName] = useState('Sofia');
   const [botRole, setBotRole] = useState('Consultora Especialista em Atendimento & Vendas');
   const [botTone, setBotTone] = useState<'consultive' | 'friendly' | 'commercial' | 'formal'>('consultive');
-  const [botEnabled, setBotEnabled] = useState(false); // Padrão: Desativado até que o usuário ative expressamente
+  const [botEnabled, setBotEnabled] = useState(false);
   const [isTogglingBot, setIsTogglingBot] = useState(false);
   const [toggleFeedback, setToggleFeedback] = useState<string | null>(null);
   const [servicesAndPricing, setServicesAndPricing] = useState(
@@ -100,7 +96,7 @@ export function WhatsAppView() {
   const [humanHandoffKeywords, setHumanHandoffKeywords] = useState('atendente, falar com atendente, humano, atendente humano, pessoa, reclamacao, urgente');
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
-  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
+  const [, setIsLoadingConfig] = useState(false);
   const [isSavingAgent, setIsSavingAgent] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -109,13 +105,11 @@ export function WhatsAppView() {
   const [simulationResponse, setSimulationResponse] = useState('');
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // Carregar dados de treinamento da IA para a subconta atual
   useEffect(() => {
     if (!currentSubaccount?.id) return;
     async function loadAgentConfig() {
       setIsLoadingConfig(true);
       try {
-        // Verificar cache local primeiro para resposta visual imediata
         try {
           const cachedBotState = localStorage.getItem(`flowlevel_bot_enabled_${currentSubaccount.id}`);
           if (cachedBotState !== null) {
@@ -157,7 +151,6 @@ export function WhatsAppView() {
     loadAgentConfig();
   }, [currentSubaccount?.id]);
 
-  // Alternar Piloto Automático com salvamento imediato no Servidor e Supabase
   const handleToggleBot = async () => {
     const nextState = !botEnabled;
     setBotEnabled(nextState);
@@ -192,20 +185,19 @@ export function WhatsAppView() {
       });
 
       if (res.ok) {
-        setToggleFeedback(nextState ? 'Sofia Ativada no Servidor ⚡' : 'Sofia Pausada no Servidor 🔒');
+        setToggleFeedback(nextState ? 'Sofia ativada no servidor' : 'Sofia pausada no servidor');
       } else {
-        setToggleFeedback('Erro ao sincronizar status ⚠️');
+        setToggleFeedback('Erro ao sincronizar status');
       }
     } catch (err) {
       console.error('Erro ao alternar status do atendente no servidor:', err);
-      setToggleFeedback('Erro de conexão ao salvar ⚠️');
+      setToggleFeedback('Erro de conexão ao salvar');
     } finally {
       setIsTogglingBot(false);
       setTimeout(() => setToggleFeedback(null), 3500);
     }
   };
 
-  // Salvar treinamento do Atendente IA
   const handleSaveAgentTraining = async () => {
     setIsSavingAgent(true);
     setSaveSuccess(false);
@@ -246,7 +238,6 @@ export function WhatsAppView() {
     }
   };
 
-  // Testar Simulação do Atendente
   const handleTestSimulation = async () => {
     if (!simulationInput.trim()) return;
     setIsSimulating(true);
@@ -329,7 +320,6 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
     }
   }, [activeTab, selectedProvider, fetchLiveQrCode]);
 
-  // Manter servidor do WhatsApp acordado em segundo plano (evita sleep do Render)
   useEffect(() => {
     const keepWarm = () => {
       fetch('/api/cron/keepalive').catch(() => {});
@@ -341,7 +331,6 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
   const activeMessages = activeContact ? messages[activeContact.id] || [] : [];
 
-  // Rolar automaticamente para o fim da conversa ao receber novas mensagens
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages.length, activeContact?.id]);
@@ -361,7 +350,6 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
     setInputText('');
   };
 
-  // Gerar resposta com IA para a conversa ativa
   const handleGenerateAiChatbotReply = async () => {
     if (!activeContact) return;
     setIsGeneratingAi(true);
@@ -409,11 +397,9 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
     }, 1200);
   };
 
-  // Filtragem de contatos: exibe estritamente conversas reais que ativaram a IA
   const filteredContacts = contacts.filter((c) => {
     if (!c) return false;
 
-    // Exclui estritamente grupos e listas de transmissão
     const isGroup =
       (c.phone && c.phone.includes('@g.us')) ||
       (c.tags && c.tags.includes('Grupo WhatsApp')) ||
@@ -422,7 +408,6 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
       c.name.toLowerCase().includes('grupo');
     if (isGroup) return false;
 
-    // Filtro de Busca por Texto
     const term = (searchTerm || '').trim().toLowerCase();
     if (!term) return true;
     const nameMatch = (c.name || '').toLowerCase().includes(term);
@@ -431,136 +416,132 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
   });
 
   return (
-    <div className="h-[calc(100vh-5.5rem)] flex flex-col space-y-2">
+    <div className="h-[calc(100vh-6rem)] flex flex-col space-y-4">
       {/* Top Bar with Mode Switcher */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-            <MessageSquare className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              Central
-            </h2>
-          </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-[#161616] shrink-0">
+        <div>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-white">
+            Central WhatsApp e IA
+          </h1>
+          <p className="text-[13px] text-[#b4b4b4] mt-0.5">
+            Atendimento unificado, disparos ativos e configuração da atendente inteligente {botName}.
+          </p>
         </div>
 
         {/* Tab Buttons */}
-        <div className="flex items-center gap-2">
-          <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-lg text-xs font-semibold">
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
-                activeTab === 'chat'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Conversas</span>
-              {contacts.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400">
-                  {contacts.length}
-                </span>
-              )}
-            </button>
+        <div className="flex items-center gap-1 p-1 rounded-[6px] bg-[#111111] border border-[#1a1a1a] text-[12px] font-medium">
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${
+              activeTab === 'chat'
+                ? 'bg-[#222222] text-white'
+                : 'text-[#949494] hover:text-white'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Conversas</span>
+            {contacts.length > 0 && (
+              <span className="text-[11px] px-1.5 py-0.2 rounded-[4px] bg-[#161616] text-[var(--ok)] tabular-nums">
+                {contacts.length}
+              </span>
+            )}
+          </button>
 
-            <button
-              onClick={() => setActiveTab('broadcast')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
-                activeTab === 'broadcast'
-                  ? 'bg-emerald-600 text-white shadow-sm font-bold'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Send className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Disparos</span>
-            </button>
+          <button
+            onClick={() => setActiveTab('broadcast')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${
+              activeTab === 'broadcast'
+                ? 'bg-[#222222] text-white'
+                : 'text-[#949494] hover:text-white'
+            }`}
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Disparos</span>
+          </button>
 
-            <button
-              onClick={() => setActiveTab('training')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
-                activeTab === 'training'
-                  ? 'bg-blue-600 text-white shadow-sm font-bold'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Atendente IA</span>
-            </button>
+          <button
+            onClick={() => setActiveTab('training')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${
+              activeTab === 'training'
+                ? 'bg-[#222222] text-white'
+                : 'text-[#949494] hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Atendente IA</span>
+          </button>
 
-            <button
-              onClick={() => setActiveTab('connection')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
-                activeTab === 'connection'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-              <span>Conexão WhatsApp</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setActiveTab('connection')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] transition-colors ${
+              activeTab === 'connection'
+                ? 'bg-[#222222] text-white'
+                : 'text-[#949494] hover:text-white'
+            }`}
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            <span>Conexão</span>
+          </button>
         </div>
       </div>
 
       {/* Main Content Area */}
       {activeTab === 'chat' && (
-        <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex overflow-hidden min-h-0">
+        <div className="flex-1 bg-[#111111] rounded-[8px] border border-[#1a1a1a] flex overflow-hidden min-h-0">
           {/* Contacts Sidebar */}
-          <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-slate-900/50">
+          <div className="w-80 border-r border-[#161616] flex flex-col shrink-0 bg-[#0c0c0c]">
             {/* Search & Refresh */}
-            <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
+            <div className="p-3 border-b border-[#161616] space-y-2.5">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-3.5 h-3.5 text-[#949494] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="Buscar conversa ou telefone..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 border border-transparent focus:border-emerald-500 focus:outline-none"
+                    className="w-full h-8 pl-8 pr-3 text-[12px] rounded-[6px] bg-[#161616] text-white placeholder:text-[#949494] border border-[#222222] focus:border-[#444444] focus:outline-none"
                   />
                 </div>
                 <button
                   onClick={handleManualRefresh}
-                  title="Atualizar Conversas em Tempo Real"
-                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+                  title="Atualizar conversas"
+                  className="h-8 w-8 flex items-center justify-center rounded-[6px] bg-[#161616] hover:bg-[#222222] text-[#b4b4b4] border border-[#222222] transition-colors"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingChat ? 'animate-spin text-emerald-400' : ''}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingChat ? 'animate-spin text-[var(--ok)]' : ''}`} />
                 </button>
               </div>
 
               {/* Filter Pills & Quick Broadcast Trigger */}
               <div className="flex items-center justify-between text-[11px] gap-2">
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold truncate">
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#161616] border border-[#262626] text-[var(--ok)] font-medium truncate tabular-nums">
                   <Bot className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">IA Ativada ({filteredContacts.length})</span>
+                  <span className="truncate">IA ativada ({filteredContacts.length})</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setIsModalBroadcastOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-950 font-bold text-[11px] transition shadow-sm shrink-0 cursor-pointer"
-                  title="Abrir motor de disparo rápido em massa"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-white hover:bg-[#e5e5e5] text-black font-medium text-[11px] transition-colors shrink-0 cursor-pointer"
+                  title="Abrir motor de disparo em massa"
                 >
                   <Send className="w-3 h-3" />
-                  <span>Novo Disparo</span>
+                  <span>Novo disparo</span>
                 </button>
               </div>
             </div>
 
             {/* Contacts List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+            <div className="flex-1 overflow-y-auto divide-y divide-[#161616]">
               {filteredContacts.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400 space-y-2">
+                <div className="p-6 text-center text-[12px] text-[#949494] space-y-2">
                   <p>Nenhum contato encontrado nesta categoria.</p>
                   <button
                     onClick={() => {
                       setContactFilter('all');
                       setSearchTerm('');
                     }}
-                    className="text-emerald-400 hover:underline text-[11px]"
+                    className="text-white hover:underline text-[12px]"
                   >
                     Limpar filtros
                   </button>
@@ -574,52 +555,52 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                     <button
                       key={contact.id}
                       onClick={() => setActiveContact(contact)}
-                      className={`w-full p-3 flex items-start gap-3 text-left transition ${
+                      className={`w-full p-3 flex items-start gap-3 text-left transition-colors ${
                         isSelected
-                          ? 'bg-slate-800/90 border-l-4 border-emerald-500'
-                          : 'hover:bg-slate-800/40'
+                          ? 'bg-[#181818] border-l-2 border-white'
+                          : 'hover:bg-[#141414]'
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0 relative ring-1 ring-slate-700/60 shadow-sm flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-full bg-[#1a1a1a] overflow-hidden shrink-0 relative border border-[#2a2a2a] flex items-center justify-center">
                         <img
-                          src={contact.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.name || 'Contato')}&background=0284c7&color=ffffff&bold=true`}
+                          src={contact.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.name || 'Contato')}&background=222222&color=ffffff&bold=true`}
                           alt={contact.name}
                           onError={(e) => {
-                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.name || 'Contato')}&background=0284c7&color=ffffff&bold=true`;
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.name || 'Contato')}&background=222222&color=ffffff&bold=true`;
                           }}
                           className="w-full h-full object-cover"
                         />
                         {contact.unreadCount > 0 && (
-                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900" />
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--ok)] rounded-full border border-black" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold text-xs text-slate-100 truncate">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-[13px] text-white truncate">
                             {getContactDisplayName(contact.name, contact.phone)}
                           </p>
-                          <span className="text-[10px] text-slate-400 shrink-0">{contact.lastMessageTime}</span>
+                          <span className="text-[11px] text-[#949494] shrink-0 tabular-nums">{contact.lastMessageTime}</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 truncate mt-0.5">{contact.lastMessage || 'Iniciou conversa'}</p>
-                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        <p className="text-[12px] text-[#949494] truncate mt-0.5">{contact.lastMessage || 'Iniciou conversa'}</p>
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           {contact.isDecisionMaker || contact.tags?.includes('#DecisorIdentificado') ? (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
-                              🎯 Decisor
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-[#222222] text-[var(--warn)] font-medium">
+                              Decisor
                             </span>
                           ) : contact.tags?.includes('#ProspeccaoMaps') ? (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-[#1a1a1a] text-[#b4b4b4]">
                               Maps Lead
                             </span>
                           ) : isGroup ? (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-[#1a1a1a] text-[#b4b4b4]">
                               Grupo
                             </span>
                           ) : (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-[#1a1a1a] text-[var(--ok)]">
                               Cliente
                             </span>
                           )}
-                          <span className="text-[9px] text-slate-500 truncate">{contact.phone}</span>
+                          <span className="text-[11px] text-[#949494] truncate tabular-nums">{contact.phone}</span>
                         </div>
                       </div>
                     </button>
@@ -631,47 +612,47 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
           {/* Conversation Chat View */}
           {activeContact ? (
-            <div className="flex-1 flex flex-col bg-slate-950/40 min-w-0">
+            <div className="flex-1 flex flex-col bg-[#080808] min-w-0">
               {/* Chat Header */}
-              <div className="p-3.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
+              <div className="p-3.5 bg-[#111111] border-b border-[#161616] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-slate-800 overflow-hidden shrink-0 relative ring-1 ring-slate-700/60 shadow-sm flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-full bg-[#1a1a1a] overflow-hidden shrink-0 relative border border-[#2a2a2a] flex items-center justify-center">
                     <img
-                      src={activeContact.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeContact.name || 'Contato')}&background=0284c7&color=ffffff&bold=true`}
+                      src={activeContact.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeContact.name || 'Contato')}&background=222222&color=ffffff&bold=true`}
                       alt={activeContact.name}
                       onError={(e) => {
-                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeContact.name || 'Contato')}&background=0284c7&color=ffffff&bold=true`;
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeContact.name || 'Contato')}&background=222222&color=ffffff&bold=true`;
                       }}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-xs text-white leading-tight truncate">
+                    <h3 className="font-semibold text-[13px] text-white leading-tight truncate">
                       {getContactDisplayName(activeContact.name, activeContact.phone)}
                     </h3>
-                    <p className="text-[11px] text-slate-400 truncate">{activeContact.phone}</p>
+                    <p className="text-[11px] text-[#949494] truncate tabular-nums">{activeContact.phone}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {(activeContact.isDecisionMaker || activeContact.tags?.includes('#DecisorIdentificado')) && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold animate-pulse">
-                      <UserCheck className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Decisor Identificado • Atendimento Humanizado</span>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#1a1a1a] text-[var(--warn)] border border-[#2a2a2a] text-[12px] font-medium">
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>Decisor identificado</span>
                     </div>
                   )}
 
                   <button
                     onClick={handleGenerateAiChatbotReply}
                     disabled={isGeneratingAi}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-xs font-semibold border border-blue-500/20 transition cursor-pointer"
+                    className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] bg-[#161616] hover:bg-[#222222] text-white text-[12px] font-medium border border-[#2a2a2a] transition-colors cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{isGeneratingAi ? 'Pensando com IA...' : 'Sugerir Resposta IA'}</span>
+                    <Sparkles className="w-3.5 h-3.5 text-[#c6f24e]" />
+                    <span>{isGeneratingAi ? 'Gerando...' : 'Sugerir resposta IA'}</span>
                   </button>
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#161616] border border-[#222222] text-[var(--ok)] text-[12px] font-medium">
                     <Bot className="w-3.5 h-3.5" />
-                    <span>IA Ativa no WhatsApp</span>
+                    <span>IA ativa</span>
                   </div>
                 </div>
               </div>
@@ -679,8 +660,8 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               {/* Messages Area */}
               <div className="flex-1 p-4 overflow-y-auto space-y-3">
                 {activeMessages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-xs text-slate-500 space-y-2">
-                    <MessageSquare className="w-8 h-8 text-slate-600 stroke-1" />
+                  <div className="h-full flex flex-col items-center justify-center text-[13px] text-[#949494] space-y-2">
+                    <MessageSquare className="w-7 h-7 text-[#444444]" />
                     <p>Nenhuma mensagem nesta conversa ainda.</p>
                   </div>
                 ) : (
@@ -694,35 +675,31 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                         className={`flex flex-col ${isContact ? 'items-start' : 'items-end'}`}
                       >
                         <div
-                          className={`max-w-[75%] p-3 rounded-2xl text-xs leading-relaxed shadow-sm ${
+                          className={`max-w-[75%] p-3 rounded-[8px] text-[13px] leading-relaxed ${
                             isContact
-                              ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-slate-700/60'
+                              ? 'bg-[#161616] text-white border border-[#222222]'
                               : isBot
-                              ? 'bg-blue-600 text-white rounded-tr-none'
-                              : 'bg-emerald-600 text-white rounded-tr-none'
+                              ? 'bg-[#1f1f1f] text-white border border-[#333333]'
+                              : 'bg-[#222222] text-white border border-[#333333]'
                           }`}
                         >
                           {isBot && (
-                            <div className="flex items-center gap-1 text-[10px] text-blue-200 font-semibold mb-1">
+                            <div className="flex items-center gap-1 text-[11px] text-[#c6f24e] font-medium mb-1">
                               <Bot className="w-3 h-3" />
-                              <span>Resposta Automática Treinada</span>
+                              <span>Resposta automática</span>
                             </div>
                           )}
 
                           {msg.mediaUrl && msg.mediaType === 'audio' && (
-                            <div className="mb-2 p-2 rounded-xl bg-black/25 flex items-center gap-2">
+                            <div className="mb-2 p-2 rounded-[6px] bg-black/40 flex items-center gap-2">
                               <audio controls src={msg.mediaUrl} className="h-8 w-56 max-w-full" />
                             </div>
                           )}
 
                           <p className="whitespace-pre-wrap">{msg.text}</p>
-                          <div
-                            className={`flex items-center justify-end gap-1 text-[10px] mt-1 ${
-                              isContact ? 'text-slate-400' : 'text-slate-200'
-                            }`}
-                          >
+                          <div className="flex items-center justify-end gap-1 text-[11px] mt-1 text-[#949494] tabular-nums">
                             <span>{msg.timestamp}</span>
-                            {!isContact && <CheckCheck className="w-3.5 h-3.5 text-cyan-200" />}
+                            {!isContact && <CheckCheck className="w-3.5 h-3.5 text-[#b4b4b4]" />}
                           </div>
                         </div>
                       </div>
@@ -733,32 +710,32 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               </div>
 
               {/* Chat Input */}
-              <form onSubmit={handleSend} className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2 shrink-0">
+              <form onSubmit={handleSend} className="p-3 bg-[#111111] border-t border-[#161616] flex items-center gap-2 shrink-0">
                 <input
                   type="text"
-                  placeholder="Digite uma mensagem ou clique em 'Sugerir Resposta IA' acima..."
+                  placeholder="Digite uma mensagem ou use a sugestão da IA acima..."
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  className="flex-1 px-4 py-2 text-xs rounded-xl bg-slate-800 text-slate-100 placeholder:text-slate-400 border border-transparent focus:border-emerald-500 focus:outline-none"
+                  className="flex-1 h-9 px-3.5 text-[13px] rounded-[6px] bg-[#0a0a0a] text-white placeholder:text-[#949494] border border-[#222222] focus:border-[#444444] focus:outline-none"
                 />
                 <button
                   type="submit"
-                  className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 transition active:scale-95"
+                  className="h-9 px-3.5 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black font-medium transition-colors flex items-center justify-center"
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </form>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-xs text-slate-400 space-y-2">
-              <MessageCircle className="w-10 h-10 text-slate-600" />
+            <div className="flex-1 flex flex-col items-center justify-center text-[13px] text-[#949494] space-y-2">
+              <MessageCircle className="w-8 h-8 text-[#444444]" />
               <p>Selecione uma conversa ao lado para visualizar e interagir.</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Broadcast & Outreach Engine (Modo Embutido na Central WhatsApp) */}
+      {/* Broadcast & Outreach Engine */}
       {activeTab === 'broadcast' && (
         <div className="flex-1 min-h-0 h-full overflow-hidden flex flex-col">
           <MassOutreachModal
@@ -772,37 +749,37 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
       {/* AI Attendant Training & Configuration Studio */}
       {activeTab === 'training' && (
-        <div className="flex-1 bg-slate-900 rounded-xl border border-slate-800 p-6 overflow-y-auto space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex-1 bg-[#111111] rounded-[8px] border border-[#1a1a1a] p-6 overflow-y-auto space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#161616]">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Estúdio de Treinamento do Atendente de IA</span>
+              <h3 className="text-[16px] font-semibold text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#c6f24e]" />
+                <span>Estúdio de treinamento do atendente de IA</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Configure a identidade, regras comerciais, tabela de preços e comportamento do seu atendente no WhatsApp para{' '}
-                <strong className="text-cyan-400">{currentSubaccount.name}</strong>.
+              <p className="text-[13px] text-[#b4b4b4] mt-0.5">
+                Configure identidade, regras comerciais, tabela de preços e comportamento do atendente para{' '}
+                <strong className="text-white font-medium">{currentSubaccount.name}</strong>.
               </p>
             </div>
 
-            {/* Auto-Pilot Toggle com Salvamento Instantâneo */}
-            <div className="flex items-center gap-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700">
+            {/* Auto-Pilot Toggle */}
+            <div className="flex items-center gap-3 bg-[#161616] px-4 py-2.5 rounded-[6px] border border-[#262626]">
               <div className="text-right">
                 <div className="flex items-center justify-end gap-1.5">
-                  <p className="text-xs font-semibold text-white">Piloto Automático</p>
+                  <p className="text-[13px] font-medium text-white">Piloto automático</p>
                   {isTogglingBot && (
-                    <RefreshCw className="w-3 h-3 text-cyan-400 animate-spin" />
+                    <RefreshCw className="w-3 h-3 text-[#b4b4b4] animate-spin" />
                   )}
                 </div>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[11px] text-[#949494]">
                   {toggleFeedback ? (
-                    <span className={botEnabled ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                    <span className={botEnabled ? 'text-[var(--ok)] font-medium' : 'text-[var(--warn)] font-medium'}>
                       {toggleFeedback}
                     </span>
                   ) : botEnabled ? (
-                    <span className="text-emerald-400 font-semibold">Respondendo WhatsApp (Ativo)</span>
+                    <span className="text-[var(--ok)] font-medium">Respondendo WhatsApp (Ativo)</span>
                   ) : (
-                    <span className="text-slate-400">Pausado (Somente Humano)</span>
+                    <span className="text-[#949494]">Pausado (Somente humano)</span>
                   )}
                 </p>
               </div>
@@ -810,14 +787,14 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                 type="button"
                 onClick={handleToggleBot}
                 disabled={isTogglingBot}
-                title={botEnabled ? 'Clique para desativar o atendimento da IA (Pausar Sofia)' : 'Clique para ativar o atendimento da IA no WhatsApp'}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
-                  botEnabled ? 'bg-emerald-500 shadow-lg shadow-emerald-500/30' : 'bg-slate-700'
+                title={botEnabled ? 'Desativar atendimento da IA' : 'Ativar atendimento da IA'}
+                className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                  botEnabled ? 'bg-[var(--ok)]' : 'bg-[#2a2a2a]'
                 }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    botEnabled ? 'translate-x-6' : 'translate-x-1'
+                  className={`inline-block h-4 w-4 transform rounded-full bg-black transition-transform ${
+                    botEnabled ? 'translate-x-5' : 'translate-x-0.5'
                   }`}
                 />
               </button>
@@ -825,184 +802,184 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Colunas 1 e 2: Formulário de Configuração & Base de Conhecimento */}
+            {/* Columns 1 & 2: Configuration Form */}
             <div className="lg:col-span-2 space-y-5">
-              {/* Identidade do Atendente */}
-              <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-800 space-y-4">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <User className="w-3.5 h-3.5 text-blue-400" />
-                  <span>1. Identidade & Tom de Voz do Atendente</span>
+              {/* 1. Identidade */}
+              <div className="p-5 rounded-[8px] bg-[#161616] border border-[#222222] space-y-4">
+                <h4 className="font-semibold text-[14px] text-white flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#949494]" />
+                  <span>1. Identidade e tom de voz do atendente</span>
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Nome do Atendente Virtual</label>
+                    <label className="block text-[12px] text-[#949494] mb-1.5 font-medium">Nome do atendente virtual</label>
                     <input
                       type="text"
                       value={botName}
                       onChange={(e) => setBotName(e.target.value)}
                       placeholder="Ex: Sofia, Lucas, Mariana..."
-                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Cargo / Função</label>
+                    <label className="block text-[12px] text-[#949494] mb-1.5 font-medium">Cargo / função</label>
                     <input
                       type="text"
                       value={botRole}
                       onChange={(e) => setBotRole(e.target.value)}
                       placeholder="Ex: Consultora Especialista em Atendimento"
-                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-2 font-medium text-xs">Estilo e Tom de Voz</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <label className="block text-[12px] text-[#949494] mb-2 font-medium">Estilo e tom de voz</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px]">
                     {[
-                      { id: 'consultive', label: 'Consultivo & Técnico', desc: 'Passa segurança e orienta' },
-                      { id: 'friendly', label: 'Amigável & Empático', desc: 'Caloroso e acolhedor' },
-                      { id: 'commercial', label: 'Comercial & Vendas', desc: 'Foco em agendar e fechar' },
-                      { id: 'formal', label: 'Formal & Corporativo', desc: 'Polido para grandes empresas' },
+                      { id: 'consultive', label: 'Consultivo e técnico', desc: 'Passa segurança e orienta' },
+                      { id: 'friendly', label: 'Amigável e empático', desc: 'Caloroso e acolhedor' },
+                      { id: 'commercial', label: 'Comercial e vendas', desc: 'Foco em agendar e fechar' },
+                      { id: 'formal', label: 'Formal e corporativo', desc: 'Polido para empresas' },
                     ].map((tone) => (
                       <button
                         key={tone.id}
                         type="button"
                         onClick={() => setBotTone(tone.id as any)}
-                        className={`p-3 rounded-lg border text-left transition ${
+                        className={`p-3 rounded-[6px] border text-left transition-colors ${
                           botTone === tone.id
-                            ? 'border-blue-500 bg-blue-500/10 text-white font-semibold'
-                            : 'border-slate-700 bg-slate-900/60 text-slate-400 hover:border-slate-600'
+                            ? 'border-white bg-[#222222] text-white font-medium'
+                            : 'border-[#262626] bg-[#0a0a0a] text-[#b4b4b4] hover:border-[#3a3a3a]'
                         }`}
                       >
-                        <p className="font-bold text-xs">{tone.label}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{tone.desc}</p>
+                        <p className="font-medium text-[12px] text-white">{tone.label}</p>
+                        <p className="text-[11px] text-[#949494] mt-0.5">{tone.desc}</p>
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Base de Conhecimento: Serviços e Preços */}
-              <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-800 space-y-4">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>2. Serviços Oferecidos & Tabela de Preços Estimados</span>
+              {/* 2. Serviços e Preços */}
+              <div className="p-5 rounded-[8px] bg-[#161616] border border-[#222222] space-y-3">
+                <h4 className="font-semibold text-[14px] text-white flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-[#949494]" />
+                  <span>2. Serviços oferecidos e tabela de preços estimados</span>
                 </h4>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  A IA usará esta tabela para responder dúvidas de valores dos clientes no WhatsApp, sempre estimando a partir dos valores abaixo.
+                <p className="text-[12px] text-[#949494] leading-relaxed">
+                  A IA usará esta tabela para responder dúvidas de valores dos clientes no WhatsApp.
                 </p>
                 <textarea
                   rows={5}
                   value={servicesAndPricing}
                   onChange={(e) => setServicesAndPricing(e.target.value)}
                   placeholder="Liste os serviços e valores base..."
-                  className="w-full p-3 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-mono text-xs focus:outline-none focus:border-emerald-500"
+                  className="w-full p-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white text-[13px] focus:outline-none focus:border-[#444444]"
                 />
               </div>
 
-              {/* Regiões, Horários e Condições */}
-              <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-800 space-y-4 text-xs">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>3. Regiões Atendidas & Condições de Pagamento</span>
+              {/* 3. Regiões e Condições */}
+              <div className="p-5 rounded-[8px] bg-[#161616] border border-[#222222] space-y-4 text-[13px]">
+                <h4 className="font-semibold text-[14px] text-white flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#949494]" />
+                  <span>3. Regiões atendidas e condições de pagamento</span>
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Bairros / Cidades Atendidas</label>
+                    <label className="block text-[12px] text-[#949494] mb-1.5 font-medium">Bairros / cidades atendidas</label>
                     <input
                       type="text"
                       value={coverageAreas}
                       onChange={(e) => setCoverageAreas(e.target.value)}
                       placeholder="Ex: Porto Alegre, Canoas, Grande POA..."
-                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Formas de Pagamento Aceitas</label>
+                    <label className="block text-[12px] text-[#949494] mb-1.5 font-medium">Formas de pagamento aceitas</label>
                     <input
                       type="text"
                       value={paymentTerms}
                       onChange={(e) => setPaymentTerms(e.target.value)}
                       placeholder="Ex: Pix com 5% de desconto, Cartão em até 12x..."
-                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-slate-400 mb-1 font-medium">Horário de Atendimento da Empresa</label>
+                    <label className="block text-[12px] text-[#949494] mb-1.5 font-medium">Horário de atendimento da empresa</label>
                     <input
                       type="text"
                       value={businessHours}
                       onChange={(e) => setBusinessHours(e.target.value)}
                       placeholder="Ex: Seg a Sex das 08h às 18h30..."
-                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-cyan-500"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Instruções Especiais e Transbordo Humano */}
-              <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-800 space-y-4 text-xs">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Sliders className="w-3.5 h-3.5 text-purple-400" />
-                  <span>4. Regras Comerciais & Transbordo para Humano</span>
+              {/* 4. Regras Comerciais e Transbordo */}
+              <div className="p-5 rounded-[8px] bg-[#161616] border border-[#222222] space-y-4 text-[13px]">
+                <h4 className="font-semibold text-[14px] text-white flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-[#949494]" />
+                  <span>4. Regras comerciais e transbordo para humano</span>
                 </h4>
 
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Instruções Obrigatórias para a IA</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5 font-medium">Instruções obrigatórias para a IA</label>
                   <textarea
                     rows={4}
                     value={customInstructions}
                     onChange={(e) => setCustomInstructions(e.target.value)}
                     placeholder="Regras de atendimento..."
-                    className="w-full p-3 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-purple-500"
+                    className="w-full p-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white text-[13px] focus:outline-none focus:border-[#444444]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Palavras-chave para Chamar Atendente Humano</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5 font-medium">Palavras-chave para chamar atendente humano</label>
                   <input
                     type="text"
                     value={humanHandoffKeywords}
                     onChange={(e) => setHumanHandoffKeywords(e.target.value)}
                     placeholder="atendente, humano, pessoa, falar com alguém, cancelamento, urgente"
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-purple-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">
+                  <p className="text-[11px] text-[#949494] mt-1">
                     Se o cliente enviar qualquer uma dessas palavras, o robô pausará a automação e avisará que um humano assumirá a conversa.
                   </p>
                 </div>
               </div>
 
-              {/* 5. Chaves de API de Inteligência Artificial */}
-              <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-800 space-y-4 text-xs">
+              {/* 5. Chaves de API */}
+              <div className="p-5 rounded-[8px] bg-[#161616] border border-[#222222] space-y-4 text-[13px]">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <h4 className="font-semibold text-[14px] text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#c6f24e]" />
                     <span>5. Chave de API de IA (Google Gemini / OpenAI)</span>
                   </h4>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
-                    Motor Nativo Inteligente Ativo
+                  <span className="text-[11px] px-2 py-0.5 rounded-[4px] bg-[#222222] text-[var(--ok)] font-medium">
+                    Motor nativo ativo
                   </span>
                 </div>
 
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  O FlowLevel já conta com nosso <strong>Motor Conversacional Nativo</strong> que interpreta saudações, dúvidas, preços e regiões com total coerência e naturalidade. Caso deseje raciocínio generativo ilimitado para conversas abertas e complexas, insira sua chave gratuita do <strong>Google Gemini</strong> abaixo:
+                <p className="text-[12px] text-[#949494] leading-relaxed">
+                  O FlowLevel conta com motor conversacional nativo integrado. Para raciocínio generativo ilimitado em conversas abertas, insira sua chave do Google Gemini ou OpenAI abaixo.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-slate-400 font-medium">Chave Google Gemini API (Recomendado - Grátis)</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[12px] text-[#949494] font-medium">Chave Google Gemini API</label>
                       <a
                         href="https://aistudio.google.com/app/apikey"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[10px] text-blue-400 hover:underline"
+                        className="text-[11px] text-white hover:underline"
                       >
-                        Gerar chave grátis &rarr;
+                        Gerar chave &rarr;
                       </a>
                     </div>
                     <input
@@ -1010,108 +987,108 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                       value={geminiApiKey}
                       onChange={(e) => setGeminiApiKey(e.target.value)}
                       placeholder="AIzaSy..."
-                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-amber-500"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Chave OpenAI API (Opcional)</label>
+                    <label className="block text-[12px] text-[#949494] mb-1.5 font-medium">Chave OpenAI API (Opcional)</label>
                     <input
                       type="password"
                       value={openaiApiKey}
                       onChange={(e) => setOpenaiApiKey(e.target.value)}
                       placeholder="sk-proj-..."
-                      className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500"
+                      className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Botão de Salvar Treinamento */}
+              {/* Save Button */}
               <div className="flex items-center justify-between pt-2">
                 {saveSuccess ? (
-                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold animate-pulse">
+                  <div className="flex items-center gap-2 text-[var(--ok)] text-[13px] font-medium">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Treinamento salvo com sucesso no banco de dados!</span>
+                    <span>Treinamento salvo com sucesso no banco de dados.</span>
                   </div>
                 ) : (
-                  <div className="text-[11px] text-slate-500">
-                    As regras são aplicadas imediatamente a todas as próximas mensagens do WhatsApp.
+                  <div className="text-[12px] text-[#949494]">
+                    As regras são aplicadas imediatamente às próximas mensagens do WhatsApp.
                   </div>
                 )}
 
                 <button
                   onClick={handleSaveAgentTraining}
                   disabled={isSavingAgent}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition disabled:opacity-50"
+                  className="h-9 flex items-center gap-2 px-4 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[13px] font-medium transition-colors disabled:opacity-50"
                 >
                   {isSavingAgent ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Salvando Treinamento...</span>
+                      <span>Salvando...</span>
                     </>
                   ) : (
                     <>
-                      <Zap className="w-4 h-4 text-amber-300" />
-                      <span>Salvar Treinamento do Atendente</span>
+                      <Zap className="w-4 h-4" />
+                      <span>Salvar treinamento</span>
                     </>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Coluna 3: Simulador e Validador Interativo */}
+            {/* Column 3: Interactive Simulator */}
             <div className="space-y-4">
-              <div className="p-5 rounded-xl bg-slate-800/80 border border-slate-700 sticky top-4 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-3">
-                  <h4 className="font-bold text-xs uppercase text-white flex items-center gap-2">
-                    <Play className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Simulador em Tempo Real</span>
+              <div className="p-5 rounded-[8px] bg-[#161616] border border-[#222222] sticky top-4 space-y-4">
+                <div className="flex items-center justify-between border-b border-[#222222] pb-3">
+                  <h4 className="font-semibold text-[14px] text-white flex items-center gap-2">
+                    <Play className="w-3.5 h-3.5 text-[var(--ok)]" />
+                    <span>Simulador em tempo real</span>
                   </h4>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                    Teste Instantâneo
+                  <span className="text-[11px] px-2 py-0.5 rounded-[4px] bg-[#222222] text-[var(--ok)] font-medium">
+                    Teste instantâneo
                   </span>
                 </div>
 
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Envie uma mensagem simulando a dúvida de um cliente para testar como sua atendente <strong>{botName}</strong> vai responder com os dados configurados:
+                <p className="text-[12px] text-[#949494] leading-relaxed">
+                  Envie uma mensagem simulando a dúvida de um cliente para testar como <strong className="text-white">{botName}</strong> responderá:
                 </p>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">Mensagem do Cliente Simulado</label>
+                  <label className="block text-[12px] font-medium text-[#b4b4b4] mb-1.5">Mensagem do cliente simulado</label>
                   <textarea
                     rows={3}
                     value={simulationInput}
                     onChange={(e) => setSimulationInput(e.target.value)}
-                    placeholder="Ex: Quanto custa a limpeza de 2 aparelhos de ar?"
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-emerald-500"
+                    placeholder="Ex: Quanto custa a implementação do funil?"
+                    className="w-full p-2.5 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white text-[13px] focus:outline-none focus:border-[#444444]"
                   />
                 </div>
 
                 <button
                   onClick={handleTestSimulation}
                   disabled={isSimulating}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md transition disabled:opacity-50 cursor-pointer"
+                  className="w-full h-9 flex items-center justify-center gap-2 px-3 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[13px] font-medium transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>{isSimulating ? 'Gerando resposta treinada...' : 'Testar Resposta da IA'}</span>
+                  <span>{isSimulating ? 'Gerando resposta...' : 'Testar resposta da IA'}</span>
                 </button>
 
                 {simulationResponse && (
-                  <div className="pt-3 border-t border-slate-700 space-y-2">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-emerald-400 flex items-center gap-1">
-                        <Bot className="w-3 h-3" />
+                  <div className="pt-3 border-t border-[#222222] space-y-2">
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="font-medium text-[var(--ok)] flex items-center gap-1.5">
+                        <Bot className="w-3.5 h-3.5" />
                         <span>Resposta gerada por {botName}:</span>
                       </span>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200 leading-relaxed shadow-inner whitespace-pre-wrap">
+                    <div className="p-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-[13px] text-[#e5e5e5] leading-relaxed whitespace-pre-wrap">
                       {simulationResponse}
                     </div>
 
-                    <p className="text-[10px] text-slate-400 text-right">
-                      Pronto para atendimento no WhatsApp ✅
+                    <p className="text-[11px] text-[#949494] text-right">
+                      Pronto para atendimento no WhatsApp
                     </p>
                   </div>
                 )}
@@ -1123,13 +1100,13 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
       {/* Connection Settings Tab */}
       {activeTab === 'connection' && (
-        <div className="flex-1 bg-slate-900 rounded-xl border border-slate-800 p-6 overflow-y-auto space-y-6">
+        <div className="flex-1 bg-[#111111] rounded-[8px] border border-[#1a1a1a] p-6 overflow-y-auto space-y-6">
           <div>
-            <h3 className="text-base font-bold text-white mb-1">
-              Gerenciador de Conexão WhatsApp Híbrido
+            <h3 className="text-[16px] font-semibold text-white mb-1">
+              Gerenciador de conexão WhatsApp híbrido
             </h3>
-            <p className="text-xs text-slate-400">
-              Escolha como esta subconta se conectará ao WhatsApp. Você pode alternar entre API Open-Source (Evolution API) e Meta Cloud API Oficial a qualquer momento.
+            <p className="text-[13px] text-[#b4b4b4]">
+              Escolha como esta subconta se conectará ao WhatsApp: Evolution API (QR Code) ou Meta Cloud API Oficial.
             </p>
           </div>
 
@@ -1137,16 +1114,16 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div
               onClick={() => setSelectedProvider('evolution')}
-              className={`p-4 rounded-xl border-2 transition cursor-pointer ${
+              className={`p-4 rounded-[8px] border transition-colors cursor-pointer ${
                 selectedProvider === 'evolution'
-                  ? 'border-emerald-500 bg-emerald-500/5'
-                  : 'border-slate-800 hover:border-slate-600'
+                  ? 'border-white bg-[#161616]'
+                  : 'border-[#1a1a1a] bg-[#0c0c0c] hover:border-[#2a2a2a]'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <QrCode className="w-5 h-5 text-emerald-500" />
-                  <h4 className="font-bold text-sm text-white">Evolution API (QR Code)</h4>
+                  <QrCode className="w-4 h-4 text-[var(--ok)]" />
+                  <h4 className="font-semibold text-[14px] text-white">Evolution API (QR Code)</h4>
                 </div>
                 <input
                   type="radio"
@@ -1155,23 +1132,23 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                   onChange={() => setSelectedProvider('evolution')}
                 />
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Conexão instantânea via QR Code direto do WhatsApp do celular. Sem taxas por mensagem, ideal para chatbot flexível e alto volume.
+              <p className="text-[12px] text-[#949494] leading-relaxed">
+                Conexão via QR Code direto do WhatsApp do celular. Sem taxas por mensagem, ideal para atendimento flexível e alto volume.
               </p>
             </div>
 
             <div
               onClick={() => setSelectedProvider('meta_cloud')}
-              className={`p-4 rounded-xl border-2 transition cursor-pointer ${
+              className={`p-4 rounded-[8px] border transition-colors cursor-pointer ${
                 selectedProvider === 'meta_cloud'
-                  ? 'border-blue-500 bg-blue-500/5'
-                  : 'border-slate-800 hover:border-slate-600'
+                  ? 'border-white bg-[#161616]'
+                  : 'border-[#1a1a1a] bg-[#0c0c0c] hover:border-[#2a2a2a]'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-blue-500" />
-                  <h4 className="font-bold text-sm text-white">Meta Cloud API Oficial</h4>
+                  <ShieldCheck className="w-4 h-4 text-white" />
+                  <h4 className="font-semibold text-[14px] text-white">Meta Cloud API Oficial</h4>
                 </div>
                 <input
                   type="radio"
@@ -1180,66 +1157,66 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                   onChange={() => setSelectedProvider('meta_cloud')}
                 />
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                API Oficial aprovada pela Meta/Facebook. Máxima estabilidade para grandes empresas, cobrança por conversa oficial.
+              <p className="text-[12px] text-[#949494] leading-relaxed">
+                API oficial aprovada pela Meta. Máxima estabilidade para grandes operações, com cobrança por conversa oficial.
               </p>
             </div>
           </div>
 
           {/* Config Forms based on Provider */}
           {selectedProvider === 'evolution' ? (
-            <div className="p-5 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-4">
-              <h4 className="font-bold text-xs uppercase text-slate-400">Credenciais da Evolution API</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="p-5 rounded-[8px] bg-[#161616] border border-[#222222] space-y-4">
+              <h4 className="font-semibold text-[14px] text-white">Credenciais da Evolution API</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
                 <div>
-                  <label className="block text-slate-400 mb-1">Nome da Instância</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5">Nome da instância</label>
                   <input
                     type="text"
                     value={instanceName}
                     onChange={(e) => setInstanceName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '_'))}
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">API URL (Servidor Evolution)</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5">API URL (Servidor Evolution)</label>
                   <input
                     type="text"
                     value={apiUrl}
                     onChange={(e) => setApiUrl(e.target.value.trim().replace(/\s+/g, '-'))}
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-slate-400 mb-1">Global API Key / Token</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5">Global API Key / Token</label>
                   <input
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-emerald-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                   />
                 </div>
               </div>
 
               {/* QR Code Live Section */}
-              <div className="mt-4 p-5 rounded-xl bg-slate-900 border border-slate-800 shadow-sm">
+              <div className="mt-4 p-5 rounded-[8px] bg-[#0a0a0a] border border-[#222222]">
                 {isLiveConnected || qrState === 'open' ? (
-                  <div className="flex items-center gap-4 text-xs">
-                    <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="w-8 h-8" />
+                  <div className="flex items-center gap-4 text-[13px]">
+                    <div className="w-12 h-12 rounded-full bg-[#161616] border border-[#262626] text-[var(--ok)] flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <h5 className="font-bold text-sm text-emerald-400">
-                          WhatsApp Conectado e Operando!
+                        <span className="w-2 h-2 rounded-full bg-[var(--ok)]" />
+                        <h5 className="font-semibold text-[14px] text-[var(--ok)]">
+                          WhatsApp conectado e operando
                         </h5>
                       </div>
-                      <p className="text-slate-400">
-                        Sua instância <strong>{instanceName}</strong> está sincronizada. Todas as mensagens recebidas gerarão Leads e dispararão IA automaticamente.
+                      <p className="text-[#b4b4b4]">
+                        Sua instância <strong className="text-white">{instanceName}</strong> está sincronizada. Todas as mensagens recebidas gerarão leads e acionarão a IA automaticamente.
                       </p>
                       <button
                         onClick={fetchLiveQrCode}
-                        className="text-slate-400 hover:text-slate-200 underline text-[11px] pt-1"
+                        className="text-[#949494] hover:text-white underline text-[12px] pt-1"
                       >
                         Verificar status novamente
                       </button>
@@ -1247,53 +1224,53 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                   </div>
                 ) : (
                   <div className="flex flex-col sm:flex-row items-center gap-6">
-                    <div className="relative group shrink-0">
+                    <div className="relative shrink-0">
                       {liveQrCode ? (
-                        <div className="p-2 bg-white rounded-xl shadow-lg border-2 border-emerald-500/30">
+                        <div className="p-2 bg-white rounded-[8px] border border-[#262626]">
                           <img
                             src={liveQrCode}
                             alt="WhatsApp QR Code"
-                            className="w-44 h-44 object-contain rounded-lg"
+                            className="w-44 h-44 object-contain rounded-[4px]"
                           />
                         </div>
                       ) : (
                         <div
                           onClick={fetchLiveQrCode}
-                          className="w-44 h-44 bg-slate-800 rounded-xl border-2 border-dashed border-emerald-500/50 flex flex-col items-center justify-center p-3 text-center cursor-pointer hover:border-emerald-400 transition"
+                          className="w-44 h-44 bg-[#161616] rounded-[8px] border border-dashed border-[#333333] flex flex-col items-center justify-center p-3 text-center cursor-pointer hover:border-[#555555] transition-colors"
                         >
-                          <RefreshCw className={`w-8 h-8 text-emerald-500 ${isLoadingQr ? 'animate-spin' : ''}`} />
-                          <span className="text-[11px] font-semibold text-slate-400 mt-2">
+                          <RefreshCw className={`w-7 h-7 text-[var(--ok)] ${isLoadingQr ? 'animate-spin' : ''}`} />
+                          <span className="text-[12px] font-medium text-[#b4b4b4] mt-2">
                             {isLoadingQr ? 'Gerando QR Code...' : 'Clique para carregar'}
                           </span>
                         </div>
                       )}
                     </div>
 
-                    <div className="text-xs space-y-2 flex-1">
+                    <div className="text-[13px] space-y-2.5 flex-1">
                       <div className="flex items-center justify-between">
-                        <h5 className="font-bold text-sm text-white flex items-center gap-2">
-                          <Smartphone className="w-4 h-4 text-emerald-500" />
+                        <h5 className="font-semibold text-[14px] text-white flex items-center gap-2">
+                          <Smartphone className="w-4 h-4 text-[var(--ok)]" />
                           <span>Escanear QR Code no seu WhatsApp</span>
                         </h5>
                         <button
                           onClick={fetchLiveQrCode}
                           disabled={isLoadingQr}
-                          className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition"
+                          className="h-8 flex items-center gap-1.5 px-3 text-[12px] font-medium text-white bg-[#161616] hover:bg-[#222222] border border-[#2a2a2a] rounded-[6px] transition-colors"
                         >
                           <RefreshCw className={`w-3 h-3 ${isLoadingQr ? 'animate-spin' : ''}`} />
                           <span>{isLoadingQr ? 'Atualizando...' : 'Atualizar QR Code'}</span>
                         </button>
                       </div>
 
-                      <ol className="text-slate-300 space-y-1 pl-4 list-decimal text-[11px]">
-                        <li>Abra o <strong>WhatsApp</strong> no seu celular</li>
-                        <li>Toque em <strong>Configurações</strong> (ou 3 pontinhos) &gt; <strong>Aparelhos Conectados</strong></li>
-                        <li>Toque em <strong>Conectar um Aparelho</strong> e aponte a câmera para o QR Code ao lado</li>
+                      <ol className="text-[#b4b4b4] space-y-1 pl-4 list-decimal text-[12px]">
+                        <li>Abra o <strong className="text-white">WhatsApp</strong> no seu celular</li>
+                        <li>Toque em <strong className="text-white">Configurações</strong> &gt; <strong className="text-white">Aparelhos conectados</strong></li>
+                        <li>Toque em <strong className="text-white">Conectar um aparelho</strong> e aponte a câmera para o QR Code ao lado</li>
                       </ol>
 
-                      <div className="p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                        <span>Aguardando leitura do aparelho... Conexão automática em tempo real.</span>
+                      <div className="p-2.5 rounded-[6px] bg-[#161616] border border-[#262626] text-[#b4b4b4] text-[12px] flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[var(--ok)]" />
+                        <span>Aguardando leitura do aparelho. Conexão automática em tempo real.</span>
                       </div>
                     </div>
                   </div>
@@ -1301,42 +1278,42 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
               </div>
             </div>
           ) : (
-            <div className="p-5 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-4">
-              <h4 className="font-bold text-xs uppercase text-slate-400">Credenciais Meta Cloud API Oficial</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="p-5 rounded-[8px] bg-[#161616] border border-[#222222] space-y-4">
+              <h4 className="font-semibold text-[14px] text-white">Credenciais Meta Cloud API Oficial</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
                 <div>
-                  <label className="block text-slate-400 mb-1">Phone Number ID</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5">Phone Number ID</label>
                   <input
                     type="text"
                     value={metaPhoneId}
                     onChange={(e) => setMetaPhoneId(e.target.value)}
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444] tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">WhatsApp Business Account ID (WABA)</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5">WhatsApp Business Account ID (WABA)</label>
                   <input
                     type="text"
                     defaultValue="982374619283741"
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444] tabular-nums"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-slate-400 mb-1">Permanent Access Token (System User)</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5">Permanent Access Token (System User)</label>
                   <input
                     type="password"
                     value={metaToken}
                     onChange={(e) => setMetaToken(e.target.value)}
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#262626] text-white focus:outline-none focus:border-[#444444]"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-slate-400 mb-1">Webhook Callback URL</label>
+                  <label className="block text-[12px] text-[#949494] mb-1.5">Webhook Callback URL</label>
                   <input
                     type="text"
                     readOnly
                     value={`https://flowlevel.vercel.app/api/webhooks/whatsapp`}
-                    className="w-full p-2.5 rounded-lg bg-slate-800 text-slate-400 font-mono text-[11px]"
+                    className="w-full h-9 px-3 rounded-[6px] bg-[#0a0a0a] border border-[#222222] text-[#949494] text-[12px]"
                   />
                 </div>
               </div>
@@ -1348,17 +1325,17 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
             <button
               onClick={handleSaveConnection}
               disabled={isConnecting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition disabled:opacity-50"
+              className="h-9 flex items-center gap-2 px-4 rounded-[6px] bg-white hover:bg-[#e5e5e5] text-black text-[13px] font-medium transition-colors disabled:opacity-50"
             >
               {isConnecting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Testando e Salvando...</span>
+                  <span>Testando e salvando...</span>
                 </>
               ) : (
                 <>
                   <Zap className="w-4 h-4" />
-                  <span>Salvar Configuração de Conexão</span>
+                  <span>Salvar configuração de conexão</span>
                 </>
               )}
             </button>
@@ -1366,7 +1343,7 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
         </div>
       )}
 
-      {/* Modal de Disparo Rápido Aberto pelo Botão Lateral */}
+      {/* Modal de Disparo Rápido */}
       {isModalBroadcastOpen && (
         <MassOutreachModal
           isOpen={isModalBroadcastOpen}

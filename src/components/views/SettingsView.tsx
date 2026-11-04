@@ -1,138 +1,240 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Building2,
-  Users,
-  Shield,
-  Database,
-  Plus,
-  CheckCircle,
-  ExternalLink,
-  Smartphone,
-  Globe,
-  Lock,
-} from 'lucide-react';
+import { CheckCircle2, Building2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 
-export function SettingsView() {
-  const { subaccounts, currentSubaccount, setCurrentSubaccount } = useApp();
+export default function SettingsView() {
+  const { subaccounts, currentSubaccount, setCurrentSubaccount, isDbConnected } = useApp();
+  const [savedNotice, setSavedNotice] = useState<string | null>(null);
+  const [webhookRetry, setWebhookRetry] = useState(true);
+  const [strictRls, setStrictRls] = useState(true);
+
+  const handleSave = () => {
+    setSavedNotice('Configurações de governança salvas com sucesso.');
+    setTimeout(() => setSavedNotice(null), 3500);
+  };
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      {/* Header */}
-      <div className="pb-2 border-b border-slate-200 dark:border-slate-800">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Building2 className="w-5 h-5 text-blue-500" />
-          <span>Configurações SaaS & Multi-Tenancy</span>
-        </h2>
-        <p className="text-xs text-slate-400">
-          Gerencie suas empresas e subcontas no modelo White-Label GoHighLevel. Cada cliente possui seu próprio isolamento de dados.
-        </p>
-      </div>
-
-      {/* Subaccounts Cards Grid */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-white">Subcontas / Empresas Ativas ({subaccounts.length})</h3>
-          <button
-            onClick={() => alert('Para cadastrar uma nova subconta em produção, o sistema cria um novo tenant com banco isolado.')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Nova Subconta</span>
-          </button>
+    <div className="max-w-[1120px] mx-auto space-y-6">
+      {/* Row 1 — Screen Title + Supporting Subline + Save Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-white">
+            Configurações SaaS
+          </h1>
+          <p className="text-[14px] text-[#b4b4b4]">
+            Governança multi-tenant, isolamento de credenciais e infraestrutura de mensageria
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {subaccounts.map((sub) => {
-            const isCurrent = sub.id === currentSubaccount.id;
-            return (
-              <div
-                key={sub.id}
-                className={`p-4 rounded-xl border transition ${
-                  isCurrent
-                    ? 'border-blue-500 bg-blue-500/5 shadow-md shadow-blue-500/10'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-400'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    {sub.name === 'Connect Digital' || (sub.logo && (sub.logo.startsWith('/') || sub.logo.includes('.png'))) ? (
-                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-blue-500/30 flex items-center justify-center shrink-0">
+        <button
+          type="button"
+          onClick={handleSave}
+          className="h-9 px-4 rounded-full bg-white hover:bg-[#e6e6e6] text-black text-[13px] font-medium transition-colors cursor-pointer self-start sm:self-auto"
+        >
+          Salvar alterações
+        </button>
+      </div>
+
+      {savedNotice && (
+        <div className="p-3.5 rounded-[14px] bg-[#222a10] text-[#c6f24e] text-[13px] flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{savedNotice}</span>
+        </div>
+      )}
+
+      {/* Row 2 — Usage & Architecture Strip */}
+      <section className="bg-[#111111] rounded-[20px] grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#1a1a1a] overflow-hidden">
+        <div className="p-[22px] space-y-1.5">
+          <div className="text-[13px] text-[#b4b4b4]">Subcontas provisionadas</div>
+          <div className="text-[24px] font-medium text-white tabular-nums">
+            {subaccounts.length} {subaccounts.length === 1 ? 'empresa' : 'empresas'}
+          </div>
+          <div className="text-[12px] text-[#949494]">
+            Isolamento lógico por <code className="text-white">subaccount_id</code>
+          </div>
+        </div>
+
+        <div className="p-[22px] space-y-1.5">
+          <div className="text-[13px] text-[#b4b4b4]">Banco de dados e segurança</div>
+          <div className="text-[24px] font-medium text-white">
+            {isDbConnected ? 'Supabase RLS' : 'Modo local'}
+          </div>
+          <div className="text-[12px] text-[#c6f24e]">
+            Criptografia AES-256 ativa no cofre de chaves
+          </div>
+        </div>
+
+        <div className="p-[22px] space-y-1.5">
+          <div className="text-[13px] text-[#b4b4b4]">Motor de WhatsApp</div>
+          <div className="text-[24px] font-medium text-white">Evolution API v2</div>
+          <div className="text-[12px] text-[#949494]">
+            Webhooks bidirecionais e suporte a áudio PTT
+          </div>
+        </div>
+      </section>
+
+      {/* Row 3 — Two-Column Settings Form (Label + Explanation Left, Control Right) */}
+      <section className="bg-[#111111] rounded-[20px] p-[22px] divide-y divide-[#1a1a1a]">
+        {/* Setting Row 1: Active Tenant Selection */}
+        <div className="py-5 first:pt-0 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
+          <div className="space-y-1">
+            <h2 className="text-[15px] font-semibold text-white">
+              Subcontas gerenciadas
+            </h2>
+            <p className="text-[13px] text-[#b4b4b4]">
+              Selecione qual subconta está ativa no painel ou verifique o status dos canais conectados.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            {subaccounts.map((sub) => {
+              const isSelected = currentSubaccount.id === sub.id;
+              const isCustomImg =
+                sub.logo?.startsWith('data:image') ||
+                sub.logo?.startsWith('http') ||
+                sub.logo?.startsWith('/');
+
+              return (
+                <div
+                  key={sub.id}
+                  onClick={() => setCurrentSubaccount(sub)}
+                  className={`p-4 rounded-[14px] border flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-[#181818] border-[#444444]'
+                      : 'bg-[#141414] border-[#1f1f1f] hover:border-[#2e2e2e]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-[10px] bg-[#222222] flex items-center justify-center overflow-hidden shrink-0">
+                      {isCustomImg ? (
                         <img
-                          src={sub.name === 'Connect Digital' ? '/logo-connect-digital.png' : sub.logo}
+                          src={sub.logo}
                           alt={sub.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain p-1"
                         />
+                      ) : (
+                        <Building2 className="w-4 h-4 text-[#b4b4b4]" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-medium text-white truncate">
+                          {sub.name}
+                        </span>
+                        {isSelected && (
+                          <span className="h-5 px-2 rounded-full bg-[#222a10] text-[#c6f24e] text-[12px] font-medium inline-flex items-center">
+                            Ativa
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-2xl">{sub.logo}</span>
-                    )}
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-900 dark:text-white">{sub.name}</h4>
-                      <p className="text-[10px] text-slate-400">{sub.segment}</p>
+                      <p className="text-[12px] text-[#949494] truncate tabular-nums">
+                        {sub.segment} · {sub.phone} · {sub.email}
+                      </p>
                     </div>
                   </div>
-                  {isCurrent && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold">
-                      Ativa
-                    </span>
-                  )}
-                </div>
 
-                <div className="space-y-1.5 text-xs text-slate-400 pb-3 border-b border-slate-200 dark:border-slate-800">
-                  <p className="flex items-center gap-1.5 text-[11px]">
-                    <Smartphone className="w-3 h-3 text-emerald-500" />
-                    <span>{sub.phone}</span>
-                  </p>
-                  <p className="flex items-center gap-1.5 text-[11px]">
-                    <Globe className="w-3 h-3 text-blue-400" />
-                    <span className="truncate">{sub.email}</span>
-                  </p>
-                </div>
-
-                <div className="pt-3 flex items-center justify-between text-xs">
-                  <span className="text-[10px] text-slate-500">WhatsApp: {sub.whatsappConfig.provider}</span>
-                  {!isCurrent && (
-                    <button
-                      onClick={() => setCurrentSubaccount(sub)}
-                      className="text-xs text-blue-500 hover:underline font-semibold"
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`h-6 px-2.5 rounded-full text-[12px] font-medium inline-flex items-center ${
+                        sub.whatsappConfig.status === 'connected'
+                          ? 'bg-[#222a10] text-[#c6f24e]'
+                          : 'bg-[#2c1a20] text-[#e5566f]'
+                      }`}
                     >
-                      Acessar Painel
-                    </button>
-                  )}
+                      WhatsApp {sub.whatsappConfig.status === 'connected' ? 'online' : 'offline'}
+                    </span>
+                    <span
+                      className={`h-6 px-2.5 rounded-full text-[12px] font-medium inline-flex items-center ${
+                        sub.gmbConnected
+                          ? 'bg-[#222222] text-white'
+                          : 'bg-[#1a1a1a] text-[#949494]'
+                      }`}
+                    >
+                      Google Maps
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Database & Infrastructure Specs */}
-      <div className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-        <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-          <Database className="w-4 h-4 text-emerald-500" />
-          <span>Infraestrutura & Banco de Dados Multi-Tenant</span>
-        </h3>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Esta plataforma foi concebida para rodar com esquema relacional no <strong>PostgreSQL / Supabase</strong>, garantindo isolamento total por <code className="text-blue-400 bg-slate-800 px-1 py-0.5 rounded">subaccount_id</code> e suporte a Row-Level Security (RLS).
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
-            <span className="text-slate-400 block text-[10px] uppercase font-semibold">Motor de Mensageria</span>
-            <span className="font-bold text-slate-800 dark:text-slate-200 mt-1 block">BullMQ / Redis Cache</span>
+        {/* Setting Row 2: Tenant Isolation Policy */}
+        <div className="py-5 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-center">
+          <div className="space-y-1">
+            <h2 className="text-[15px] font-semibold text-white">
+              Isolamento estrito de subconta (RLS)
+            </h2>
+            <p className="text-[13px] text-[#b4b4b4]">
+              Garante que leads, conversas do WhatsApp e chaves de API nunca sejam compartilhados entre clientes.
+            </p>
           </div>
-          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
-            <span className="text-slate-400 block text-[10px] uppercase font-semibold">Webhooks Assíncronos</span>
-            <span className="font-bold text-slate-800 dark:text-slate-200 mt-1 block">Meta & Evolution Event Bus</span>
-          </div>
-          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
-            <span className="text-slate-400 block text-[10px] uppercase font-semibold">Camada de IA</span>
-            <span className="font-bold text-slate-800 dark:text-slate-200 mt-1 block">OpenAI / Gemini API</span>
+
+          <div className="flex items-center justify-between p-4 rounded-[14px] bg-[#161616] border border-[#1f1f1f]">
+            <div>
+              <div className="text-[14px] font-medium text-white">
+                Política Row-Level Security ativa
+              </div>
+              <div className="text-[12px] text-[#949494]">
+                Todas as consultas exigem validação de token e vínculo em subaccount_users
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStrictRls(!strictRls)}
+              className={`h-7 w-12 rounded-full p-1 transition-colors cursor-pointer ${
+                strictRls ? 'bg-[#c6f24e]' : 'bg-[#2a2a2a]'
+              }`}
+              aria-label="Alternar isolamento RLS"
+            >
+              <div
+                className={`w-5 h-5 rounded-full bg-black transition-transform ${
+                  strictRls ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
         </div>
-      </div>
+
+        {/* Setting Row 3: Webhook Retries */}
+        <div className="py-5 last:pb-0 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-center">
+          <div className="space-y-1">
+            <h2 className="text-[15px] font-semibold text-white">
+              Retentativa automática de Webhooks
+            </h2>
+            <p className="text-[13px] text-[#b4b4b4]">
+              Reprocessa eventos recebidos da Evolution API e Apify em caso de oscilação de rede.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-[14px] bg-[#161616] border border-[#1f1f1f]">
+            <div>
+              <div className="text-[14px] font-medium text-white">
+                Fila de resiliência habilitada
+              </div>
+              <div className="text-[12px] text-[#949494]">
+                Até 3 tentativas com intervalo exponencial para mensagens de entrada
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWebhookRetry(!webhookRetry)}
+              className={`h-7 w-12 rounded-full p-1 transition-colors cursor-pointer ${
+                webhookRetry ? 'bg-[#c6f24e]' : 'bg-[#2a2a2a]'
+              }`}
+              aria-label="Alternar retentativa de webhooks"
+            >
+              <div
+                className={`w-5 h-5 rounded-full bg-black transition-transform ${
+                  webhookRetry ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

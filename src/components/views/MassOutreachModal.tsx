@@ -148,7 +148,7 @@ const DEFAULT_AUDIOS: AudioTrackItem[] = [];
 const PRESET_SEQUENCES: SequenceTemplate[] = [
   {
     id: 'seq_audio_texto',
-    name: '🔥 Sequência Campeã: Texto de Abordagem + Áudio PTT Humanizado',
+    name: 'Sequência Campeã: Texto de Abordagem + Áudio PTT Humanizado',
     description: 'Envia primeiro o texto cumprimentando e, em seguida, o áudio filtrando o proprietário.',
     isPreset: true,
     steps: [
@@ -179,7 +179,7 @@ const PRESET_SEQUENCES: SequenceTemplate[] = [
   },
   {
     id: 'seq_google_maps',
-    name: '⭐ Sequência Elogio Google Maps + Proposta de Automação',
+    name: 'Sequência Elogio Google Maps + Proposta de Automação',
     description: 'Utiliza a avaliação do Google Maps do lead para alta taxa de abertura.',
     steps: [
       {
@@ -187,7 +187,7 @@ const PRESET_SEQUENCES: SequenceTemplate[] = [
         type: 'text' as const,
         title: 'Passo 1: Elogio de Nota Google Maps',
         textContent:
-          'Oi pessoal da {{empresa}}! Acompanho o trabalho de vocês em {{categoria}} e vi a excelente nota de {{avaliacao}} ⭐ no Google Maps.',
+          'Oi pessoal da {{empresa}}! Acompanho o trabalho de vocês em {{categoria}} e vi a excelente nota de {{avaliacao}} no Google Maps.',
         requireResponse: true,
       },
       {
@@ -209,7 +209,7 @@ const PRESET_SEQUENCES: SequenceTemplate[] = [
   },
   {
     id: 'seq_direta_rapida',
-    name: '⚡ Sequência Ultra-Rápida: Pergunta Direta ao Decisor',
+    name: 'Sequência Ultra-Rápida: Pergunta Direta ao Decisor',
     description: 'Sequência enxuta de 2 passos para quem deseja resposta imediata.',
     steps: [
       {
@@ -231,7 +231,7 @@ const PRESET_SEQUENCES: SequenceTemplate[] = [
   },
   {
     id: 'seq_sem_site_gmn',
-    name: '🌐 Proposta de Criação de Site + Google Meu Negócio',
+    name: 'Proposta de Criação de Site + Google Meu Negócio',
     description: 'Criada especialmente para abordar empresas que não possuem site cadastrado no Google Maps.',
     steps: [
       {
@@ -404,7 +404,7 @@ export function MassOutreachModal({
       return {
         stage: 'waiting_1',
         label: 'Aguardando Msg 1',
-        badgeColor: 'bg-slate-800 text-slate-300 border-slate-700',
+        badgeColor: 'bg-[#161616] text-slate-300 border-[#262626]',
         stepToDispatch: 0,
       };
     }
@@ -429,7 +429,7 @@ export function MassOutreachModal({
       return {
         stage: 'ready_for_3',
         label: 'Respondeu Msg 2 (Pronto p/ Msg 3)',
-        badgeColor: 'bg-purple-950/60 text-purple-300 border-purple-500/40',
+        badgeColor: 'bg-[#1a1a1a] text-[#e5e5e5] border-[#333333]',
         stepToDispatch: 2,
       };
     }
@@ -437,7 +437,7 @@ export function MassOutreachModal({
       return {
         stage: 'waiting_reply_2',
         label: 'Msg 2 Enviada (Aguardando Retorno)',
-        badgeColor: 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40',
+        badgeColor: 'bg-[#1a1a1a] text-[#e5e5e5] border-[#333333]',
         stepToDispatch: 1,
       };
     }
@@ -469,7 +469,7 @@ export function MassOutreachModal({
     return {
       stage: 'waiting_1',
       label: 'Aguardando Msg 1',
-      badgeColor: 'bg-slate-800 text-slate-300 border-slate-700',
+      badgeColor: 'bg-[#161616] text-slate-300 border-[#262626]',
       stepToDispatch: 0,
     };
   };
@@ -1048,7 +1048,7 @@ export function MassOutreachModal({
         : t
     );
     saveTemplatesToStorage(updated);
-    showSaveFeedback(`Modelo "${currentActive.name.replace(/^🔥 |^⭐ |^⚡ |^🌐 /i, '').split(':')[0]}" salvo com sucesso!`);
+    showSaveFeedback(`Modelo "${currentActive.name.split(':')[0]}" salvo com sucesso!`);
   };
 
   // Reverter alterações na tela para o que está salvo no modelo ativo
@@ -1075,7 +1075,7 @@ export function MassOutreachModal({
     setTemplateModalMode('save_as_new');
     setTemplateForm({
       id: '',
-      name: `${activeTemplate?.name ? activeTemplate.name.replace(/^🔥 |^⭐ |^⚡ |^🌐 /i, '') : 'Sequência'} (Personalizada)`,
+      name: `${activeTemplate?.name ? activeTemplate.name : 'Sequência'} (Personalizada)`,
       description: activeTemplate?.description || 'Sequência personalizada com passos customizados.',
     });
     setIsTemplateModalOpen(true);
@@ -1344,15 +1344,15 @@ export function MassOutreachModal({
     if (detectedIntent === 'decisor') {
       setSimulationResult({
         intent: 'decisor',
-        label: '🎯 Decisor / Proprietário Confirmado',
+        label: 'Decisor / Proprietário Confirmado',
         action: 'Lead qualificado imediatamente. Robô pausa e aciona Atendimento Humano.',
-        crmImpact: '✅ Inserido no Funil CRM (1ª Coluna: Oportunidade Qualificada)',
+        crmImpact: 'Inserido no Funil CRM (1ª Coluna: Oportunidade Qualificada)',
         botResponse: renderPersonalizedText(decisorReplyText, sampleLead),
       });
     } else if (detectedIntent === 'intermediary') {
       setSimulationResult({
         intent: 'intermediary',
-        label: '💼 Intermediário / Secretária / Funcionário',
+        label: 'Intermediário / Secretária / Funcionário',
         action: 'Robô solicita educadamente o contato direto do dono da empresa.',
         crmImpact: 'ℹ️ Etiquetado como #IntermediarioSecretaria (não polui o CRM)',
         botResponse: renderPersonalizedText(intermediaryReplyText, sampleLead),
@@ -1360,9 +1360,9 @@ export function MassOutreachModal({
     } else {
       setSimulationResult({
         intent: 'objection',
-        label: '🛑 Objeção / Desinteresse',
+        label: 'Objeção / Desinteresse',
         action: 'Encerramento cordial e respeito ao contato.',
-        crmImpact: '⛔ Etiquetado como #SemInteresse (Opt-out respeitado)',
+        crmImpact: 'Etiquetado como #SemInteresse (Opt-out respeitado)',
         botResponse: renderPersonalizedText(objectionReplyText, sampleLead),
       });
     }
@@ -1542,7 +1542,7 @@ export function MassOutreachModal({
           } else {
             mediaUrl = track.url;
             mediaType = 'audio';
-            textToSend = '🎙️ Mensagem de voz (Áudio gravado)';
+            textToSend = 'Mensagem de voz (Áudio gravado)';
           }
         }
 
@@ -1610,7 +1610,7 @@ export function MassOutreachModal({
             } else {
               mediaUrl = track.url;
               mediaType = 'audio';
-              textToSend = '🎙️ Mensagem de voz (Áudio gravado)';
+              textToSend = 'Mensagem de voz (Áudio gravado)';
             }
           }
 
@@ -1741,10 +1741,10 @@ export function MassOutreachModal({
     setIsSimulatingLiveReply(false);
     setLiveSimulationSuccessMsg(
       intent === 'decisor'
-        ? '🎯 Lead Qualificado inserido na 1ª coluna do Funil CRM!'
+        ? 'Lead Qualificado inserido na 1ª coluna do Funil CRM!'
         : intent === 'intermediary'
-        ? '💼 Secretária identificada e solicitação de contato enviada!'
-        : '🛑 Objeção registrada e opt-out respeitado.'
+        ? 'Secretária identificada e solicitação de contato enviada!'
+        : 'Objeção registrada e opt-out respeitado.'
     );
   };
 
@@ -1752,16 +1752,16 @@ export function MassOutreachModal({
 
   const modalContent = (
     <div
-      className={`bg-slate-900 border border-slate-800 w-full ${
+      className={`bg-[#111111] border border-[#1a1a1a] w-full ${
         isEmbedded
-          ? 'h-full flex-1 rounded-xl shadow-lg'
-          : 'max-w-6xl rounded-2xl shadow-2xl max-h-[94vh]'
+          ? 'h-full flex-1 rounded-xl '
+          : 'max-w-6xl rounded-2xl  max-h-[94vh]'
       } overflow-hidden flex flex-col`}
     >
       {/* Header Principal */}
-      <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-950/50 via-slate-900 to-slate-900 shrink-0">
+      <div className="p-4 sm:p-5 border-b border-[#1a1a1a] flex items-center justify-between bg-[#111111] shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20 font-bold">
+          <div className="w-10 h-10 rounded-xl bg-[#161616] border border-[#2a2a2a] !text-white flex items-center justify-center text-slate-950  font-bold">
             <MessageCircle className="w-5 h-5" />
           </div>
           <div>
@@ -1774,7 +1774,7 @@ export function MassOutreachModal({
                 type="button"
                 onClick={() => setActiveTab('recipients')}
                 title="Clique para gerenciar e selecionar os contatos que receberão as mensagens"
-                className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 hover:border-emerald-400 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 hover:border-emerald-400 transition cursor-pointer flex items-center gap-1.5 "
               >
                 <Users className="w-3 h-3" />
                 <span>
@@ -1795,7 +1795,7 @@ export function MassOutreachModal({
         {onClose && !isEmbedded && (
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#161616] transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1804,7 +1804,7 @@ export function MassOutreachModal({
 
       {/* Barra de Abas (Builder Mode) */}
       {modalStage === 'builder' && (
-        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-4 sm:px-6 shrink-0">
+        <div className="flex items-center justify-between border-b border-[#1a1a1a] bg-[#0a0a0a] px-4 sm:px-6 shrink-0">
           <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto custom-scrollbar">
             <button
               type="button"
@@ -1904,7 +1904,7 @@ export function MassOutreachModal({
               {activeTab === 'recipients' && (
                 <div className="space-y-4">
                   {/* Barra de Filtros por Origem */}
-                  <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60 space-y-3">
+                  <div className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                         <Filter className="w-3.5 h-3.5 text-emerald-400" />
@@ -1922,7 +1922,7 @@ export function MassOutreachModal({
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
                           contactSourceFilter === 'all'
                             ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                            : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         Todos ({allAvailableLeads.length})
@@ -1933,7 +1933,7 @@ export function MassOutreachModal({
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
                           contactSourceFilter === 'maps'
                             ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                            : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         <Building2 className="w-3.5 h-3.5" />
@@ -1945,7 +1945,7 @@ export function MassOutreachModal({
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
                           contactSourceFilter === 'whatsapp'
                             ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                            : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
@@ -1956,8 +1956,8 @@ export function MassOutreachModal({
                         onClick={() => setContactSourceFilter('crm')}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
                           contactSourceFilter === 'crm'
-                            ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                            ? 'bg-[#222222] border-white text-white'
+                            : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         <Kanban className="w-3.5 h-3.5" />
@@ -1966,7 +1966,7 @@ export function MassOutreachModal({
                     </div>
 
                     {/* Barra de Filtros Inteligentes por Etapa da Cadência (Disparos Individuais) */}
-                    <div className="pt-2.5 border-t border-slate-700/60 space-y-2">
+                    <div className="pt-2.5 border-t border-[#262626] space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -1989,8 +1989,8 @@ export function MassOutreachModal({
                           onClick={() => setCadenceFilter('all')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
                             cadenceFilter === 'all'
-                              ? 'bg-slate-700 border-slate-500 text-white shadow-sm'
-                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                              ? 'bg-slate-700 border-slate-500 text-white '
+                              : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                           }`}
                         >
                           Todos os Leads ({cadenceCounts.all || 0})
@@ -2001,8 +2001,8 @@ export function MassOutreachModal({
                           onClick={() => setCadenceFilter('waiting_1')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
                             cadenceFilter === 'waiting_1'
-                              ? 'bg-blue-600/30 border-blue-500 text-blue-200 shadow-sm'
-                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                              ? 'bg-blue-600/30 border-blue-500 text-blue-200 '
+                              : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                           }`}
                         >
                           <span className="w-2 h-2 rounded-full bg-blue-400" />
@@ -2014,8 +2014,8 @@ export function MassOutreachModal({
                           onClick={() => setCadenceFilter('waiting_reply_1')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
                             cadenceFilter === 'waiting_reply_1'
-                              ? 'bg-amber-600/30 border-amber-500 text-amber-200 shadow-sm'
-                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                              ? 'bg-amber-600/30 border-amber-500 text-amber-200 '
+                              : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                           }`}
                         >
                           <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -2027,12 +2027,12 @@ export function MassOutreachModal({
                           onClick={() => setCadenceFilter('ready_for_2')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 ${
                             cadenceFilter === 'ready_for_2'
-                              ? 'bg-teal-600/40 border-teal-400 text-teal-200 shadow-md ring-1 ring-teal-400/50'
+                              ? 'bg-teal-600/40 border-teal-400 text-teal-200  ring-1 ring-teal-400/50'
                               : 'bg-teal-950/30 border-teal-800/60 text-teal-300 hover:bg-teal-900/40'
                           }`}
                         >
-                          <span className="w-2 h-2 rounded-full bg-teal-400 animate-ping" />
-                          <span>💬 Responderam Msg 1 (Prontos p/ Msg 2) ({cadenceCounts.ready_for_2 || 0})</span>
+                          <span className="w-2 h-2 rounded-full bg-teal-400 " />
+                          <span>Responderam Msg 1 (Prontos p/ Msg 2) ({cadenceCounts.ready_for_2 || 0})</span>
                         </button>
 
                         <button
@@ -2040,11 +2040,11 @@ export function MassOutreachModal({
                           onClick={() => setCadenceFilter('waiting_reply_2')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
                             cadenceFilter === 'waiting_reply_2'
-                              ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200 shadow-sm'
-                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                              ? 'bg-[#222222] border-white text-white '
+                              : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                           }`}
                         >
-                          <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                          <span className="w-2 h-2 rounded-full bg-[#b4b4b4]" />
                           <span>Msg 2 Enviada ({cadenceCounts.waiting_reply_2 || 0})</span>
                         </button>
 
@@ -2053,12 +2053,12 @@ export function MassOutreachModal({
                           onClick={() => setCadenceFilter('ready_for_3')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 ${
                             cadenceFilter === 'ready_for_3'
-                              ? 'bg-purple-600/40 border-purple-400 text-purple-200 shadow-md ring-1 ring-purple-400/50'
-                              : 'bg-purple-950/30 border-purple-800/60 text-purple-300 hover:bg-purple-900/40'
+                              ? 'bg-[#222222] border-white text-white  ring-1 border-[#2a2a2a]'
+                              : 'bg-[#161616] border-[#262626] text-[#b4b4b4] hover:bg-[#222222]'
                           }`}
                         >
-                          <span className="w-2 h-2 rounded-full bg-purple-400" />
-                          <span>🚀 Responderam Msg 2 (Prontos p/ Msg 3) ({cadenceCounts.ready_for_3 || 0})</span>
+                          <span className="w-2 h-2 rounded-full bg-[#c6f24e]" />
+                          <span>Responderam Msg 2 (Prontos p/ Msg 3) ({cadenceCounts.ready_for_3 || 0})</span>
                         </button>
 
                         <button
@@ -2066,8 +2066,8 @@ export function MassOutreachModal({
                           onClick={() => setCadenceFilter('completed')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
                             cadenceFilter === 'completed'
-                              ? 'bg-emerald-600/30 border-emerald-500 text-emerald-200 shadow-sm'
-                              : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                              ? 'bg-emerald-600/30 border-emerald-500 text-emerald-200 '
+                              : 'bg-[#111111] border-[#1a1a1a] text-slate-400 hover:text-slate-200'
                           }`}
                         >
                           <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -2078,10 +2078,10 @@ export function MassOutreachModal({
 
                     {/* Banners de Ação Rápida de Acordo com a Etapa da Cadência */}
                     {cadenceFilter === 'ready_for_2' && (
-                      <div className="p-3 rounded-xl bg-gradient-to-r from-teal-950/80 via-emerald-950/50 to-slate-900 border border-teal-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                      <div className="p-3 rounded-xl bg-[#161616] border border-teal-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-300 flex items-center justify-center font-bold text-sm shrink-0">
-                            💬
+                            Msg
                           </div>
                           <div>
                             <div className="text-xs font-bold text-white">
@@ -2101,7 +2101,7 @@ export function MassOutreachModal({
                             setDispatchMode('single_step');
                             setTargetStepIndexToDispatch(1);
                           }}
-                          className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold shadow-lg shadow-teal-600/30 transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                          className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold  transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
                         >
                           <Send className="w-3.5 h-3.5" />
                           <span>Selecionar Todos & Disparar Passo 2</span>
@@ -2110,16 +2110,16 @@ export function MassOutreachModal({
                     )}
 
                     {cadenceFilter === 'ready_for_3' && (
-                      <div className="p-3 rounded-xl bg-gradient-to-r from-purple-950/80 via-indigo-950/50 to-slate-900 border border-purple-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                      <div className="p-3 rounded-[8px] bg-[#161616] border border-[#2a2a2a] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-sm shrink-0">
-                            🚀
+                          <div className="w-8 h-8 rounded-lg bg-[#222222] text-white flex items-center justify-center font-bold text-sm shrink-0">
+                            Cadência
                           </div>
                           <div>
                             <div className="text-xs font-bold text-white">
                               {displayedLeads.length} estabelecimento(s) responderam à Mensagem 2
                             </div>
-                            <p className="text-[11px] text-purple-200/90">
+                            <p className="text-[11px] text-[#b4b4b4]">
                               Prontos para o fechamento ou envio do <strong>Passo 3 ({steps[2]?.title || 'Pergunta-Chave do Decisor'})</strong>.
                             </p>
                           </div>
@@ -2133,7 +2133,7 @@ export function MassOutreachModal({
                             setDispatchMode('single_step');
                             setTargetStepIndexToDispatch(2);
                           }}
-                          className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                          className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#e5e5e5] !text-black text-white text-xs font-bold  border-[#2a2a2a] transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
                         >
                           <Send className="w-3.5 h-3.5" />
                           <span>Selecionar Todos & Disparar Passo 3</span>
@@ -2142,10 +2142,10 @@ export function MassOutreachModal({
                     )}
 
                     {cadenceFilter === 'waiting_1' && (
-                      <div className="p-3 rounded-xl bg-gradient-to-r from-blue-950/80 via-slate-900 to-slate-900 border border-blue-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                      <div className="p-3 rounded-xl bg-[#161616] border border-blue-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold text-sm shrink-0">
-                            🎯
+                            Meta
                           </div>
                           <div>
                             <div className="text-xs font-bold text-white">
@@ -2165,7 +2165,7 @@ export function MassOutreachModal({
                             setDispatchMode('single_step');
                             setTargetStepIndexToDispatch(0);
                           }}
-                          className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                          className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold  transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
                         >
                           <Send className="w-3.5 h-3.5" />
                           <span>Selecionar Todos & Disparar Passo 1</span>
@@ -2180,7 +2180,7 @@ export function MassOutreachModal({
                           value={contactSearchTerm}
                           onChange={(e) => setContactSearchTerm(e.target.value)}
                           placeholder="Buscar por nome, telefone, empresa, cidade ou segmento..."
-                          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-900 text-slate-100 placeholder:text-slate-500 border border-slate-700 focus:outline-none focus:border-emerald-500"
+                          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-[#111111] text-slate-100 placeholder:text-slate-500 border border-[#262626] focus:outline-none focus:border-emerald-500"
                         />
                       </div>
 
@@ -2188,7 +2188,7 @@ export function MassOutreachModal({
                         <button
                           type="button"
                           onClick={selectAllDisplayed}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition cursor-pointer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#161616] hover:bg-slate-700 text-slate-200 border border-[#262626] text-xs font-semibold transition cursor-pointer"
                           title="Selecionar todos os contatos filtrados"
                         >
                           <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -2197,7 +2197,7 @@ export function MassOutreachModal({
                         <button
                           type="button"
                           onClick={deselectAllDisplayed}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition cursor-pointer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#161616] hover:bg-slate-700 text-slate-200 border border-[#262626] text-xs font-semibold transition cursor-pointer"
                           title="Desmarcar contatos da lista"
                         >
                           <X className="w-3.5 h-3.5 text-red-400" />
@@ -2206,20 +2206,20 @@ export function MassOutreachModal({
                         <button
                           type="button"
                           onClick={() => setIsAddingCustomContact(!isAddingCustomContact)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition  cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Adicionar Manual</span>
                         </button>
 
                         {/* Alternador de Amplitude de Visualização */}
-                        <div className="flex items-center bg-slate-900 border border-slate-700 p-0.5 rounded-lg ml-1">
+                        <div className="flex items-center bg-[#111111] border border-[#262626] p-0.5 rounded-lg ml-1">
                           <button
                             type="button"
                             onClick={() => setRecipientsViewMode('wide')}
                             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
                               recipientsViewMode === 'wide'
-                                ? 'bg-emerald-600 text-white shadow-sm'
+                                ? 'bg-emerald-600 text-white '
                                 : 'text-slate-400 hover:text-white'
                             }`}
                             title="Visualização ampla em tela cheia com máxima amplitude e mais contatos"
@@ -2232,7 +2232,7 @@ export function MassOutreachModal({
                             onClick={() => setRecipientsViewMode('split')}
                             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
                               recipientsViewMode === 'split'
-                                ? 'bg-emerald-600 text-white shadow-sm'
+                                ? 'bg-emerald-600 text-white '
                                 : 'text-slate-400 hover:text-white'
                             }`}
                             title="Dividir tela com o simulador de WhatsApp"
@@ -2248,7 +2248,7 @@ export function MassOutreachModal({
                     {isAddingCustomContact && (
                       <form
                         onSubmit={handleAddCustomContact}
-                        className="p-3 rounded-lg bg-slate-950 border border-emerald-500/40 space-y-2 mt-2 animate-in fade-in"
+                        className="p-3 rounded-lg bg-[#0a0a0a] border border-emerald-500/40 space-y-2 mt-2 animate-in fade-in"
                       >
                         <div className="text-xs font-bold text-emerald-400 flex items-center justify-between">
                           <span>Adicionar Contato Personalizado para o Disparo</span>
@@ -2267,7 +2267,7 @@ export function MassOutreachModal({
                             onChange={(e) => setCustomLeadForm({ ...customLeadForm, name: e.target.value })}
                             placeholder="Nome da Empresa ou Contato *"
                             required
-                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                            className="px-2.5 py-1.5 rounded bg-[#111111] border border-[#262626] text-white focus:outline-none focus:border-emerald-500"
                           />
                           <input
                             type="text"
@@ -2275,34 +2275,34 @@ export function MassOutreachModal({
                             onChange={(e) => setCustomLeadForm({ ...customLeadForm, phone: e.target.value })}
                             placeholder="WhatsApp com DDD (Ex: 51998765432) *"
                             required
-                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                            className="px-2.5 py-1.5 rounded bg-[#111111] border border-[#262626] text-white focus:outline-none focus:border-emerald-500"
                           />
                           <input
                             type="text"
                             value={customLeadForm.city}
                             onChange={(e) => setCustomLeadForm({ ...customLeadForm, city: e.target.value })}
                             placeholder="Cidade / Bairro (Ex: Novo Hamburgo - Centro)"
-                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                            className="px-2.5 py-1.5 rounded bg-[#111111] border border-[#262626] text-white focus:outline-none focus:border-emerald-500"
                           />
                           <input
                             type="text"
                             value={customLeadForm.category}
                             onChange={(e) => setCustomLeadForm({ ...customLeadForm, category: e.target.value })}
                             placeholder="Categoria / Ramo (Ex: Esquadrias de Alumínio)"
-                            className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
+                            className="px-2.5 py-1.5 rounded bg-[#111111] border border-[#262626] text-white focus:outline-none focus:border-emerald-500"
                           />
                         </div>
                         <div className="flex justify-end gap-2 pt-1">
                           <button
                             type="button"
                             onClick={() => setIsAddingCustomContact(false)}
-                            className="px-3 py-1 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-700"
+                            className="px-3 py-1 rounded bg-[#161616] text-slate-300 text-xs hover:bg-slate-700"
                           >
                             Cancelar
                           </button>
                           <button
                             type="submit"
-                            className="px-3.5 py-1 rounded bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 shadow"
+                            className="px-3.5 py-1 rounded bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 "
                           >
                             Salvar e Marcar p/ Envio
                           </button>
@@ -2328,10 +2328,10 @@ export function MassOutreachModal({
                       /* ==================================================== */
                       /* VISTA AMPLA: TABELA CRM PROFISSIONAL EXPANDIDA */
                       /* ==================================================== */
-                      <div className="rounded-xl border border-slate-800 bg-slate-950/70 overflow-hidden shadow-inner">
+                      <div className="rounded-xl border border-[#1a1a1a] bg-[#0a0a0a] overflow-hidden ">
                         <div className="overflow-x-auto max-h-[560px] custom-scrollbar">
                           <table className="w-full text-left text-xs border-collapse">
-                            <thead className="bg-slate-900/90 text-slate-400 font-bold uppercase tracking-wider text-[10px] sticky top-0 z-10 border-b border-slate-800 backdrop-blur-sm">
+                            <thead className="bg-[#111111] text-slate-400 font-bold uppercase tracking-wider text-[10px] sticky top-0 z-10 border-b border-[#1a1a1a] ">
                               <tr>
                                 <th className="py-2.5 px-3 w-10 text-center">
                                   <button
@@ -2342,7 +2342,7 @@ export function MassOutreachModal({
                                         ? 'bg-emerald-500 text-slate-950'
                                         : selectedLeadIds.size > 0
                                         ? 'bg-emerald-500/40 text-emerald-300'
-                                        : 'border border-slate-700 bg-slate-800'
+                                        : 'border border-[#262626] bg-[#161616]'
                                     }`}
                                     title="Marcar / Desmarcar Todos"
                                   >
@@ -2370,8 +2370,8 @@ export function MassOutreachModal({
                                     onClick={() => toggleLeadSelection(lead.id)}
                                     className={`transition cursor-pointer ${
                                       isSelected
-                                        ? 'bg-slate-850/90 hover:bg-slate-800'
-                                        : 'bg-slate-900/30 hover:bg-slate-850/50 opacity-70 hover:opacity-100'
+                                        ? 'bg-[#141414]/90 hover:bg-[#161616]'
+                                        : 'bg-[#111111] hover:bg-[#141414]/50 opacity-70 hover:opacity-100'
                                     } ${isPreviewing ? 'ring-1 ring-inset ring-emerald-500/50 bg-emerald-950/20' : ''}`}
                                   >
                                     {/* Checkbox */}
@@ -2381,8 +2381,8 @@ export function MassOutreachModal({
                                         onClick={() => toggleLeadSelection(lead.id)}
                                         className={`w-4 h-4 rounded flex items-center justify-center transition mx-auto cursor-pointer ${
                                           isSelected
-                                            ? 'bg-emerald-500 text-slate-950 font-bold shadow'
-                                            : 'bg-slate-800 border border-slate-700 text-transparent'
+                                            ? 'bg-emerald-500 text-slate-950 font-bold '
+                                            : 'bg-[#161616] border border-[#262626] opacity-40'
                                         }`}
                                       >
                                         <Check className="w-3 h-3 stroke-[3]" />
@@ -2401,7 +2401,7 @@ export function MassOutreachModal({
                                           </div>
                                           {lead.rating > 0 && (
                                             <div className="text-[10px] text-amber-300 flex items-center gap-1 font-semibold">
-                                              <span>⭐ {lead.rating}</span>
+                                              <span>{lead.rating}</span>
                                               {lead.reviewsCount ? <span className="text-slate-400">({lead.reviewsCount})</span> : null}
                                             </div>
                                           )}
@@ -2411,7 +2411,7 @@ export function MassOutreachModal({
 
                                     {/* WhatsApp */}
                                     <td className="py-2 px-3">
-                                      <div className="font-mono text-emerald-400 font-semibold flex items-center gap-1.5">
+                                      <div className="tabular-nums text-emerald-400 font-semibold flex items-center gap-1.5">
                                         <MessageCircle className="w-3 h-3 text-emerald-500 shrink-0" />
                                         <span>{lead.phone || 'Sem telefone'}</span>
                                       </div>
@@ -2439,7 +2439,7 @@ export function MassOutreachModal({
                                           (lead as any).sourceType === 'whatsapp'
                                             ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
                                             : (lead as any).sourceType === 'crm'
-                                            ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                            ? 'bg-[#1a1a1a] text-white border border-[#333333]'
                                             : (lead as any).sourceType === 'custom'
                                             ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
                                             : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
@@ -2473,7 +2473,7 @@ export function MassOutreachModal({
                                         className={`px-2 py-1 rounded text-[10px] font-semibold transition border flex items-center justify-center gap-1 mx-auto cursor-pointer ${
                                           isPreviewing
                                             ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 font-bold'
-                                            : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-white'
+                                            : 'bg-[#161616] hover:bg-slate-700 border-[#262626] text-slate-300 hover:text-white'
                                         }`}
                                         title="Ver personalização no simulador WhatsApp"
                                       >
@@ -2505,8 +2505,8 @@ export function MassOutreachModal({
                                 isPreviewing
                                   ? 'bg-emerald-950/25 border-emerald-500/60 ring-1 ring-emerald-500/40'
                                   : isSelected
-                                  ? 'bg-slate-800/70 border-slate-700 hover:border-slate-600'
-                                  : 'bg-slate-900/40 border-slate-800/80 opacity-60 hover:opacity-90'
+                                  ? 'bg-[#161616] border-[#262626] hover:border-slate-600'
+                                  : 'bg-[#111111] border-[#1a1a1a] opacity-60 hover:opacity-90'
                               }`}
                             >
                               <div className="flex items-center gap-3 min-w-0">
@@ -2516,8 +2516,8 @@ export function MassOutreachModal({
                                   onClick={() => toggleLeadSelection(lead.id)}
                                   className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition cursor-pointer ${
                                     isSelected
-                                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                                      : 'bg-slate-800 border border-slate-700 hover:border-slate-500 text-transparent'
+                                      ? 'bg-emerald-500 text-slate-950 font-bold '
+                                      : 'bg-[#161616] border border-[#262626] hover:border-slate-500 opacity-40'
                                   }`}
                                 >
                                   <Check className="w-3 h-3 stroke-[3]" />
@@ -2528,7 +2528,7 @@ export function MassOutreachModal({
                                     <span className="text-xs font-bold text-white truncate max-w-[180px]">
                                       {lead.name}
                                     </span>
-                                    <span className="font-mono text-[11px] text-emerald-400 font-semibold">
+                                    <span className="tabular-nums text-[11px] text-emerald-400 font-semibold">
                                       {lead.phone || 'Sem telefone'}
                                     </span>
                                     {/* Badge da Origem */}
@@ -2537,7 +2537,7 @@ export function MassOutreachModal({
                                         (lead as any).sourceType === 'whatsapp'
                                           ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
                                           : (lead as any).sourceType === 'crm'
-                                          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                          ? 'bg-[#1a1a1a] text-white border border-[#333333]'
                                           : (lead as any).sourceType === 'custom'
                                           ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
                                           : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
@@ -2572,7 +2572,7 @@ export function MassOutreachModal({
                                       <>
                                         <span>•</span>
                                         <span className="text-amber-300 font-semibold flex items-center gap-0.5">
-                                          ⭐ {lead.rating}
+                                          {lead.rating}
                                         </span>
                                       </>
                                     )}
@@ -2591,7 +2591,7 @@ export function MassOutreachModal({
                                   <button
                                     type="button"
                                     onClick={() => setPreviewLeadId(lead.id)}
-                                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition border border-slate-700 cursor-pointer"
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#161616] hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] transition border border-[#262626] cursor-pointer"
                                     title="Visualizar como as mensagens e tags ficarão personalizadas para este contato"
                                   >
                                     <Eye className="w-3 h-3" />
@@ -2606,7 +2606,7 @@ export function MassOutreachModal({
                     )}
 
                     {displayedLeads.length === 0 && (
-                      <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 space-y-2">
+                      <div className="p-8 text-center bg-[#111111] rounded-xl border border-[#1a1a1a] text-slate-400 space-y-2">
                         <AlertCircle className="w-6 h-6 mx-auto text-amber-400" />
                         <p className="text-xs">Nenhum contato encontrado com este filtro de busca.</p>
                         <button
@@ -2631,7 +2631,7 @@ export function MassOutreachModal({
               {activeTab === 'sequence' && (
                   <div className="space-y-4">
                     {/* Seletor Compacto e Objetivo de Modelos de Sequência (Menu Sanduíche) */}
-                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+                    <div className="p-3 rounded-xl bg-[#111111] border border-[#1a1a1a] space-y-2.5">
                       {/* Linha 1: Menu Sanduíche do Modelo e Ações Principais */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         {/* Seletor Sanduíche e Ações do Modelo Ativo */}
@@ -2641,7 +2641,7 @@ export function MassOutreachModal({
                             <button
                               type="button"
                               onClick={() => setIsTemplateMenuOpen((prev) => !prev)}
-                              className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 text-xs font-semibold text-white transition shadow-sm hover:border-emerald-500/50 cursor-pointer"
+                              className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg bg-[#161616] hover:bg-[#161616] border border-[#262626] text-xs font-semibold text-white transition  hover:border-emerald-500/50 cursor-pointer"
                               title="Clique para escolher um modelo de sequência"
                             >
                               <div className="flex items-center gap-2 min-w-0">
@@ -2667,7 +2667,7 @@ export function MassOutreachModal({
                                   className="fixed inset-0 z-40"
                                   onClick={() => setIsTemplateMenuOpen(false)}
                                 />
-                                <div className="absolute top-full left-0 mt-1.5 w-full sm:w-96 max-h-72 overflow-y-auto bg-slate-900/98 backdrop-blur-md border border-slate-700/80 rounded-xl shadow-2xl z-50 p-1.5 space-y-1 custom-scrollbar">
+                                <div className="absolute top-full left-0 mt-1.5 w-full sm:w-96 max-h-72 overflow-y-auto bg-[#111111]  border border-[#262626] rounded-xl  z-50 p-1.5 space-y-1 custom-scrollbar">
                                   {sequenceTemplates.map((template, idx) => {
                                     const isSelected = template.id === selectedPresetId;
                                     const cleanName = template.name.replace(/^[^\w\sÀ-ÿ]+\s*/, '');
@@ -2682,7 +2682,7 @@ export function MassOutreachModal({
                                         className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between gap-2 cursor-pointer ${
                                           isSelected
                                             ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/40'
-                                            : 'text-slate-200 hover:bg-slate-800 hover:text-white border border-transparent'
+                                            : 'text-slate-200 hover:bg-[#161616] hover:text-white border border-transparent'
                                         }`}
                                       >
                                         <span className="truncate">
@@ -2701,7 +2701,7 @@ export function MassOutreachModal({
 
                           {/* Ações Rápidas do Modelo Ativo */}
                           {activeTemplate && (
-                            <div className="flex items-center gap-1 shrink-0 bg-slate-800/60 p-1 rounded-lg border border-slate-700/50">
+                            <div className="flex items-center gap-1 shrink-0 bg-[#161616] p-1 rounded-lg border border-[#262626]">
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditMeta(activeTemplate)}
@@ -2739,7 +2739,7 @@ export function MassOutreachModal({
                           <button
                             type="button"
                             onClick={handleOpenCreateNew}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition  cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Novo Modelo</span>
@@ -2748,7 +2748,7 @@ export function MassOutreachModal({
                             type="button"
                             onClick={handleResetToDefaults}
                             title="Restaurar os modelos padrão originais"
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                            className="p-1.5 rounded-lg bg-[#161616] hover:bg-slate-700 border border-[#262626] text-slate-400 hover:text-slate-200 transition cursor-pointer"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                           </button>
@@ -2757,9 +2757,9 @@ export function MassOutreachModal({
 
                       {/* Linha 2: Ações do Modelo Ativo (Somente quando há alterações não salvas) */}
                       {hasUnsavedChanges && (
-                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                        <div className="pt-2 border-t border-[#1a1a1a] flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-2 text-xs text-amber-300">
-                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                            <span className="w-2 h-2 rounded-full bg-amber-400  shrink-0" />
                             <span className="font-medium">
                               Alterações pendentes em <strong className="text-white">{activeTemplate?.name}</strong>
                             </span>
@@ -2769,7 +2769,7 @@ export function MassOutreachModal({
                             <button
                               type="button"
                               onClick={handleDiscardChanges}
-                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-slate-700 text-slate-300 text-xs font-medium transition cursor-pointer"
                               title="Reverter alterações e voltar aos passos originais deste modelo"
                             >
                               Descartar
@@ -2777,7 +2777,7 @@ export function MassOutreachModal({
                             <button
                               type="button"
                               onClick={handleOpenSaveAsNew}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-slate-700 border border-[#262626] text-slate-200 text-xs font-semibold transition cursor-pointer"
                               title="Salvar esta configuração como um novo modelo de sequência"
                             >
                               <Copy className="w-3 h-3 text-blue-400" />
@@ -2786,7 +2786,7 @@ export function MassOutreachModal({
                             <button
                               type="button"
                               onClick={handleSaveCurrentTemplate}
-                              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition  cursor-pointer"
                             >
                               <Save className="w-3.5 h-3.5" />
                               <span>Salvar Alterações</span>
@@ -2807,7 +2807,7 @@ export function MassOutreachModal({
                             onClick={() => setTemplateSaveFeedback(null)}
                             className="text-emerald-400 hover:text-white text-xs font-bold ml-2 cursor-pointer"
                           >
-                            ✕
+                            Fechar
                           </button>
                         </div>
                       )}
@@ -2824,7 +2824,7 @@ export function MassOutreachModal({
                           <button
                             type="button"
                             onClick={handleAddTextStep}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition"
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-slate-700 border border-[#262626] text-slate-200 text-xs font-semibold transition"
                           >
                             <Plus className="w-3 h-3 text-emerald-400" />
                             <span>+ Texto</span>
@@ -2832,7 +2832,7 @@ export function MassOutreachModal({
                           <button
                             type="button"
                             onClick={() => handleAddAudioStep()}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition"
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-slate-700 border border-[#262626] text-slate-200 text-xs font-semibold transition"
                           >
                             <Plus className="w-3 h-3 text-emerald-400" />
                             <span>+ Áudio</span>
@@ -2840,7 +2840,7 @@ export function MassOutreachModal({
                           <button
                             type="button"
                             onClick={handleAddDelayStep}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition"
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-slate-700 border border-[#262626] text-slate-200 text-xs font-semibold transition"
                           >
                             <Clock className="w-3 h-3 text-amber-400" />
                             <span>+ Pausa</span>
@@ -2855,7 +2855,7 @@ export function MassOutreachModal({
                           return (
                           <div
                             key={step.id}
-                            className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-2.5 relative group transition hover:border-slate-600"
+                            className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] space-y-2.5 relative group transition hover:border-slate-600"
                           >
                             {/* Topo do Passo */}
                             <div className="flex items-center justify-between">
@@ -2864,8 +2864,8 @@ export function MassOutreachModal({
                                   {index + 1}
                                 </span>
                                 <span className="text-xs font-bold text-slate-200">
-                                  {step.type === 'text' && '💬 Mensagem de Texto'}
-                                  {step.type === 'audio' && '🎙️ Áudio Gravado PTT'}
+                                  {step.type === 'text' && 'Mensagem de Texto'}
+                                  {step.type === 'audio' && 'Áudio Gravado PTT'}
                                   {step.type === 'delay' && '⏳ Intervalo / Pausa'}
                                 </span>
                               </div>
@@ -2906,14 +2906,14 @@ export function MassOutreachModal({
                               <div className="space-y-1.5">
                                 <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-400">
                                   <span>Tags dinâmicas para personalizar:</span>
-                                  <div className="flex items-center gap-1 font-mono">
+                                  <div className="flex items-center gap-1 tabular-nums">
                                     {['{{empresa}}', '{{cidade}}', '{{categoria}}', '{{avaliacao}}'].map(
                                       (tag) => (
                                         <button
                                           key={tag}
                                           type="button"
                                           onClick={() => insertTagIntoStep(index, tag)}
-                                          className="bg-slate-900 hover:bg-slate-700 text-emerald-400 px-1.5 py-0.5 rounded border border-slate-700 transition"
+                                          className="bg-[#111111] hover:bg-slate-700 text-emerald-400 px-1.5 py-0.5 rounded border border-[#262626] transition"
                                         >
                                           {tag}
                                         </button>
@@ -2932,7 +2932,7 @@ export function MassOutreachModal({
                                       )
                                     );
                                   }}
-                                  className="w-full p-2.5 rounded-lg bg-slate-900 text-white border border-slate-700 text-xs focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
+                                  className="w-full p-2.5 rounded-lg bg-[#111111] text-white border border-[#262626] text-xs focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
                                   placeholder="Digite a mensagem de texto deste passo..."
                                 />
                               </div>
@@ -2945,10 +2945,10 @@ export function MassOutreachModal({
                                   <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/60 space-y-3 animate-in fade-in">
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-2 text-xs font-bold text-red-300">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 " />
                                         <span>Gravando áudio com seu microfone...</span>
                                       </div>
-                                      <span className="font-mono text-xs font-bold text-red-300 bg-red-950 px-2 py-0.5 rounded border border-red-500/40">
+                                      <span className="tabular-nums text-xs font-bold text-red-300 bg-red-950 px-2 py-0.5 rounded border border-red-500/40">
                                         0:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}s
                                       </span>
                                     </div>
@@ -2956,7 +2956,7 @@ export function MassOutreachModal({
                                       <button
                                         type="button"
                                         onClick={stopRecording}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-lg shadow-red-600/30 animate-pulse"
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition  "
                                       >
                                         <Square className="w-3.5 h-3.5 fill-white" />
                                         <span>Parar e Concluir Gravação ({recordingSeconds}s)</span>
@@ -2965,7 +2965,7 @@ export function MassOutreachModal({
                                   </div>
                                 ) : recordedAudioPayload && recordedAudioPayload.targetStepIndex === index ? (
                                   /* Estado 2: Gravação concluída aguardando salvar para este passo */
-                                  <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/60 space-y-3 animate-in fade-in">
+                                  <div className="p-3.5 rounded-xl bg-[#111111] border border-emerald-500/60 space-y-3 animate-in fade-in">
                                     <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
                                       <div className="flex items-center gap-1.5">
                                         <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -3001,13 +3001,13 @@ export function MassOutreachModal({
                                         value={newAudioTitle}
                                         onChange={(e) => setNewAudioTitle(e.target.value)}
                                         placeholder="Nome deste áudio (Ex: Áudio 1 - Apresentação)"
-                                        className="flex-1 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs border border-slate-700 focus:outline-none focus:border-emerald-500"
+                                        className="flex-1 px-3 py-1.5 rounded-lg bg-[#161616] text-white text-xs border border-[#262626] focus:outline-none focus:border-emerald-500"
                                       />
                                       <div className="flex items-center gap-2">
                                         <button
                                           type="button"
                                           onClick={handleSaveRecordedAudio}
-                                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition"
+                                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs  transition"
                                         >
                                           <Save className="w-3.5 h-3.5" />
                                           <span>Salvar e Usar</span>
@@ -3015,7 +3015,7 @@ export function MassOutreachModal({
                                         <button
                                           type="button"
                                           onClick={handleDiscardRecordedAudio}
-                                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs transition"
+                                          className="px-2.5 py-1.5 rounded-lg bg-[#161616] hover:bg-slate-700 text-slate-400 hover:text-white text-xs transition"
                                         >
                                           Descartar
                                         </button>
@@ -3024,7 +3024,7 @@ export function MassOutreachModal({
                                   </div>
                                 ) : galleryPickerStepIndex === index ? (
                                   /* Seletor da Biblioteca aberto para vincular a este passo */
-                                  <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/40 space-y-3 animate-in fade-in">
+                                  <div className="p-3.5 rounded-xl bg-[#111111] border border-emerald-500/40 space-y-3 animate-in fade-in">
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="font-semibold text-white flex items-center gap-1.5">
                                         <FileAudio className="w-4 h-4 text-emerald-400" />
@@ -3033,7 +3033,7 @@ export function MassOutreachModal({
                                       <button
                                         type="button"
                                         onClick={() => setGalleryPickerStepIndex(null)}
-                                        className="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-slate-800 transition"
+                                        className="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-[#161616] transition"
                                       >
                                         Cancelar
                                       </button>
@@ -3042,7 +3042,7 @@ export function MassOutreachModal({
                                       {audioTracks.map((track) => (
                                         <div
                                           key={track.id}
-                                          className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 hover:border-emerald-500/50 flex items-center justify-between gap-2 transition"
+                                          className="p-2.5 rounded-xl bg-[#161616] border border-[#262626] hover:border-emerald-500/50 flex items-center justify-between gap-2 transition"
                                         >
                                           <div className="flex items-center gap-2 min-w-0">
                                             <button
@@ -3050,7 +3050,7 @@ export function MassOutreachModal({
                                               onClick={() => togglePlayAudio(track)}
                                               className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition ${
                                                 activePlayingId === track.id
-                                                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                                  ? 'bg-emerald-500 text-slate-950 '
                                                   : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
                                               }`}
                                             >
@@ -3064,7 +3064,7 @@ export function MassOutreachModal({
                                           <button
                                             type="button"
                                             onClick={() => handleSelectLibraryAudioForStep(index, track)}
-                                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shrink-0 transition shadow"
+                                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shrink-0 transition "
                                           >
                                             Vincular
                                           </button>
@@ -3074,7 +3074,7 @@ export function MassOutreachModal({
                                   </div>
                                 ) : stepAudio ? (
                                   /* Áudio configurado exclusivamente para este passo */
-                                  <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/50 space-y-2.5 animate-in fade-in shadow-sm">
+                                  <div className="p-3.5 rounded-xl bg-[#111111] border border-emerald-500/50 space-y-2.5 animate-in fade-in ">
                                     <div className="flex items-center justify-between text-xs">
                                       <div className="flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -3092,7 +3092,7 @@ export function MassOutreachModal({
                                         <button
                                           type="button"
                                           onClick={() => togglePlayAudio(stepAudio)}
-                                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-md transition ${
+                                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0  transition ${
                                             activePlayingId === stepAudio.id
                                               ? 'bg-emerald-500 text-slate-950'
                                               : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
@@ -3134,7 +3134,7 @@ export function MassOutreachModal({
                                     </div>
 
                                     {/* Ações para trocar ou regravar áudio para este passo */}
-                                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80 text-[11px]">
+                                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#1a1a1a] text-[11px]">
                                       <span className="text-slate-500">Alterar áudio deste passo:</span>
                                       <div className="flex items-center gap-2">
                                         <button
@@ -3172,7 +3172,7 @@ export function MassOutreachModal({
                                   </div>
                                 ) : (
                                   /* Nenhum áudio vinculado a este passo ainda */
-                                  <div className="p-4 rounded-xl bg-slate-900/60 border border-dashed border-slate-700 text-center space-y-3 animate-in fade-in">
+                                  <div className="p-4 rounded-xl bg-[#111111] border border-dashed border-[#262626] text-center space-y-3 animate-in fade-in">
                                     <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center">
                                       <Mic className="w-5 h-5" />
                                     </div>
@@ -3186,7 +3186,7 @@ export function MassOutreachModal({
                                       <button
                                         type="button"
                                         onClick={() => startRecording(index)}
-                                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-lg shadow-red-600/20"
+                                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition "
                                       >
                                         <Mic className="w-4 h-4" />
                                         <span>Gravar para Este Passo</span>
@@ -3194,7 +3194,7 @@ export function MassOutreachModal({
                                       <button
                                         type="button"
                                         onClick={() => handleTriggerUpload(index)}
-                                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition"
+                                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#161616] hover:bg-slate-700 border border-[#262626] text-slate-200 text-xs font-semibold transition"
                                       >
                                         <Upload className="w-4 h-4 text-emerald-400" />
                                         <span>Subir Arquivo de Áudio</span>
@@ -3203,7 +3203,7 @@ export function MassOutreachModal({
                                         <button
                                           type="button"
                                           onClick={() => setGalleryPickerStepIndex(index)}
-                                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-300 text-xs transition"
+                                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#111111] hover:bg-[#161616] border border-[#262626] text-slate-300 text-xs transition"
                                         >
                                           <FileAudio className="w-4 h-4 text-emerald-400" />
                                           <span>Escolher da Galeria ({audioTracks.length})</span>
@@ -3231,7 +3231,7 @@ export function MassOutreachModal({
                                       )
                                     );
                                   }}
-                                  className="w-16 p-1 rounded bg-slate-900 border border-slate-700 text-center font-bold text-emerald-400 focus:outline-none"
+                                  className="w-16 p-1 rounded bg-[#111111] border border-[#262626] text-center font-bold text-emerald-400 focus:outline-none"
                                 />
                                 <span>segundos antes de prosseguir para o próximo passo</span>
                               </div>
@@ -3250,7 +3250,7 @@ export function MassOutreachModal({
                 {activeTab === 'audio_studio' && (
                   <div className="space-y-5">
                     {/* Gravador com Microfone Real e Upload */}
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 border border-slate-800 space-y-4">
+                    <div className="p-4 rounded-xl bg-[#161616] border border-[#1a1a1a] space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center">
@@ -3267,7 +3267,7 @@ export function MassOutreachModal({
                         </div>
 
                         {isRecording && (
-                          <div className="flex items-center gap-2 text-xs font-bold text-red-400 animate-pulse">
+                          <div className="flex items-center gap-2 text-xs font-bold text-red-400 ">
                             <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
                             <span>Gravando: 0:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}s</span>
                           </div>
@@ -3281,7 +3281,7 @@ export function MassOutreachModal({
                             <button
                               type="button"
                               onClick={() => startRecording(null)}
-                              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition"
+                              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold  transition"
                             >
                               <Mic className="w-4 h-4" />
                               <span>Iniciar Nova Gravação</span>
@@ -3289,7 +3289,7 @@ export function MassOutreachModal({
                             <button
                               type="button"
                               onClick={() => handleTriggerUpload(null)}
-                              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-200 text-xs font-semibold transition"
+                              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#161616] hover:bg-slate-750 border border-[#262626] text-slate-200 text-xs font-semibold transition"
                             >
                               <Upload className="w-4 h-4 text-emerald-400" />
                               <span>Subir Arquivo (.mp3, .ogg, .wav)</span>
@@ -3299,7 +3299,7 @@ export function MassOutreachModal({
                           <button
                             type="button"
                             onClick={stopRecording}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 border-2 border-red-500 text-red-400 text-xs font-bold animate-pulse transition"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#161616] border-2 border-red-500 text-red-400 text-xs font-bold  transition"
                           >
                             <Square className="w-4 h-4 fill-red-500 text-red-500" />
                             <span>Parar Gravação ({recordingSeconds}s)</span>
@@ -3307,7 +3307,7 @@ export function MassOutreachModal({
                         )}
 
                         {recordedAudioPayload && !isRecording && recordedAudioPayload.targetStepIndex === null && (
-                          <div className="w-full flex flex-wrap items-center gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800 animate-in fade-in">
+                          <div className="w-full flex flex-wrap items-center gap-2 bg-[#0a0a0a] p-2.5 rounded-xl border border-[#1a1a1a] animate-in fade-in">
                             <button
                               type="button"
                               onClick={() =>
@@ -3336,13 +3336,13 @@ export function MassOutreachModal({
                               value={newAudioTitle}
                               onChange={(e) => setNewAudioTitle(e.target.value)}
                               placeholder="Nome do Áudio (Ex: Apresentação Connect Digital)"
-                              className="flex-1 min-w-[200px] px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs border border-slate-700 focus:outline-none focus:border-emerald-500"
+                              className="flex-1 min-w-[200px] px-2.5 py-1.5 rounded-lg bg-[#111111] text-white text-xs border border-[#262626] focus:outline-none focus:border-emerald-500"
                             />
                             <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={handleSaveRecordedAudio}
-                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm"
+                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition "
                               >
                                 <Save className="w-3.5 h-3.5" />
                                 <span>Salvar na Galeria</span>
@@ -3350,7 +3350,7 @@ export function MassOutreachModal({
                               <button
                                 type="button"
                                 onClick={handleDiscardRecordedAudio}
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs transition"
+                                className="px-2.5 py-1.5 rounded-lg bg-[#161616] text-slate-400 hover:text-white text-xs transition"
                               >
                                 Descartar
                               </button>
@@ -3373,7 +3373,7 @@ export function MassOutreachModal({
                       </div>
 
                       {audioTracks.length === 0 ? (
-                        <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-dashed border-slate-800 text-slate-400 space-y-2">
+                        <div className="p-8 text-center bg-[#111111] rounded-xl border border-dashed border-[#1a1a1a] text-slate-400 space-y-2">
                           <FileAudio className="w-8 h-8 mx-auto text-slate-600" />
                           <p className="text-xs font-semibold text-slate-300">Nenhum áudio salvo no momento</p>
                           <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
@@ -3385,7 +3385,7 @@ export function MassOutreachModal({
                           {audioTracks.map((track) => (
                             <div
                               key={track.id}
-                              className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 flex items-center justify-between gap-3 transition hover:border-slate-600"
+                              className="p-3 rounded-xl bg-[#161616] border border-[#262626] flex items-center justify-between gap-3 transition hover:border-slate-600"
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <button
@@ -3470,10 +3470,10 @@ export function MassOutreachModal({
                     {/* Os 3 Cenários Condicionais */}
                     <div className="space-y-3">
                       {/* Cenário 1: Dono Confirmado */}
-                      <div className="p-3.5 rounded-xl bg-slate-800/60 border border-emerald-500/40 space-y-2">
+                      <div className="p-3.5 rounded-xl bg-[#161616] border border-emerald-500/40 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 " />
                             <h5 className="text-xs font-bold text-emerald-300">
                               Cenário 1: Confirmação Decisor / Dono
                             </h5>
@@ -3493,13 +3493,13 @@ export function MassOutreachModal({
                             rows={2}
                             value={decisorReplyText}
                             onChange={(e) => setDecisorReplyText(e.target.value)}
-                            className="w-full p-2.5 rounded-lg bg-slate-900 text-white border border-slate-700 text-xs focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
+                            className="w-full p-2.5 rounded-lg bg-[#111111] text-white border border-[#262626] text-xs focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
                           />
                         </div>
                       </div>
 
                       {/* Cenário 2: Secretária / Intermediário */}
-                      <div className="p-3.5 rounded-xl bg-slate-800/60 border border-amber-500/40 space-y-2">
+                      <div className="p-3.5 rounded-xl bg-[#161616] border border-amber-500/40 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
@@ -3522,13 +3522,13 @@ export function MassOutreachModal({
                             rows={2}
                             value={intermediaryReplyText}
                             onChange={(e) => setIntermediaryReplyText(e.target.value)}
-                            className="w-full p-2.5 rounded-lg bg-slate-900 text-white border border-slate-700 text-xs focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
+                            className="w-full p-2.5 rounded-lg bg-[#111111] text-white border border-[#262626] text-xs focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
                           />
                         </div>
                       </div>
 
                       {/* Cenário 3: Objeção / Desinteresse */}
-                      <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700 space-y-2">
+                      <div className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
@@ -3536,7 +3536,7 @@ export function MassOutreachModal({
                               Cenário 3: Objeção / Desinteresse
                             </h5>
                           </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold border border-slate-700">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#161616] text-slate-400 font-bold border border-[#262626]">
                             Tag #SemInteresse
                           </span>
                         </div>
@@ -3551,14 +3551,14 @@ export function MassOutreachModal({
                             rows={2}
                             value={objectionReplyText}
                             onChange={(e) => setObjectionReplyText(e.target.value)}
-                            className="w-full p-2.5 rounded-lg bg-slate-900 text-white border border-slate-700 text-xs focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
+                            className="w-full p-2.5 rounded-lg bg-[#111111] text-white border border-[#262626] text-xs focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* Simulador Interativo do Cérebro IA */}
-                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+                    <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                           <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -3577,7 +3577,7 @@ export function MassOutreachModal({
                           }}
                           className="px-2.5 py-1 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-500/40 text-xs hover:bg-emerald-900/60 transition"
                         >
-                          🎯 Testar: &quot;Sou o dono sim&quot;
+                          Testar: &quot;Sou o dono sim&quot;
                         </button>
                         <button
                           type="button"
@@ -3588,7 +3588,7 @@ export function MassOutreachModal({
                           }}
                           className="px-2.5 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-500/40 text-xs hover:bg-amber-900/60 transition"
                         >
-                          💼 Testar: &quot;Aqui é a secretária&quot;
+                          Testar: &quot;Aqui é a secretária&quot;
                         </button>
                         <button
                           type="button"
@@ -3597,20 +3597,20 @@ export function MassOutreachModal({
                             setSimulationInput(text);
                             runSimulationTest(text);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 text-xs hover:bg-slate-750 transition"
+                          className="px-2.5 py-1 rounded-lg bg-[#161616] text-slate-300 border border-[#262626] text-xs hover:bg-slate-750 transition"
                         >
-                          🛑 Testar: &quot;Não tenho interesse&quot;
+                          Testar: &quot;Não tenho interesse&quot;
                         </button>
                       </div>
 
                       {simulationResult && (
-                        <div className="p-3 rounded-lg bg-slate-900 border border-slate-700/80 space-y-2 animate-in fade-in duration-200 text-xs">
+                        <div className="p-3 rounded-lg bg-[#111111] border border-[#262626] space-y-2 animate-in fade-in duration-200 text-xs">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-emerald-400">{simulationResult.label}</span>
                             <span className="text-[10px] text-slate-400">{simulationResult.crmImpact}</span>
                           </div>
                           <p className="text-[11px] text-slate-300">{simulationResult.action}</p>
-                          <div className="p-2 rounded bg-slate-950 border border-slate-800 text-[11px] text-slate-200">
+                          <div className="p-2 rounded bg-[#0a0a0a] border border-[#1a1a1a] text-[11px] text-slate-200">
                             <strong className="text-emerald-400">Resposta disparada: </strong>
                             &quot;{simulationResult.botResponse}&quot;
                           </div>
@@ -3645,10 +3645,10 @@ export function MassOutreachModal({
                 </div>
 
                 {/* Mockup do Celular com WhatsApp Dark */}
-                <div className="rounded-2xl border border-slate-700/80 bg-slate-950 overflow-hidden shadow-2xl flex flex-col">
+                <div className="rounded-2xl border border-[#262626] bg-[#0a0a0a] overflow-hidden  flex flex-col">
                   {/* Top bar do WhatsApp */}
-                  <div className="p-3 bg-[#1f2c34] border-b border-slate-700/40 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+                  <div className="p-3 bg-[#1f2c34] border-b border-[#262626] flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs ">
                       {sampleLead.name?.slice(0, 2).toUpperCase() || 'CD'}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -3656,7 +3656,7 @@ export function MassOutreachModal({
                         {sampleLead.name}
                       </div>
                       <div className="text-[10px] text-emerald-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 " />
                         <span>{sampleLead.phone || 'Online agora'}</span>
                       </div>
                     </div>
@@ -3667,7 +3667,7 @@ export function MassOutreachModal({
                   <div className="p-4 space-y-3 bg-[#0b141a] min-h-[340px] max-h-[460px] overflow-y-auto flex flex-col justify-end">
                     {/* Timestamp do dia */}
                     <div className="text-center py-1">
-                      <span className="text-[10px] text-slate-400 bg-slate-900/90 px-3 py-0.5 rounded-full border border-slate-800">
+                      <span className="text-[10px] text-slate-400 bg-[#111111] px-3 py-0.5 rounded-full border border-[#1a1a1a]">
                         HOJE
                       </span>
                     </div>
@@ -3677,12 +3677,12 @@ export function MassOutreachModal({
                         return (
                           <div
                             key={step.id}
-                            className="self-end bg-[#005c4b] text-white p-3 rounded-2xl rounded-tr-none max-w-[88%] text-xs shadow-md leading-relaxed space-y-1 animate-in fade-in"
+                            className="self-end bg-[#005c4b] text-white p-3 rounded-2xl rounded-tr-none max-w-[88%] text-xs  leading-relaxed space-y-1 animate-in fade-in"
                           >
                             <p>{renderPersonalizedText(step.textContent || '', sampleLead)}</p>
                             <div className="text-[9px] text-emerald-300 text-right flex items-center justify-end gap-1">
                               <span>15:4{idx}</span>
-                              <span>✓✓</span>
+                              <span>Entregue</span>
                             </div>
                           </div>
                         );
@@ -3695,20 +3695,20 @@ export function MassOutreachModal({
                           return (
                             <div
                               key={step.id}
-                              className="self-end bg-[#005c4b]/80 border border-emerald-500/40 text-white p-2.5 rounded-2xl rounded-tr-none max-w-[88%] shadow-md space-y-1 animate-in fade-in"
+                              className="self-end bg-[#005c4b]/80 border border-emerald-500/40 text-white p-2.5 rounded-2xl rounded-tr-none max-w-[88%]  space-y-1 animate-in fade-in"
                             >
                               <div className="flex items-center gap-2">
                                 <div className="w-7 h-7 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0">
                                   <Mic className="w-3.5 h-3.5" />
                                 </div>
                                 <div className="text-[11px] leading-tight">
-                                  <div className="font-bold text-white">🎙️ Áudio PTT do Passo {idx + 1}</div>
+                                  <div className="font-bold text-white">Áudio PTT do Passo {idx + 1}</div>
                                   <div className="text-[10px] text-emerald-200/80">Pendente de gravação ou seleção</div>
                                 </div>
                               </div>
                               <div className="text-[9px] text-emerald-300 text-right flex items-center justify-end gap-1 pt-0.5">
                                 <span>15:4{idx}</span>
-                                <span>✓✓</span>
+                                <span>Entregue</span>
                               </div>
                             </div>
                           );
@@ -3717,13 +3717,13 @@ export function MassOutreachModal({
                         return (
                           <div
                             key={step.id}
-                            className="self-end bg-[#005c4b] text-white p-2.5 rounded-2xl rounded-tr-none max-w-[88%] shadow-md space-y-1 animate-in fade-in"
+                            className="self-end bg-[#005c4b] text-white p-2.5 rounded-2xl rounded-tr-none max-w-[88%]  space-y-1 animate-in fade-in"
                           >
                             <div className="flex items-center gap-2.5">
                               <button
                                 type="button"
                                 onClick={() => togglePlayAudio(track)}
-                                className="w-8 h-8 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center shrink-0 shadow"
+                                className="w-8 h-8 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center shrink-0 "
                               >
                                 {activePlayingId === track.id ? (
                                   <Pause className="w-4 h-4" />
@@ -3735,7 +3735,7 @@ export function MassOutreachModal({
                                 <div className="h-1.5 bg-emerald-700/80 rounded-full overflow-hidden flex items-center">
                                   <div
                                     className={`h-full bg-emerald-300 rounded-full ${
-                                      activePlayingId === track.id ? 'w-2/3 animate-pulse' : 'w-1/3'
+                                      activePlayingId === track.id ? 'w-2/3 ' : 'w-1/3'
                                     }`}
                                   />
                                 </div>
@@ -3747,7 +3747,7 @@ export function MassOutreachModal({
                             </div>
                             <div className="text-[9px] text-emerald-300 text-right flex items-center justify-end gap-1 pt-0.5">
                               <span>15:4{idx}</span>
-                              <span>✓✓</span>
+                              <span>Entregue</span>
                             </div>
                           </div>
                         );
@@ -3756,7 +3756,7 @@ export function MassOutreachModal({
                       if (step.type === 'delay') {
                         return (
                           <div key={step.id} className="text-center py-1">
-                            <span className="text-[10px] text-slate-500 italic bg-slate-900/60 px-2.5 py-0.5 rounded-full border border-slate-800">
+                            <span className="text-[10px] text-slate-500 italic bg-[#111111] px-2.5 py-0.5 rounded-full border border-[#1a1a1a]">
                               ⏳ Pausa de {step.delaySeconds || 2}s antes do próximo envio
                             </span>
                           </div>
@@ -3769,7 +3769,7 @@ export function MassOutreachModal({
                 </div>
 
                 {/* Proteção Anti-bloqueio */}
-                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-[11px]">
+                <div className="p-2.5 rounded-xl bg-[#111111] border border-[#1a1a1a] flex items-center justify-between text-[11px]">
                   <span className="flex items-center gap-1.5 text-slate-300 font-medium">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                     <span>Proteção Anti-bloqueio Ativa</span>
@@ -3789,10 +3789,10 @@ export function MassOutreachModal({
           {modalStage === 'sending' && (
             <div className="space-y-5 py-6 max-w-2xl mx-auto text-center">
               <div
-                className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-1 transition-all shadow-lg ${
+                className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-1 transition-colors  ${
                   isDispatchPaused
-                    ? 'bg-amber-500/20 text-amber-400 ring-2 ring-amber-500/50 shadow-amber-500/20'
-                    : 'bg-emerald-500/20 text-emerald-400 animate-pulse shadow-emerald-500/20'
+                    ? 'bg-amber-500/20 text-amber-400 ring-2 ring-amber-500/50 -amber-500/20'
+                    : 'bg-emerald-500/20 text-emerald-400  -emerald-500/20'
                 }`}
               >
                 {isDispatchPaused ? (
@@ -3821,12 +3821,12 @@ export function MassOutreachModal({
 
               {/* Barra de Progresso */}
               <div className="space-y-2">
-                <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                <div className="h-3 w-full bg-[#161616] rounded-full overflow-hidden border border-[#262626]">
                   <div
-                    className={`h-full transition-all duration-500 rounded-full ${
+                    className={`h-full transition-colors duration-500 rounded-full ${
                       isDispatchPaused
-                        ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
-                        : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-green-400'
+                        ? 'bg-[var(--warn)]'
+                        : 'bg-[var(--ok)]'
                     }`}
                     style={{
                       width: `${Math.round(((currentLeadIndex + 1) / (leadsToDispatch.length || 1)) * 100)}%`,
@@ -3844,11 +3844,11 @@ export function MassOutreachModal({
               </div>
 
               {/* Barra de Controle de Disparo (Play / Pausa / Interromper) */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-[#111111] rounded-2xl border border-[#1a1a1a] ">
                 <div className="flex items-center gap-2.5 text-left">
                   <div
                     className={`w-3 h-3 rounded-full shrink-0 ${
-                      isDispatchPaused ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'
+                      isDispatchPaused ? 'bg-amber-400 ' : 'bg-emerald-400 '
                     }`}
                   />
                   <div>
@@ -3860,7 +3860,7 @@ export function MassOutreachModal({
                         </span>
                       ) : (
                         <span className="text-emerald-400 font-extrabold uppercase tracking-wider text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/40">
-                          ⚡ Em Execução Automática
+                          Em Execução Automática
                         </span>
                       )}
                     </div>
@@ -3877,7 +3877,7 @@ export function MassOutreachModal({
                     <button
                       type="button"
                       onClick={handleResumeDispatch}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition cursor-pointer animate-pulse"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs  transition cursor-pointer "
                       title="Retomar envios imediatamente de onde parou"
                     >
                       <Play className="w-4 h-4 fill-white" />
@@ -3887,7 +3887,7 @@ export function MassOutreachModal({
                     <button
                       type="button"
                       onClick={handlePauseDispatch}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 transition cursor-pointer"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs  transition cursor-pointer"
                       title="Pausar disparos imediatamente"
                     >
                       <Pause className="w-4 h-4 fill-white" />
@@ -3898,7 +3898,7 @@ export function MassOutreachModal({
                   <button
                     type="button"
                     onClick={handleCancelDispatch}
-                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-rose-950/50 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 text-xs font-semibold transition cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#161616] hover:bg-rose-950/50 text-slate-400 hover:text-rose-300 border border-[#262626] hover:border-rose-500/40 text-xs font-semibold transition cursor-pointer"
                     title="Interromper envio do restante da fila e ir para o resumo"
                   >
                     <Square className="w-3.5 h-3.5" />
@@ -3908,11 +3908,11 @@ export function MassOutreachModal({
               </div>
 
               {/* Log em Tempo Real */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950 text-left overflow-hidden">
-                <div className="p-3 bg-slate-900 border-b border-slate-800 text-xs font-bold text-slate-300 flex justify-between items-center">
+              <div className="rounded-xl border border-[#1a1a1a] bg-[#0a0a0a] text-left overflow-hidden">
+                <div className="p-3 bg-[#111111] border-b border-[#1a1a1a] text-xs font-bold text-slate-300 flex justify-between items-center">
                   <span>Log de Envio em Tempo Real</span>
                   <span className="text-[10px] text-emerald-400 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 " />
                     Evolution API WhatsApp Conectada
                   </span>
                 </div>
@@ -3924,7 +3924,7 @@ export function MassOutreachModal({
                         log.status === 'sending'
                           ? 'bg-emerald-950/30'
                           : log.status === 'success'
-                          ? 'bg-slate-900/40'
+                          ? 'bg-[#111111]'
                           : log.status === 'error'
                           ? 'bg-red-950/30 border-l-2 border-red-500'
                           : 'bg-transparent'
@@ -3973,12 +3973,12 @@ export function MassOutreachModal({
           {modalStage === 'finished' && (
             <div className="space-y-6 py-8 text-center max-w-xl mx-auto">
               <div
-                className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-xl ${
+                className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto  ${
                   dispatchLogs.every((l) => l.status === 'error')
-                    ? 'bg-red-500/20 text-red-400 shadow-red-500/20'
+                    ? 'bg-red-500/20 text-red-400 -red-500/20'
                     : dispatchLogs.some((l) => l.status === 'error')
-                    ? 'bg-amber-500/20 text-amber-400 shadow-amber-500/20'
-                    : 'bg-emerald-500/20 text-emerald-400 shadow-emerald-500/20'
+                    ? 'bg-amber-500/20 text-amber-400 -amber-500/20'
+                    : 'bg-emerald-500/20 text-emerald-400 -emerald-500/20'
                 }`}
               >
                 {dispatchLogs.every((l) => l.status === 'error') ? (
@@ -4017,7 +4017,7 @@ export function MassOutreachModal({
               </div>
 
               {/* Card de Teste do Cérebro IA (Solicitação do Usuário) */}
-              <div className="p-4 rounded-2xl bg-slate-850 border border-slate-700 text-left space-y-3 shadow-lg">
+              <div className="p-4 rounded-2xl bg-[#141414] border border-[#262626] text-left space-y-3 ">
                 <div className="flex items-center gap-2">
                   <Bot className="w-4 h-4 text-emerald-400" />
                   <h4 className="text-xs font-bold text-white">
@@ -4033,7 +4033,7 @@ export function MassOutreachModal({
                     type="button"
                     onClick={() => handleSimulateInboundReply('decisor')}
                     disabled={isSimulatingLiveReply}
-                    className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition  disabled:opacity-50 cursor-pointer"
                   >
                     {isSimulatingLiveReply ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -4047,7 +4047,7 @@ export function MassOutreachModal({
                     type="button"
                     onClick={() => handleSimulateInboundReply('intermediary')}
                     disabled={isSimulatingLiveReply}
-                    className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#161616] hover:bg-slate-700 text-slate-300 border border-[#262626] text-xs font-bold transition disabled:opacity-50 cursor-pointer"
                   >
                     <span>Simular: &quot;Aqui é a secretária&quot;</span>
                   </button>
@@ -4070,7 +4070,7 @@ export function MassOutreachModal({
                     setActiveTab('recipients');
                     setCadenceFilter(targetStepIndexToDispatch === 0 ? 'ready_for_2' : 'ready_for_3');
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/40 text-xs font-bold transition cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#161616] hover:bg-slate-700 text-teal-300 border border-teal-500/40 text-xs font-bold transition cursor-pointer"
                 >
                   <Users className="w-4 h-4" />
                   <span>Ver Contatos & Avançar Próximo Passo</span>
@@ -4082,7 +4082,7 @@ export function MassOutreachModal({
                     if (onClose) onClose();
                     if (onNavigateToWhatsApp) onNavigateToWhatsApp();
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold  transition cursor-pointer"
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>Ver Conversas no WhatsApp</span>
@@ -4094,7 +4094,7 @@ export function MassOutreachModal({
                     if (onClose) onClose();
                     if (onNavigateToCrm) onNavigateToCrm();
                   }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold  transition cursor-pointer"
                 >
                   <Kanban className="w-4 h-4" />
                   <span>Ver Leads no Funil CRM</span>
@@ -4106,34 +4106,34 @@ export function MassOutreachModal({
 
         {/* Rodapé do Modal (Builder Mode) */}
         {modalStage === 'builder' && (
-          <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="p-4 border-t border-[#1a1a1a] bg-[#111111] flex flex-wrap items-center justify-between gap-3 shrink-0">
             {/* Controles de Modo e Intervalo */}
             <div className="flex flex-wrap items-center gap-3 text-xs">
               {/* Seletor de Modo de Disparo */}
               <div className="flex items-center gap-1.5">
                 <span className="text-slate-400 font-semibold">Modo:</span>
-                <div className="flex rounded-lg bg-slate-950 p-0.5 border border-slate-700">
+                <div className="flex rounded-lg bg-[#0a0a0a] p-0.5 border border-[#262626]">
                   <button
                     type="button"
                     onClick={() => setDispatchMode('single_step')}
                     className={`px-2.5 py-1 text-xs font-bold rounded-md transition flex items-center gap-1.5 cursor-pointer ${
                       dispatchMode === 'single_step'
-                        ? 'bg-emerald-600 text-white shadow-sm'
+                        ? 'bg-emerald-600 text-white '
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    <span>🎯 Passo Individual</span>
+                    <span>Passo Individual</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDispatchMode('full_sequence')}
                     className={`px-2.5 py-1 text-xs font-bold rounded-md transition flex items-center gap-1.5 cursor-pointer ${
                       dispatchMode === 'full_sequence'
-                        ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700'
+                        ? 'bg-[#161616] text-emerald-400  border border-[#262626]'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    <span>⚡ Sequência Contínua</span>
+                    <span>Sequência Contínua</span>
                   </button>
                 </div>
               </div>
@@ -4145,7 +4145,7 @@ export function MassOutreachModal({
                   <select
                     value={targetStepIndexToDispatch}
                     onChange={(e) => setTargetStepIndexToDispatch(Number(e.target.value))}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-emerald-400 border border-slate-700 text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-lg bg-[#161616] text-emerald-400 border border-[#262626] text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
                   >
                     {steps.map((s, idx) => {
                       const cleanTitle = s.title
@@ -4171,7 +4171,7 @@ export function MassOutreachModal({
                 <select
                   value={leadDelaySeconds}
                   onChange={(e) => setLeadDelaySeconds(Number(e.target.value))}
-                  className="px-2 py-1.5 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  className="px-2 py-1.5 rounded-lg bg-[#161616] text-slate-200 border border-[#262626] text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >
                   <option value={5}>5 seg (Rápido)</option>
                   <option value={8}>8 seg (Recomendado)</option>
@@ -4196,7 +4196,7 @@ export function MassOutreachModal({
                 type="button"
                 onClick={handleStartMassDispatch}
                 disabled={leadsToDispatch.length === 0 || steps.length === 0}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#e5e5e5] !text-black text-white font-bold text-xs  transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Send className="w-4 h-4" />
                 <span>
@@ -4213,9 +4213,9 @@ export function MassOutreachModal({
 
         {/* Modal / Dialog de Criar / Renomear / Salvar como Novo Modelo */}
         {isTemplateModalOpen && (
-          <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
-              <div className="p-4 bg-slate-800/80 border-b border-slate-700 flex items-center justify-between">
+          <div className="fixed inset-0 z-[120] bg-black/80  flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-[#111111] border border-[#262626] rounded-2xl  overflow-hidden animate-in zoom-in-95">
+              <div className="p-4 bg-[#161616] border-b border-[#262626] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-400" />
                   <h4 className="text-sm font-bold text-white">
@@ -4245,8 +4245,8 @@ export function MassOutreachModal({
                     required
                     value={templateForm.name}
                     onChange={(e) => setTemplateForm((prev) => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ex: 🔥 Abordagem Especial para Clínicas"
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 text-white border border-slate-700 text-xs focus:outline-none focus:border-emerald-500"
+                    placeholder="Ex: Abordagem Especial para Clínicas"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border border-[#262626] text-xs focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -4259,7 +4259,7 @@ export function MassOutreachModal({
                     value={templateForm.description}
                     onChange={(e) => setTemplateForm((prev) => ({ ...prev, description: e.target.value }))}
                     placeholder="Ex: 2 mensagens rápidas + áudio PTT direto ao decisor."
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 text-white border border-slate-700 text-xs focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0a0a0a] text-white border border-[#262626] text-xs focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -4269,17 +4269,17 @@ export function MassOutreachModal({
                   </div>
                 )}
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1a1a1a]">
                   <button
                     type="button"
                     onClick={() => setIsTemplateModalOpen(false)}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-[#161616] hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition  cursor-pointer"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>
@@ -4299,7 +4299,7 @@ export function MassOutreachModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85  animate-in fade-in duration-200">
       {modalContent}
     </div>
   );

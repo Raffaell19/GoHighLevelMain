@@ -1,5 +1,15 @@
 export type WhatsAppProvider = 'evolution' | 'meta_cloud';
 
+export type ViewType =
+  | 'dashboard'
+  | 'crm'
+  | 'prospector'
+  | 'whatsapp'
+  | 'gmb'
+  | 'social'
+  | 'workflows'
+  | 'settings';
+
 export type UserRole = 'superadmin' | 'owner' | 'agent';
 
 export interface AppUser {
@@ -121,10 +131,13 @@ export interface GMBReview {
   id: string;
   subaccountId: string;
   authorName: string;
+  author?: string;
   authorPhoto?: string;
+  avatar?: string;
   rating: number; // 1 to 5
   comment: string;
   createTime: string;
+  date?: string;
   replyText?: string;
   replyTime?: string;
 }
@@ -142,7 +155,7 @@ export interface GMBStats {
 export type SocialPlatform = 'instagram' | 'facebook' | 'linkedin';
 
 export interface SocialPlatformConfig {
-  enabled: boolean;
+  enabled?: boolean;
   accountId?: string;
   username?: string;
   accessToken?: string;
@@ -166,6 +179,8 @@ export interface SocialCredentials {
     secretToken?: string;
   };
 }
+
+export type SocialChannelsCredentials = SocialCredentials;
 
 export interface SocialPost {
   id: string;

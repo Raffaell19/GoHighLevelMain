@@ -39,3 +39,4 @@ next-env.d.ts
 test_*.mjs
 verify_tables.mjs
 seed_database.mjs
+.taste-skill/

@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
           segment: companySegment || 'Geral',
           phone: phone || '',
           email: email,
-          logo: '🏢',
+          logo: '/logo-connect-digital.png',
           gmb_connected: false,
           social_connected: false,
         })
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
           { subaccount_id: newSub.id, name: 'Novos Leads', color: 'border-blue-500 text-blue-500', sort_order: 1 },
           { subaccount_id: newSub.id, name: 'Contato Realizado', color: 'border-amber-500 text-amber-500', sort_order: 2 },
           { subaccount_id: newSub.id, name: 'Visita / Reunião', color: 'border-cyan-500 text-cyan-500', sort_order: 3 },
-          { subaccount_id: newSub.id, name: 'Proposta Enviada', color: 'border-indigo-500 text-indigo-400', sort_order: 4 },
+          { subaccount_id: newSub.id, name: 'Proposta Enviada', color: 'border-sky-500 text-sky-400', sort_order: 4 },
           { subaccount_id: newSub.id, name: 'Fechado (Ganho)', color: 'border-emerald-500 text-emerald-500', sort_order: 5 },
         ]);
 

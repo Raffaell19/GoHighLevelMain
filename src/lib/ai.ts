@@ -140,7 +140,7 @@ function contextualConversationalEngine(prompt: string): string {
 
   // 2. Redes Sociais (Legendas)
   if (lowerPrompt.includes('legenda') || lowerPrompt.includes('redes sociais')) {
-    return `⚡ Manutenção preventiva e instalações elétricas com quem entende do assunto!\n\nGaranta a eficiência dos seus aparelhos e reduza o consumo de energia da sua casa ou empresa com nossa equipe técnica especializada.\n\n📲 Solicite seu orçamento sem compromisso pelo link da bio ou chame no WhatsApp!\n\n#Climatizacao #Eletrica #ServicosResidenciais #PortoAlegre`;
+    return `Manutenção preventiva e instalações elétricas com quem entende do assunto.\n\nGaranta a eficiência dos seus aparelhos e reduza o consumo de energia da sua casa ou empresa com nossa equipe técnica especializada.\n\nSolicite seu orçamento sem compromisso pelo link da bio ou chame no WhatsApp.\n\n#Climatizacao #Eletrica #ServicosResidenciais #PortoAlegre`;
   }
 
   // =========================================================================

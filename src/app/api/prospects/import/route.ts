@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       email: '',
       value: 0.0,
       tags: ['Apify', 'Google Maps', p.category || 'Prospecção B2B'],
-      notes: `📍 Endereço: ${p.address}\n🌐 Website: ${p.website || 'Não informado'}\n⭐ Avaliação Google: ${p.rating}★ (${p.reviewsCount} avaliações)\n🔗 Link do Maps: ${p.googleUrl || 'N/A'}`,
+      notes: `Endereço: ${p.address}\nWebsite: ${p.website || 'Não informado'}\nAvaliação Google: ${p.rating} (${p.reviewsCount} avaliações)\nLink do Maps: ${p.googleUrl || 'N/A'}`,
       status: 'open',
       last_activity: 'Importado da Mineração Apify',
     }));
