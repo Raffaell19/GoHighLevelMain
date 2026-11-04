@@ -12,6 +12,8 @@ export async function fetchWhatsAppProfilePicture(
   if (!digits || digits.length < 8) return null;
   const instance = instanceName || 'connect-digital';
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
   try {
     const res = await fetch(
       `${EVOLUTION_URL}/chat/fetchProfilePictureUrl/${encodeURIComponent(instance)}`,
@@ -23,6 +25,7 @@ export async function fetchWhatsAppProfilePicture(
         },
         body: JSON.stringify({ number: digits }),
         cache: 'no-store',
+        signal: controller.signal,
       }
     );
     const data = await res.json().catch(() => ({}));
@@ -36,6 +39,8 @@ export async function fetchWhatsAppProfilePicture(
     }
   } catch (err) {
     console.warn(`[WhatsApp Avatar] Erro ao buscar foto para ${digits}:`, err);
+  } finally {
+    clearTimeout(timeoutId);
   }
   return null;
 }

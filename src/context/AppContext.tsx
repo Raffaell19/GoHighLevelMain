@@ -657,10 +657,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       [contactId]: [...(prev[contactId] || []), newMsg],
     }));
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 16000);
     try {
       const res = await fetch('/api/whatsapp/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           contactId,
           phone: leadPhone,
@@ -707,7 +710,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (e: any) {
       console.error('Erro ao disparar outreach:', e);
-      return { success: false, contactId, error: e?.message || 'Erro de conexão com o servidor' };
+      const isAbort = e?.name === 'AbortError';
+      return {
+        success: false,
+        contactId,
+        error: isAbort
+          ? 'Tempo limite excedido ao entregar para este número'
+          : e?.message || 'Erro de conexão com o servidor',
+      };
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     return { success: true, contactId };

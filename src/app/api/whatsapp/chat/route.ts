@@ -153,25 +153,53 @@ function formatWhatsAppPhone(phone: string): string {
   return clean;
 }
 
+// Helper para fetch com timeout rápido (evita travar a fila de disparos)
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+// Cache em memória da instância ativa para não consultar fetchInstances a cada mensagem do lote
+let cachedOpenInstance: { name: string; timestamp: number } | null = null;
+
 // Helper para descobrir a instância realmente ativa e conectada na Evolution API
 async function resolveActiveInstance(preferred?: string): Promise<string> {
   const primary = preferred || 'connect-digital';
+
+  if (cachedOpenInstance && Date.now() - cachedOpenInstance.timestamp < 30000) {
+    return cachedOpenInstance.name;
+  }
+
   try {
     // 1. Testa se a instância informada está aberta/conectada
-    const checkRes = await fetch(`${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(primary)}`, {
-      headers: { apikey: EVOLUTION_KEY },
-      cache: 'no-store',
-    });
+    const checkRes = await fetchWithTimeout(
+      `${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(primary)}`,
+      {
+        headers: { apikey: EVOLUTION_KEY },
+        cache: 'no-store',
+      },
+      4500
+    );
     const checkData = await checkRes.json().catch(() => ({}));
     if (checkRes.ok && checkData?.instance?.state === 'open') {
+      cachedOpenInstance = { name: primary, timestamp: Date.now() };
       return primary;
     }
 
     // 2. Se não estiver aberta, busca na Evolution API qual instância está 'open'
-    const listRes = await fetch(`${EVOLUTION_URL}/instance/fetchInstances`, {
-      headers: { apikey: EVOLUTION_KEY },
-      cache: 'no-store',
-    });
+    const listRes = await fetchWithTimeout(
+      `${EVOLUTION_URL}/instance/fetchInstances`,
+      {
+        headers: { apikey: EVOLUTION_KEY },
+        cache: 'no-store',
+      },
+      4500
+    );
     const listData = await listRes.json().catch(() => []);
     if (Array.isArray(listData)) {
       const openInst = listData.find(
@@ -179,6 +207,7 @@ async function resolveActiveInstance(preferred?: string): Promise<string> {
       );
       if (openInst?.name) {
         console.log(`[Chat API] Roteando envio para instância ativa: ${openInst.name}`);
+        cachedOpenInstance = { name: openInst.name, timestamp: Date.now() };
         return openInst.name;
       }
     }
@@ -214,15 +243,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Telefone do contato é obrigatório' }, { status: 400 });
     }
 
-    const supabase = getServiceSupabase();
-
-    let resolvedSubId = isUuid(subaccountId) ? subaccountId : null;
-    if (!resolvedSubId) {
-      const { data: subs } = await supabase.from('subaccounts').select('id').limit(1);
-      if (subs && subs.length > 0) {
-        resolvedSubId = subs[0].id;
-      }
-    }
+    const resolvedSubId = isUuid(subaccountId)
+      ? subaccountId
+      : '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf';
 
     // Resolver dinamicamente a instância que está com WhatsApp aberto/conectado
     const activeInstance = await resolveActiveInstance(instanceName);
@@ -230,12 +253,12 @@ export async function POST(req: NextRequest) {
     let evoSendSuccess = false;
     let evoResponseData: any = null;
 
-    // 1. Enviar mensagem real via Evolution API (Texto ou Áudio PTT)
+    // 1. Enviar mensagem real via Evolution API (Texto ou Áudio PTT) IMEDIATAMENTE
     if (cleanPhone) {
       try {
         if (mediaType === 'audio' && mediaUrl) {
           // Envio de Áudio PTT Real
-          const evoRes = await fetch(
+          const evoRes = await fetchWithTimeout(
             `${EVOLUTION_URL}/message/sendWhatsAppAudio/${encodeURIComponent(activeInstance)}`,
             {
               method: 'POST',
@@ -246,17 +269,18 @@ export async function POST(req: NextRequest) {
               body: JSON.stringify({
                 number: cleanPhone,
                 audio: mediaUrl,
-                delay: 1200,
+                delay: 800,
                 encoding: true,
               }),
-            }
+            },
+            15000
           );
           evoResponseData = await evoRes.json().catch(() => ({}));
           evoSendSuccess = evoRes.ok && !evoResponseData?.error;
           console.log('[Chat API] Envio Áudio Evolution API:', evoRes.status, evoResponseData);
         } else {
           // Envio de Mensagem de Texto
-          const evoRes = await fetch(
+          const evoRes = await fetchWithTimeout(
             `${EVOLUTION_URL}/message/sendText/${encodeURIComponent(activeInstance)}`,
             {
               method: 'POST',
@@ -268,7 +292,8 @@ export async function POST(req: NextRequest) {
                 number: cleanPhone,
                 text: text || '',
               }),
-            }
+            },
+            12000
           );
           evoResponseData = await evoRes.json().catch(() => ({}));
           evoSendSuccess = evoRes.ok && !evoResponseData?.error;
@@ -280,31 +305,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Localizar ou Criar Contato em whatsapp_contacts com as Tags de Cadência Atualizadas
+    // 2. Calcular tags consolidadas da cadência e montar contato de retorno imediato
     const cleanDigits = cleanPhone.replace(/[^0-9]/g, '');
     const last8 = cleanDigits.slice(-8);
-
-    const { data: existingContacts } = await supabase
-      .from('whatsapp_contacts')
-      .select('*')
-      .eq('subaccount_id', resolvedSubId);
-
-    const targetContact = (existingContacts || []).find((c: any) => {
-      if (contactId && isUuid(contactId) && c.id === contactId) return true;
-      const cDigits = (c.phone || '').replace(/[^0-9]/g, '');
-      return (
-        cDigits === cleanDigits ||
-        (last8.length === 8 && cDigits.endsWith(last8)) ||
-        (cDigits.length >= 8 && cleanDigits.endsWith(cDigits.slice(-8)))
-      );
-    });
-
-    // Calcular tags consolidadas da cadência
     const stepNum = Number(stepNumber) || 1;
-    const existingTags: string[] = Array.isArray(targetContact?.tags) ? targetContact.tags : [];
     const passedTags: string[] = Array.isArray(tags) ? tags : [];
 
-    const baseTags = [...existingTags, ...passedTags].filter(
+    const baseTags = passedTags.filter(
       (t) =>
         t !== `#Aguardando_Resposta_Msg${stepNum}` &&
         t !== `#Pronto_Msg${stepNum}` &&
@@ -321,89 +328,102 @@ export async function POST(req: NextRequest) {
     if (passedTags.includes('#ProspeccaoMaps')) newTagsSet.add('#ProspeccaoMaps');
     const finalTags = Array.from(newTagsSet);
 
-    let savedContact: any = null;
-    let resolvedContactId = '';
+    const resolvedContactId = isUuid(contactId) ? contactId! : crypto.randomUUID();
+    const displayName =
+      name && !isUnidentifiedContactName(name)
+        ? name
+        : getContactDisplayName(name, cleanPhone);
 
-    if (targetContact) {
-      resolvedContactId = targetContact.id;
-      let contactAvatar = targetContact.avatar;
-      if (!isRealAvatar(contactAvatar) && cleanPhone) {
-        const fetchedPic = await fetchWhatsAppProfilePicture(cleanPhone, activeInstance);
-        if (fetchedPic) contactAvatar = fetchedPic;
-      }
+    const immediateContact = {
+      id: resolvedContactId,
+      subaccount_id: resolvedSubId,
+      subaccountId: resolvedSubId,
+      name: displayName,
+      phone: `+${cleanPhone}`,
+      avatar: getDefaultAvatarUrl(displayName),
+      last_message: text || (mediaType === 'audio' ? 'Mensagem de Voz' : 'Mensagem enviada'),
+      lastMessage: text || (mediaType === 'audio' ? 'Mensagem de Voz' : 'Mensagem enviada'),
+      last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      unread_count: 0,
+      unreadCount: 0,
+      tags: finalTags,
+    };
 
-      const { data: updatedContact, error: upErr } = await supabase
-        .from('whatsapp_contacts')
-        .update({
-          last_message: text || (mediaType === 'audio' ? 'Mensagem de Voz' : 'Mensagem enviada'),
-          last_message_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          unread_count: 0,
-          tags: finalTags,
-          name: targetContact.name && !isUnidentifiedContactName(targetContact.name)
-            ? targetContact.name
-            : (name && !isUnidentifiedContactName(name) ? name : getContactDisplayName(name, cleanPhone)),
-          avatar: isRealAvatar(contactAvatar) ? contactAvatar : getDefaultAvatarUrl(name || targetContact.name),
-        })
-        .eq('id', targetContact.id)
-        .select()
-        .maybeSingle();
+    // 3. Persistir no Supabase de forma resiliente (com timeout curto de 2.5s para nunca travar o disparador)
+    const persistToDatabase = async () => {
+      try {
+        const supabase = getServiceSupabase();
+        const { data: existingContacts } = await supabase
+          .from('whatsapp_contacts')
+          .select('*')
+          .eq('subaccount_id', resolvedSubId);
 
-      if (upErr) console.error('[Chat API] Erro ao atualizar contato:', upErr);
-      savedContact = updatedContact || { ...targetContact, tags: finalTags };
-    } else {
-      const newId = isUuid(contactId) ? contactId : crypto.randomUUID();
-      resolvedContactId = newId;
+        const targetContact = (existingContacts || []).find((c: any) => {
+          if (contactId && isUuid(contactId) && c.id === contactId) return true;
+          const cDigits = (c.phone || '').replace(/[^0-9]/g, '');
+          return (
+            cDigits === cleanDigits ||
+            (last8.length === 8 && cDigits.endsWith(last8)) ||
+            (cDigits.length >= 8 && cleanDigits.endsWith(cDigits.slice(-8)))
+          );
+        });
 
-      let contactAvatar: string | null = null;
-      if (cleanPhone) {
-        contactAvatar = await fetchWhatsAppProfilePicture(cleanPhone, activeInstance);
-      }
-      if (!contactAvatar) {
-        contactAvatar = getDefaultAvatarUrl(name);
-      }
+        const dbContactId = targetContact?.id || resolvedContactId;
 
-      const { data: insertedContact, error: inErr } = await supabase
-        .from('whatsapp_contacts')
-        .insert({
-          id: newId,
+        if (targetContact) {
+          const mergedTags = Array.from(
+            new Set([
+              ...(Array.isArray(targetContact.tags) ? targetContact.tags : []).filter(
+                (t: string) =>
+                  t !== `#Aguardando_Resposta_Msg${stepNum}` &&
+                  t !== `#Pronto_Msg${stepNum}` &&
+                  t !== `#Respondeu_Msg${stepNum}` &&
+                  t !== `#AguardandoDecisor`
+              ),
+              ...finalTags,
+            ])
+          );
+          await supabase
+            .from('whatsapp_contacts')
+            .update({
+              last_message: immediateContact.last_message,
+              last_message_time: immediateContact.last_message_time,
+              unread_count: 0,
+              tags: mergedTags,
+            })
+            .eq('id', dbContactId);
+        } else {
+          await supabase.from('whatsapp_contacts').insert({
+            id: dbContactId,
+            subaccount_id: resolvedSubId,
+            name: displayName,
+            phone: `+${cleanPhone}`,
+            avatar: immediateContact.avatar,
+            last_message: immediateContact.last_message,
+            last_message_time: 'Agora',
+            unread_count: 0,
+            tags: finalTags,
+          });
+        }
+
+        await supabase.from('whatsapp_messages').insert({
           subaccount_id: resolvedSubId,
-          name: name && !isUnidentifiedContactName(name) ? name : getContactDisplayName(name, cleanPhone),
-          phone: `+${cleanPhone}`,
-          avatar: contactAvatar,
-          last_message: text || (mediaType === 'audio' ? 'Mensagem de Voz' : 'Mensagem enviada'),
-          last_message_time: 'Agora',
-          unread_count: 0,
-          tags: finalTags,
-        })
-        .select()
-        .maybeSingle();
+          contact_id: dbContactId,
+          sender: 'agent',
+          text: text || (mediaType === 'audio' ? 'Mensagem de Voz (Áudio Gravado)' : 'Mensagem enviada'),
+          status: evoSendSuccess ? 'sent' : 'error',
+        });
+      } catch (dbErr) {
+        // Ignora silenciosamente caso o Supabase esteja offline/pausado para não travar os disparos
+      }
+    };
 
-      if (inErr) console.error('[Chat API] Erro ao inserir novo contato:', inErr);
-      savedContact = insertedContact || {
-        id: newId,
-        subaccount_id: resolvedSubId,
-        name: name || 'Lead Prospecção',
-        phone: `+${cleanPhone}`,
-        tags: finalTags,
-      };
-    }
-
-    // 3. Salvar histórico de mensagem no Supabase
-    const { data: savedMsg, error: saveErr } = await supabase
-      .from('whatsapp_messages')
-      .insert({
-        subaccount_id: resolvedSubId,
-        contact_id: resolvedContactId,
-        sender: 'agent',
-        text: text || (mediaType === 'audio' ? 'Mensagem de Voz (Áudio Gravado)' : 'Mensagem enviada'),
-        status: evoSendSuccess ? 'sent' : 'error',
-      })
-      .select()
-      .maybeSingle();
-
-    if (saveErr) {
-      console.error('[Chat API] Erro ao salvar mensagem enviada:', saveErr);
-    }
+    // Aguarda no máximo 1.5s pela gravação no banco; se o banco demorar, segue imediatamente para o próximo lead!
+    await Promise.race([
+      persistToDatabase(),
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ]);
 
     if (!evoSendSuccess && cleanPhone) {
       let errorMsg = 'Não foi possível entregar a mensagem no WhatsApp. Verifique a conexão da instância.';
@@ -428,7 +448,7 @@ export async function POST(req: NextRequest) {
           error: errorMsg,
           evoResponse: evoResponseData,
           instance: activeInstance,
-          contact: savedContact,
+          contact: immediateContact,
           contactId: resolvedContactId,
         },
         { status: 502 }
@@ -437,9 +457,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: savedMsg,
       instance: activeInstance,
-      contact: savedContact,
+      contact: immediateContact,
       contactId: resolvedContactId,
     });
   } catch (error: any) {
