@@ -2415,10 +2415,10 @@ export function MassOutreachModal({
                                     </td>
 
                                     {/* WhatsApp */}
-                                    <td className="py-2 px-3">
-                                      <div className="tabular-nums text-emerald-400 font-semibold flex items-center gap-1.5">
+                                    <td className="py-2 px-3 whitespace-nowrap">
+                                      <div className="tabular-nums text-emerald-400 font-semibold flex items-center gap-1.5 whitespace-nowrap">
                                         <MessageCircle className="w-3 h-3 text-emerald-500 shrink-0" />
-                                        <span>{lead.phone || 'Sem telefone'}</span>
+                                        <span className="whitespace-nowrap">{lead.phone || 'Sem telefone'}</span>
                                       </div>
                                     </td>
 
@@ -2533,7 +2533,7 @@ export function MassOutreachModal({
                                     <span className="text-xs font-bold text-white truncate max-w-[180px]">
                                       {lead.name}
                                     </span>
-                                    <span className="tabular-nums text-[11px] text-emerald-400 font-semibold">
+                                    <span className="tabular-nums text-[11px] text-emerald-400 font-semibold whitespace-nowrap">
                                       {lead.phone || 'Sem telefone'}
                                     </span>
                                     {/* Badge da Origem */}

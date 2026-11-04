@@ -205,7 +205,7 @@ export default function CRMView({ onOpenNewLead }: CRMViewProps) {
                         )}
 
                         <div className="pt-2 border-t border-[#242424] flex items-center justify-between text-[12px] text-[#949494]">
-                          <span className="flex items-center gap-1 truncate tabular-nums">
+                          <span className="flex items-center gap-1 truncate tabular-nums whitespace-nowrap">
                             <Phone className="w-3 h-3 shrink-0" />
                             {lead.phone}
                           </span>

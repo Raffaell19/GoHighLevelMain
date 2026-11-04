@@ -1334,9 +1334,9 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                     <tr>
                       <th className="p-3 w-8"></th>
                       <th className="p-3">Empresa / estabelecimento</th>
-                      <th className="p-3">Telefone / WhatsApp</th>
-                      <th className="p-3 text-right">Avaliação Google</th>
-                      <th className="p-3">Endereço</th>
+                      <th className="p-3 whitespace-nowrap min-w-[190px]">Telefone / WhatsApp</th>
+                      <th className="p-3 text-right whitespace-nowrap">Avaliação Google</th>
+                      <th className="p-3 min-w-[220px]">Endereço</th>
                       <th className="p-3">Website</th>
                       <th className="p-3 text-right">Ação</th>
                     </tr>
@@ -1373,11 +1373,11 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                             <span className="text-[11px] text-[#949494] block mt-0.5">{prospect.category}</span>
                           </td>
 
-                          <td className="p-3 text-[#b4b4b4] tabular-nums">
+                          <td className="p-3 text-[#b4b4b4] tabular-nums whitespace-nowrap">
                             {prospect.phone ? (
-                              <div className="flex items-center gap-1.5">
+                              <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
                                 <Phone className="w-3.5 h-3.5 text-[var(--ok)] shrink-0" />
-                                <span>{prospect.phone}</span>
+                                <span className="whitespace-nowrap font-medium text-white">{prospect.phone}</span>
                                 {cleanPhone && (
                                   <a
                                     href={`https://wa.me/55${cleanPhone}`}
@@ -1385,14 +1385,14 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
                                     rel="noreferrer"
                                     onClick={(e) => e.stopPropagation()}
                                     title="Abrir conversa no WhatsApp"
-                                    className="p-1 text-[var(--ok)] hover:bg-[#222222] rounded-[4px] transition-colors"
+                                    className="p-1 text-[var(--ok)] hover:bg-[#222222] rounded-[4px] transition-colors shrink-0 inline-flex items-center justify-center"
                                   >
                                     <MessageCircle className="w-3.5 h-3.5" />
                                   </a>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-[#949494]">Não informado</span>
+                              <span className="text-[#949494] whitespace-nowrap">Não informado</span>
                             )}
                           </td>
 
