@@ -7,7 +7,7 @@ const WEBHOOK_URL = process.env.NEXT_PUBLIC_APP_URL
   : 'https://flowlevel.vercel.app/api/webhooks/whatsapp';
 
 function cleanInstanceName(raw: string): string {
-  if (!raw) return 'flowlevel_main';
+  if (!raw) return 'connect-digital';
   const clean = raw
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // remove acentos
@@ -15,29 +15,42 @@ function cleanInstanceName(raw: string): string {
     .replace(/_+/g, '_')             // remove múltiplos _
     .replace(/^_+|_+$/g, '')         // trim _
     .toLowerCase();
-  return clean || 'flowlevel_main';
+  return clean || 'connect-digital';
 }
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const rawInstance = searchParams.get('instance') || 'flowlevel_main';
+    const rawInstance = searchParams.get('instance') || 'connect-digital';
     const instance = cleanInstanceName(rawInstance);
+    const forceRestart = searchParams.get('force') === 'true';
 
-    const apiUrl = searchParams.get('apiUrl') || DEFAULT_EVOLUTION_URL;
-    const apiKey = searchParams.get('apiKey') || DEFAULT_EVOLUTION_KEY;
+    const apiUrl = (searchParams.get('apiUrl') || DEFAULT_EVOLUTION_URL).trim().replace(/\/+$/, '');
+    const rawKey = (searchParams.get('apiKey') || '').trim();
+    const candidateKeys = Array.from(new Set([rawKey, DEFAULT_EVOLUTION_KEY].filter(Boolean)));
 
-    // 1. Verificar se a instância existe e qual o estado
-    const stateRes = await fetch(`${apiUrl}/instance/connectionState/${encodeURIComponent(instance)}`, {
-      headers: { 'apikey': apiKey },
-      cache: 'no-store',
-    });
+    let activeKey = candidateKeys[0] || DEFAULT_EVOLUTION_KEY;
+    let stateRes: Response | null = null;
 
-    const stateStatus = stateRes.status;
-    const stateData = await stateRes.json().catch(() => ({}));
+    // 1. Verificar se a instância existe e qual o estado (com fallback automático para a chave oficial se der 401/403)
+    for (const k of candidateKeys) {
+      const res = await fetch(`${apiUrl}/instance/connectionState/${encodeURIComponent(instance)}`, {
+        headers: { apikey: k },
+        cache: 'no-store',
+      });
+      if (res.status !== 401 && res.status !== 403) {
+        activeKey = k;
+        stateRes = res;
+        break;
+      }
+      stateRes = res;
+    }
 
-    // Se a instância já está conectada
-    if (stateStatus === 200 && stateData?.instance?.state === 'open') {
+    const stateStatus = stateRes?.status || 500;
+    const stateData = stateRes ? await stateRes.json().catch(() => ({})) : {};
+
+    // Se a instância já está conectada e não foi pedido reinício forçado
+    if (!forceRestart && stateStatus === 200 && stateData?.instance?.state === 'open') {
       return NextResponse.json({
         connected: true,
         state: 'open',
@@ -46,13 +59,12 @@ export async function GET(req: Request) {
       });
     }
 
-    // Se a instância não existe (404), vamos criar automaticamente na hora!
-    if (stateStatus === 404 || stateData?.error === 'Not Found') {
-      console.log(`[Auto-Create] Criando instância "${instance}" na Evolution API...`);
+    // Helper para criar instância e configurar webhook
+    const createFreshInstance = async () => {
       const createRes = await fetch(`${apiUrl}/instance/create`, {
         method: 'POST',
         headers: {
-          'apikey': apiKey,
+          apikey: activeKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -62,14 +74,12 @@ export async function GET(req: Request) {
           integration: 'WHATSAPP-BAILEYS',
         }),
       });
+      const createData = await createRes.json().catch(() => ({}));
 
-      console.log(`[Auto-Create] Status criação:`, createRes.status);
-
-      // Configurar o Webhook oficial
       await fetch(`${apiUrl}/webhook/set/${encodeURIComponent(instance)}`, {
         method: 'POST',
         headers: {
-          'apikey': apiKey,
+          apikey: activeKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -81,23 +91,71 @@ export async function GET(req: Request) {
             events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
           },
         }),
-      }).catch((e) => console.error('[Webhook Setup Error]', e));
+      }).catch(() => {});
+
+      return createData;
+    };
+
+    let createdQrBase64: string | null = null;
+    let createdQrCode: string | null = null;
+
+    // Se o usuário pediu atualização forçada ou se a instância não existe (404), recria limpa
+    if (forceRestart && stateStatus !== 404) {
+      await fetch(`${apiUrl}/instance/logout/${encodeURIComponent(instance)}`, {
+        method: 'DELETE',
+        headers: { apikey: activeKey },
+      }).catch(() => {});
+      await fetch(`${apiUrl}/instance/delete/${encodeURIComponent(instance)}`, {
+        method: 'DELETE',
+        headers: { apikey: activeKey },
+      }).catch(() => {});
+      const createData = await createFreshInstance();
+      createdQrBase64 = createData?.qrcode?.base64 || createData?.base64 || null;
+      createdQrCode = createData?.qrcode?.code || createData?.code || null;
+    } else if (stateStatus === 404 || stateData?.error === 'Not Found') {
+      const createData = await createFreshInstance();
+      createdQrBase64 = createData?.qrcode?.base64 || createData?.base64 || null;
+      createdQrCode = createData?.qrcode?.code || createData?.code || null;
     }
 
     // 2. Buscar o QR Code da instância
-    const qrRes = await fetch(`${apiUrl}/instance/connect/${encodeURIComponent(instance)}`, {
-      headers: { 'apikey': apiKey },
-      cache: 'no-store',
-    });
+    let qrData: any = {};
+    if (!createdQrBase64) {
+      const qrRes = await fetch(`${apiUrl}/instance/connect/${encodeURIComponent(instance)}`, {
+        headers: { apikey: activeKey },
+        cache: 'no-store',
+      });
+      qrData = await qrRes.json().catch(() => ({}));
 
-    const qrData = await qrRes.json().catch(() => ({}));
+      // Se a instância estiver travada sem retornar base64 (ex: sessão antiga expirada count: 0), recria automaticamente
+      if (!qrData?.base64 && !qrData?.qrcode?.base64 && qrData?.instance?.state !== 'open') {
+        await fetch(`${apiUrl}/instance/delete/${encodeURIComponent(instance)}`, {
+          method: 'DELETE',
+          headers: { apikey: activeKey },
+        }).catch(() => {});
+        const recreated = await createFreshInstance();
+        createdQrBase64 = recreated?.qrcode?.base64 || recreated?.base64 || null;
+        createdQrCode = recreated?.qrcode?.code || recreated?.code || null;
+
+        if (!createdQrBase64) {
+          const retryRes = await fetch(`${apiUrl}/instance/connect/${encodeURIComponent(instance)}`, {
+            headers: { apikey: activeKey },
+            cache: 'no-store',
+          });
+          qrData = await retryRes.json().catch(() => ({}));
+        }
+      }
+    }
+
+    const finalBase64 = createdQrBase64 || qrData?.base64 || qrData?.qrcode?.base64 || null;
+    const finalCode = createdQrCode || qrData?.code || qrData?.qrcode?.code || null;
 
     return NextResponse.json({
       connected: false,
       state: qrData?.instance?.state || stateData?.instance?.state || 'connecting',
       instance,
-      base64: qrData?.base64 || null,
-      code: qrData?.code || null,
+      base64: finalBase64,
+      code: finalCode,
       pairingCode: qrData?.pairingCode || null,
     });
   } catch (error: any) {

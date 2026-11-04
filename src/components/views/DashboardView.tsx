@@ -24,18 +24,16 @@ export default function DashboardView({
   const totalUnread = contacts.reduce((acc, c) => acc + c.unreadCount, 0);
   const activeWorkflowsCount = workflows.filter((w) => w.isActive).length;
 
-  const stageSeries = stages.map((st, idx) => {
+  const stageSeries = stages.map((st) => {
     const stageLeads = leads.filter((l) => l.stageId === st.id);
     const stageSum = stageLeads.reduce((acc, l) => acc + l.value, 0);
-    const baseline = [6400, 8200, 5400, 7100, 6000][idx] || 5000;
-    const currentVal = stageSum > 0 ? stageSum : [5200, 7500, 4800, 6200, 5400][idx] || 4200;
     return {
       id: st.id,
       name: st.name,
       count: stageLeads.length,
       value: stageSum,
-      chartValue: currentVal,
-      baseline,
+      chartValue: stageSum,
+      baseline: 0,
     };
   });
 
@@ -122,7 +120,7 @@ export default function DashboardView({
             R$ {totalPipeline.toLocaleString('pt-BR')}
           </div>
           <div className="text-[12px] text-[#949494] tabular-nums">
-            <span className="text-[#c6f24e] font-medium">+18,4%</span> · {openLeads.length} em negociação
+            <span className="text-[#c6f24e] font-medium">{openLeads.length}</span> em negociação ativa
           </div>
         </div>
 
@@ -222,8 +220,8 @@ export default function DashboardView({
               {/* Bars per stage */}
               {stageSeries.map((item, idx) => {
                 const groupX = 95 + idx * 114;
-                const baseH = Math.max(8, (item.baseline / maxChartVal) * 124);
-                const curH = Math.max(8, (item.chartValue / maxChartVal) * 124);
+                const baseH = item.baseline > 0 ? Math.max(8, (item.baseline / maxChartVal) * 124) : 4;
+                const curH = item.chartValue > 0 ? Math.max(8, (item.chartValue / maxChartVal) * 124) : 4;
                 const baseY = 144 - baseH;
                 const curY = 144 - curH;
 
@@ -235,8 +233,8 @@ export default function DashboardView({
                       y={baseY}
                       width="22"
                       height={baseH}
-                      rx="4"
-                      fill="#2a2a2a"
+                      rx="2"
+                      fill="#222222"
                     />
                     {/* Active cycle bar (--chart-1: #c6f24e) */}
                     <rect
@@ -244,8 +242,8 @@ export default function DashboardView({
                       y={curY}
                       width="22"
                       height={curH}
-                      rx="4"
-                      fill="#c6f24e"
+                      rx="2"
+                      fill={item.chartValue > 0 ? '#c6f24e' : '#2a2a2a'}
                     />
                     {/* Stage label */}
                     <text
@@ -302,38 +300,44 @@ export default function DashboardView({
             </div>
 
             <div className="divide-y divide-[#161616]">
-              {leads.slice(0, 5).map((lead) => {
-                const stage = stages.find((s) => s.id === lead.stageId);
-                return (
-                  <div
-                    key={lead.id}
-                    onClick={() => onSelectView('crm')}
-                    className="py-3 min-h-[56px] flex items-center justify-between gap-3 cursor-pointer hover:bg-[#161616] -mx-2 px-2 rounded-[10px] transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-[14px] font-medium text-white truncate">
-                        {lead.name}
+              {leads.length === 0 ? (
+                <div className="py-8 text-center text-[13px] text-[#949494]">
+                  Nenhuma oportunidade cadastrada no funil.
+                </div>
+              ) : (
+                leads.slice(0, 5).map((lead) => {
+                  const stage = stages.find((s) => s.id === lead.stageId);
+                  return (
+                    <div
+                      key={lead.id}
+                      onClick={() => onSelectView('crm')}
+                      className="py-3 min-h-[56px] flex items-center justify-between gap-3 cursor-pointer hover:bg-[#161616] -mx-2 px-2 rounded-[10px] transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-[14px] font-medium text-white truncate">
+                          {lead.name}
+                        </div>
+                        <div className="text-[12px] text-[#949494] truncate">
+                          {stage?.name || 'Novos Leads'} · {lead.lastActivity}
+                        </div>
                       </div>
-                      <div className="text-[12px] text-[#949494] truncate">
-                        {stage?.name || 'Novos Leads'} · {lead.lastActivity}
-                      </div>
-                    </div>
 
-                    <div className="text-right shrink-0">
-                      <div className="text-[14px] font-medium text-white tabular-nums">
-                        R$ {lead.value.toLocaleString('pt-BR')}
-                      </div>
-                      <div
-                        className={`text-[12px] ${
-                          lead.status === 'won' ? 'text-[#c6f24e]' : 'text-[#b4b4b4]'
-                        }`}
-                      >
-                        {lead.status === 'won' ? 'Ganho' : 'Em aberto'}
+                      <div className="text-right shrink-0">
+                        <div className="text-[14px] font-medium text-white tabular-nums">
+                          R$ {lead.value.toLocaleString('pt-BR')}
+                        </div>
+                        <div
+                          className={`text-[12px] ${
+                            lead.status === 'won' ? 'text-[#c6f24e]' : 'text-[#b4b4b4]'
+                          }`}
+                        >
+                          {lead.status === 'won' ? 'Ganho' : 'Em aberto'}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             <div className="p-3.5 rounded-[14px] bg-[#161616] grid grid-cols-2 divide-x divide-[#222222]">
@@ -412,37 +416,43 @@ export default function DashboardView({
           </div>
 
           <div className="divide-y divide-[#161616]">
-            {reviews.slice(0, 2).map((rev) => (
-              <div
-                key={rev.id}
-                className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-medium text-white">
-                      {rev.author || rev.authorName}
-                    </span>
-                    <span className="text-[12px] text-[#b4b4b4] tabular-nums">
-                      Nota {rev.rating},0
-                    </span>
-                    <span className="text-[12px] text-[#949494]">· {rev.date || rev.createTime}</span>
-                  </div>
-                  <p className="text-[13px] text-[#b4b4b4] line-clamp-1">
-                    &ldquo;{rev.comment}&rdquo;
-                  </p>
-                </div>
-
-                <span
-                  className={`h-6 px-2.5 rounded-full text-[12px] font-medium inline-flex items-center shrink-0 self-start sm:self-center ${
-                    rev.replyText
-                      ? 'bg-[#222a10] text-[#c6f24e]'
-                      : 'bg-[#2b2414] text-[#e5a93b]'
-                  }`}
-                >
-                  {rev.replyText ? 'Respondida' : 'Aguardando resposta'}
-                </span>
+            {reviews.length === 0 ? (
+              <div className="py-4 text-[13px] text-[#949494]">
+                Nenhuma avaliação sincronizada ainda. Conecte o Google Meu Negócio para importar avaliações reais.
               </div>
-            ))}
+            ) : (
+              reviews.slice(0, 2).map((rev) => (
+                <div
+                  key={rev.id}
+                  className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] font-medium text-white">
+                        {rev.author || rev.authorName}
+                      </span>
+                      <span className="text-[12px] text-[#b4b4b4] tabular-nums">
+                        Nota {rev.rating},0
+                      </span>
+                      <span className="text-[12px] text-[#949494]">· {rev.date || rev.createTime}</span>
+                    </div>
+                    <p className="text-[13px] text-[#b4b4b4] line-clamp-1">
+                      &ldquo;{rev.comment}&rdquo;
+                    </p>
+                  </div>
+
+                  <span
+                    className={`h-6 px-2.5 rounded-full text-[12px] font-medium inline-flex items-center shrink-0 self-start sm:self-center ${
+                      rev.replyText
+                        ? 'bg-[#222a10] text-[#c6f24e]'
+                        : 'bg-[#2b2414] text-[#e5a93b]'
+                    }`}
+                  >
+                    {rev.replyText ? 'Respondida' : 'Aguardando resposta'}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </section>
 

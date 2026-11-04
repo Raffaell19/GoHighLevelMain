@@ -155,7 +155,7 @@ function formatWhatsAppPhone(phone: string): string {
 
 // Helper para descobrir a instância realmente ativa e conectada na Evolution API
 async function resolveActiveInstance(preferred?: string): Promise<string> {
-  const primary = preferred || 'alves-climatiza--o---el-trica';
+  const primary = preferred || 'connect-digital';
   try {
     // 1. Testa se a instância informada está aberta/conectada
     const checkRes = await fetch(`${EVOLUTION_URL}/instance/connectionState/${encodeURIComponent(primary)}`, {

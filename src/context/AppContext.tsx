@@ -29,139 +29,38 @@ const initialSubaccounts: Subaccount[] = [
     name: 'Connect Digital',
     segment: 'Marketing & Automações',
     logo: '/logo-connect-digital.png',
-    phone: '+55 11 98877-6655',
+    phone: '',
     email: 'contato@connectdigital.com.br',
     whatsappConfig: {
       provider: 'evolution',
-      status: 'connected',
-      phone: '+55 51 9196-2040',
-      instanceName: 'alves-climatiza--o---el-trica',
+      status: 'disconnected',
+      phone: '',
+      instanceName: 'connect-digital',
       evolutionApiUrl: 'https://evolution-api-kix9.onrender.com',
       evolutionApiKey: 'flowlevel_secret_key_2026',
     },
-    gmbConnected: true,
-    socialConnected: true,
+    gmbConnected: false,
+    socialConnected: false,
   },
 ];
 
-const initialLeads: Lead[] = [
-  {
-    id: 'lead-init-1',
-    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
-    name: 'Esquadrias Sul Brasil',
-    company: 'Esquadrias Sul Brasil Ltda',
-    phone: '+55 51 99812-4410',
-    email: 'contato@esquadriassul.com.br',
-    value: 4800,
-    stageId: 'stage-1',
-    tags: ['Google Maps', 'Sem Site'],
-    notes: 'Empresa qualificada via prospecção local em Novo Hamburgo.',
-    createdAt: '2026-11-04 08:40',
-    lastActivity: 'Há 18 min',
-    status: 'open',
-  },
-  {
-    id: 'lead-init-2',
-    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
-    name: 'Climatização Vale do Sinos',
-    company: 'ValeClima Engenharia Térmica',
-    phone: '+55 51 99240-1180',
-    email: 'comercial@valeclima.com.br',
-    value: 7500,
-    stageId: 'stage-2',
-    tags: ['WhatsApp Inbound', 'Decisor'],
-    notes: 'Proprietário confirmou reunião técnica para sexta-feira.',
-    createdAt: '2026-11-03 16:15',
-    lastActivity: 'Há 1h',
-    status: 'open',
-  },
-  {
-    id: 'lead-init-3',
-    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
-    name: 'Vidraçaria & Fachadas Cristal',
-    company: 'Cristal Glass Arquitetura',
-    phone: '+55 51 98410-9022',
-    email: 'diretoria@cristalglass.com.br',
-    value: 6200,
-    stageId: 'stage-4',
-    tags: ['Proposta Enviada', 'B2B'],
-    notes: 'Proposta de automação comercial e Google Meu Negócio enviada.',
-    createdAt: '2026-11-02 14:20',
-    lastActivity: 'Ontem',
-    status: 'open',
-  },
-  {
-    id: 'lead-init-4',
-    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
-    name: 'Prime Odontologia Integrada',
-    company: 'Clínica Prime Odonto',
-    phone: '+55 51 99705-3319',
-    email: 'gestao@primeodonto.com.br',
-    value: 5400,
-    stageId: 'stage-5',
-    tags: ['Contrato Assinado', 'Recorrente'],
-    notes: 'Fechamento de plano anual de automação e tráfego local.',
-    createdAt: '2026-11-01 11:00',
-    lastActivity: 'Fechado',
-    status: 'won',
-  },
-];
+const initialLeads: Lead[] = [];
 
-const initialReviews: GMBReview[] = [
-  {
-    id: 'rev-init-1',
-    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
-    authorName: 'Ricardo M. Albuquerque',
-    author: 'Ricardo M. Albuquerque',
-    avatar: 'RM',
-    rating: 5,
-    comment: 'Implantação impecável do fluxo de atendimento no WhatsApp. Triplicamos a velocidade de resposta aos orçamentos.',
-    createTime: 'Há 2 dias',
-    date: 'Há 2 dias',
-    replyText: 'Obrigado pela parceria, Ricardo! Seguimos acompanhando as métricas de conversão de perto.',
-    replyTime: 'Há 1 dia',
-  },
-  {
-    id: 'rev-init-2',
-    subaccountId: '7c1f69b5-ea20-4ecb-9533-7d8dcc832bdf',
-    authorName: 'Fernanda Siqueira',
-    author: 'Fernanda Siqueira',
-    avatar: 'FS',
-    rating: 5,
-    comment: 'Excelente posicionamento no Google Maps e automação muito bem calibrada para filtrar decisores.',
-    createTime: 'Há 5 dias',
-    date: 'Há 5 dias',
-  },
-];
+const initialReviews: GMBReview[] = [];
 
 const initialGMBStats: GMBStats = {
-  views: 14820,
-  searches: 4390,
-  calls: 318,
-  directions: 412,
-  websiteClicks: 964,
-  ratingAverage: 4.9,
-  totalReviews: 128,
+  views: 0,
+  searches: 0,
+  calls: 0,
+  directions: 0,
+  websiteClicks: 0,
+  ratingAverage: 0,
+  totalReviews: 0,
 };
 
 const initialSocialPosts: SocialPost[] = [];
 
-const initialWorkflows: WorkflowRule[] = [
-  {
-    id: 'wf-1',
-    subaccountId: 'sub-1',
-    name: 'Captura Automática de Lead no WhatsApp',
-    description: 'Cadastra automaticamente no CRM como Novo Lead e dispara a saudação do Chatbot.',
-    triggerType: 'whatsapp_received',
-    triggerLabel: 'Nova mensagem de contato não cadastrado',
-    isActive: true,
-    totalExecutions: 0,
-    actions: [
-      { id: 'a1', type: 'add_tag', label: 'Adicionar Tag #WhatsAppLead', config: { tag: 'WhatsApp Inbound' } },
-      { id: 'a2', type: 'update_stage', label: 'Mover para etapa "Novos Leads"', config: { stageId: 'stage-1' } },
-    ],
-  },
-];
+const initialWorkflows: WorkflowRule[] = [];
 
 interface AppContextType {
   currentUser: AppUser | null;
@@ -278,7 +177,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   provider: 'evolution',
                   status: 'disconnected',
                   phone: s.phone || '',
-                  instanceName: s.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                  instanceName: s.name
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '') || 'connect-digital',
+                  evolutionApiUrl: 'https://evolution-api-kix9.onrender.com',
+                  evolutionApiKey: 'flowlevel_secret_key_2026',
                 },
                 gmbConnected: s.gmb_connected,
                 socialConnected: s.social_connected,
@@ -303,9 +209,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               email: s.email || '',
               whatsappConfig: {
                 provider: 'evolution',
-                status: 'connected',
+                status: 'disconnected',
                 phone: s.phone || '',
-                instanceName: s.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                instanceName: s.name
+                  .normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '')
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .replace(/^-+|-+$/g, '') || 'connect-digital',
+                evolutionApiUrl: 'https://evolution-api-kix9.onrender.com',
+                evolutionApiKey: 'flowlevel_secret_key_2026',
               },
               gmbConnected: s.gmb_connected,
               socialConnected: s.social_connected,
@@ -378,7 +291,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const resLeads = await fetch(`/api/leads?subaccountId=${currentSubaccount.id}`);
         const dataLeads = await resLeads.json();
 
-        if (dataLeads.leads && dataLeads.leads.length > 0 && isMounted) {
+        if (Array.isArray(dataLeads.leads) && isMounted) {
           const firstStageId = loadedStages[0]?.id || 'stage-1';
           const stageIds = new Set(loadedStages.map((s) => s.id));
 
@@ -430,7 +343,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const dataGmb = await resGmb.json();
         if (dataGmb && isMounted) {
           if (dataGmb.stats) setGmbStats(dataGmb.stats);
-          if (dataGmb.reviews && Array.isArray(dataGmb.reviews) && dataGmb.reviews.length > 0) {
+          if (Array.isArray(dataGmb.reviews)) {
             setReviews(dataGmb.reviews);
           }
         }
@@ -613,7 +526,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           phone: targetContact?.phone || '',
           text,
           subaccountId: currentSubaccount.id,
-          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
+          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'connect-digital',
         }),
       });
     } catch (err) {
@@ -756,7 +669,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           mediaUrl,
           mediaType,
           subaccountId: currentSubaccount.id,
-          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'alves-climatiza--o---el-trica',
+          instanceName: currentSubaccount.whatsappConfig?.instanceName || 'connect-digital',
           tags: targetTags,
           stepNumber: stepNum,
         }),

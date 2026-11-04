@@ -64,13 +64,13 @@ export default function GoogleBusinessView() {
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [gmbForm, setGmbForm] = useState({
     businessName: currentSubaccount.name,
-    address: 'São Paulo - SP · Visível no Google Maps e Pesquisa',
-    placeId: 'ChIJ0WGkg4FEzpQRrlsz_whLqZs',
+    address: 'Brasil · Visível no Google Maps e Pesquisa',
+    placeId: '',
     googleEmail: currentSubaccount.email || 'contato@connectdigital.com.br',
-    views: gmbStats.views || 18450,
-    searches: gmbStats.searches || 7290,
-    calls: gmbStats.calls || 142,
-    directions: gmbStats.directions || 89,
+    views: gmbStats.views || 0,
+    searches: gmbStats.searches || 0,
+    calls: gmbStats.calls || 0,
+    directions: gmbStats.directions || 0,
   });
 
   useEffect(() => {
@@ -79,10 +79,10 @@ export default function GoogleBusinessView() {
       ...prev,
       businessName: currentSubaccount.name,
       googleEmail: currentSubaccount.email || 'contato@connectdigital.com.br',
-      views: gmbStats.views || 18450,
-      searches: gmbStats.searches || 7290,
-      calls: gmbStats.calls || 142,
-      directions: gmbStats.directions || 89,
+      views: gmbStats.views || 0,
+      searches: gmbStats.searches || 0,
+      calls: gmbStats.calls || 0,
+      directions: gmbStats.directions || 0,
     }));
   }, [currentSubaccount, gmbStats]);
 

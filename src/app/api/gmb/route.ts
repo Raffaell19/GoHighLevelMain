@@ -4,57 +4,16 @@ import { encryptCredentials, decryptCredentials } from '@/lib/crypto';
 import { GMBReview, GMBStats } from '@/types';
 
 const defaultStats: GMBStats = {
-  views: 18450,
-  searches: 7290,
-  calls: 142,
-  directions: 89,
-  websiteClicks: 320,
-  ratingAverage: 4.9,
-  totalReviews: 138,
+  views: 0,
+  searches: 0,
+  calls: 0,
+  directions: 0,
+  websiteClicks: 0,
+  ratingAverage: 0,
+  totalReviews: 0,
 };
 
-const sampleReviewsTemplate = (companyName: string, subaccountId: string): GMBReview[] => [
-  {
-    id: 'gmb-rev-1',
-    subaccountId,
-    authorName: 'Carlos Eduardo Mendes',
-    authorPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop',
-    rating: 5,
-    comment: `Atendimento impecável da equipe da ${companyName}! Foram extremamente rápidos no retorno pelo WhatsApp e resolveram minha demanda com total pontualidade. Recomendo de olhos fechados.`,
-    createTime: 'Há 2 dias',
-    replyText: `Muito obrigado pela confiança, Carlos! Ficamos muito felizes em entregar a melhor experiência para você. Conte sempre conosco!`,
-    replyTime: 'Há 1 dia',
-  },
-  {
-    id: 'gmb-rev-2',
-    subaccountId,
-    authorName: 'Mariana Silveira',
-    authorPhoto: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop',
-    rating: 5,
-    comment: `Excelente empresa! Profissionais qualificados, preço justo e serviço entregue antes do prazo previsto. Nota 10!`,
-    createTime: 'Há 5 dias',
-  },
-  {
-    id: 'gmb-rev-3',
-    subaccountId,
-    authorName: 'Roberto Alencar',
-    authorPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-    rating: 4,
-    comment: `Muito bom serviço e suporte atencioso. Apenas tive um pequeno atraso de 15 minutos na chegada, mas a qualidade final superou as expectativas.`,
-    createTime: 'Há 1 semana',
-  },
-  {
-    id: 'gmb-rev-4',
-    subaccountId,
-    authorName: 'Juliana Paes Castro',
-    authorPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-    rating: 5,
-    comment: `Empresa séria e transparente. O suporte tirou todas as minhas dúvidas de imediato. Com certeza voltarei a contratar.`,
-    createTime: 'Há 2 semanas',
-    replyText: `Olá Juliana! Agradecemos imensamente o seu carinho e feedback. Nossa prioridade é a sua satisfação!`,
-    replyTime: 'Há 2 semanas',
-  },
-];
+const sampleReviewsTemplate = (_companyName: string, _subaccountId: string): GMBReview[] => [];
 
 export async function GET(request: NextRequest) {
   try {

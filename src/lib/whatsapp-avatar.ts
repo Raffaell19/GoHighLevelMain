@@ -10,7 +10,7 @@ export async function fetchWhatsAppProfilePicture(
 ): Promise<string | null> {
   const digits = (phone || '').replace(/[^0-9]/g, '');
   if (!digits || digits.length < 8) return null;
-  const instance = instanceName || 'alves-climatiza--o---el-trica';
+  const instance = instanceName || 'connect-digital';
 
   try {
     const res = await fetch(

@@ -65,81 +65,8 @@ interface MassOutreachModalProps {
   onNavigateToCrm?: () => void;
 }
 
-// 20 estabelecimentos completos minerados para histórico e demonstração rápida
-const DEFAULT_SEED_PROSPECTS: ProspectItem[] = [
-  {
-    id: 'seed_1',
-    name: 'Esquadrias Vale dos Sinos',
-    phone: '(51) 99594-1122',
-    address: 'Av. Nações Unidas, 2340 - Centro, Novo Hamburgo - RS',
-    rating: 4.8,
-    reviewsCount: 38,
-    category: 'Fábrica de Esquadrias',
-  },
-  {
-    id: 'seed_2',
-    name: 'Alumasa Alumínios & Vidros',
-    phone: '(51) 99823-4455',
-    address: 'Rua Bento Gonçalves, 1100 - Pátria Nova, Novo Hamburgo - RS',
-    rating: 4.9,
-    reviewsCount: 64,
-    category: 'Vidraçaria e Esquadrias',
-  },
-  {
-    id: 'seed_3',
-    name: 'Metálica Sinos Soluções',
-    phone: '(51) 98711-2233',
-    address: 'Rua Primeiro de Março, 850 - Industrial, Novo Hamburgo - RS',
-    rating: 4.7,
-    reviewsCount: 29,
-    category: 'Serralheria Industrial',
-  },
-  {
-    id: 'seed_4',
-    name: 'Portal Esquadrias de Alto Padrão',
-    phone: '(51) 99344-9988',
-    address: 'Rua Guia Lopes, 430 - Rondônia, Novo Hamburgo - RS',
-    rating: 5.0,
-    reviewsCount: 42,
-    category: 'Esquadrias em PVC e Alumínio',
-  },
-  {
-    id: 'seed_5',
-    name: 'Vanguard Estruturas Metálicas',
-    phone: '(51) 99122-3344',
-    address: 'Av. Cel. Travassos, 990 - Canudos, Novo Hamburgo - RS',
-    rating: 4.6,
-    reviewsCount: 19,
-    category: 'Fábrica de Portões e Grades',
-  },
-  {
-    id: 'seed_6',
-    name: 'Arte em Alumínio & Fachadas',
-    phone: '(51) 99455-6677',
-    address: 'Rua Sapiranga, 180 - Canudos, Novo Hamburgo - RS',
-    rating: 4.9,
-    reviewsCount: 51,
-    category: 'Fachadas e Esquadrias',
-  },
-  {
-    id: 'seed_7',
-    name: 'Sinos Glass Vidros Temperados',
-    phone: '(51) 98123-9900',
-    address: 'Rua Bartolomeu de Gusmão, 450 - Canudos, Novo Hamburgo - RS',
-    rating: 4.8,
-    reviewsCount: 33,
-    category: 'Vidraçaria e Alumínio',
-  },
-  {
-    id: 'seed_8',
-    name: 'Esquadrias & Ferragens Brasil',
-    phone: '(51) 99233-1188',
-    address: 'Rua Joaquim Nabuco, 710 - Rio Branco, Novo Hamburgo - RS',
-    rating: 4.5,
-    reviewsCount: 17,
-    category: 'Serralheria e Estruturas',
-  },
-];
+// Lista inicial de destinatários de prospecção (inicia zerada para operação real)
+const DEFAULT_SEED_PROSPECTS: ProspectItem[] = [];
 
 // Áudios Padrão da Plataforma (Inicia zerado para gravações reais do usuário)
 const DEFAULT_AUDIOS: AudioTrackItem[] = [];

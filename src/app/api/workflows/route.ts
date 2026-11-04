@@ -15,7 +15,7 @@ const defaultSeedWorkflows = (subaccountId: string): WorkflowRule[] => [
       keywords: ['orçamento', 'preço', 'ar condicionado', 'instalação', 'manutenção', 'limpeza'],
     },
     isActive: true,
-    totalExecutions: 42,
+    totalExecutions: 0,
     steps: [
       {
         id: 'step-cond-1',
@@ -96,7 +96,7 @@ const defaultSeedWorkflows = (subaccountId: string): WorkflowRule[] => [
       stageId: 'stage-3',
     },
     isActive: true,
-    totalExecutions: 19,
+    totalExecutions: 0,
     steps: [
       {
         id: 'step-delay-1',
@@ -156,7 +156,7 @@ const defaultSeedWorkflows = (subaccountId: string): WorkflowRule[] => [
       minRating: 4,
     },
     isActive: true,
-    totalExecutions: 31,
+    totalExecutions: 0,
     steps: [
       {
         id: 'step-cond-3',

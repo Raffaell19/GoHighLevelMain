@@ -285,13 +285,13 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
     }
   };
 
-  const fetchLiveQrCode = useCallback(async () => {
+  const fetchLiveQrCode = useCallback(async (forceRestart = false) => {
     setIsLoadingQr(true);
-    const cleanInst = (instanceName || 'alves-climatiza--o---el-trica').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanInst = (instanceName || 'connect-digital').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     const cleanUrl = (apiUrl || 'https://evolution-api-kix9.onrender.com').trim().replace(/\s+/g, '-');
     try {
       const res = await fetch(
-        `/api/whatsapp/qrcode?instance=${encodeURIComponent(cleanInst)}&apiUrl=${encodeURIComponent(cleanUrl)}&apiKey=${encodeURIComponent(apiKey.trim())}`
+        `/api/whatsapp/qrcode?instance=${encodeURIComponent(cleanInst)}&apiUrl=${encodeURIComponent(cleanUrl)}&apiKey=${encodeURIComponent(apiKey.trim())}${forceRestart ? '&force=true' : ''}`
       );
       const data = await res.json();
       if (data.connected || data.state === 'open') {
@@ -302,7 +302,11 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
         setIsLiveConnected(false);
         setQrState(data.state || 'connecting');
         if (data.base64) {
-          setLiveQrCode(data.base64);
+          setLiveQrCode(
+            data.base64.startsWith('data:image')
+              ? data.base64
+              : `data:image/png;base64,${data.base64}`
+          );
         }
       }
     } catch (err) {
@@ -314,8 +318,8 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
 
   useEffect(() => {
     if (activeTab === 'connection' && selectedProvider === 'evolution') {
-      fetchLiveQrCode();
-      const interval = setInterval(fetchLiveQrCode, 8000);
+      fetchLiveQrCode(false);
+      const interval = setInterval(() => fetchLiveQrCode(false), 12000);
       return () => clearInterval(interval);
     }
   }, [activeTab, selectedProvider, fetchLiveQrCode]);
@@ -1215,7 +1219,7 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                         Sua instância <strong className="text-white">{instanceName}</strong> está sincronizada. Todas as mensagens recebidas gerarão leads e acionarão a IA automaticamente.
                       </p>
                       <button
-                        onClick={fetchLiveQrCode}
+                        onClick={() => fetchLiveQrCode(false)}
                         className="text-[#949494] hover:text-white underline text-[12px] pt-1"
                       >
                         Verificar status novamente
@@ -1235,12 +1239,12 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                         </div>
                       ) : (
                         <div
-                          onClick={fetchLiveQrCode}
+                          onClick={() => fetchLiveQrCode(true)}
                           className="w-44 h-44 bg-[#161616] rounded-[8px] border border-dashed border-[#333333] flex flex-col items-center justify-center p-3 text-center cursor-pointer hover:border-[#555555] transition-colors"
                         >
                           <RefreshCw className={`w-7 h-7 text-[var(--ok)] ${isLoadingQr ? 'animate-spin' : ''}`} />
                           <span className="text-[12px] font-medium text-[#b4b4b4] mt-2">
-                            {isLoadingQr ? 'Gerando QR Code...' : 'Clique para carregar'}
+                            {isLoadingQr ? 'Gerando QR Code...' : 'Clique para gerar'}
                           </span>
                         </div>
                       )}
@@ -1253,12 +1257,12 @@ Responda em no máximo 2 a 3 frases diretamente ao cliente, como se estivesse no
                           <span>Escanear QR Code no seu WhatsApp</span>
                         </h5>
                         <button
-                          onClick={fetchLiveQrCode}
+                          onClick={() => fetchLiveQrCode(true)}
                           disabled={isLoadingQr}
-                          className="h-8 flex items-center gap-1.5 px-3 text-[12px] font-medium text-white bg-[#161616] hover:bg-[#222222] border border-[#2a2a2a] rounded-[6px] transition-colors"
+                          className="h-8 flex items-center gap-1.5 px-3 text-[12px] font-medium text-white bg-[#161616] hover:bg-[#222222] border border-[#2a2a2a] rounded-[6px] transition-colors cursor-pointer"
                         >
                           <RefreshCw className={`w-3 h-3 ${isLoadingQr ? 'animate-spin' : ''}`} />
-                          <span>{isLoadingQr ? 'Atualizando...' : 'Atualizar QR Code'}</span>
+                          <span>{isLoadingQr ? 'Gerando novo QR...' : 'Gerar novo QR Code'}</span>
                         </button>
                       </div>
 

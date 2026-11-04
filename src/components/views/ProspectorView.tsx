@@ -83,8 +83,8 @@ export function ProspectorView({ onNavigateToCrm, onNavigateToWhatsApp }: Prospe
   const [activeTab, setActiveTab] = useState<'search' | 'history'>('search');
 
   // Form states matching Apify's Google Maps Scraper console
-  const [searchTerm, setSearchTerm] = useState('esquadrias');
-  const [location, setLocation] = useState('Novo Hamburgo, RS, Brasil');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [location, setLocation] = useState('');
   const [limit, setLimit] = useState(70);
   const [isCustomLimit, setIsCustomLimit] = useState(false);
   const [language, setLanguage] = useState('pt-BR');
